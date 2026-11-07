@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>New Issue Challan - OM Enterprise</title>
+<style>
+body { font-family: sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }
+.container { max-width: 900px; margin: auto; background: #fff; padding: 25px; border: 1px solid #cbd5e1; border-radius: 6px; }
+h2 { margin-top: 0; border-bottom: 2px solid #0f172a; padding-bottom: 8px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+label { font-weight: 700; font-size: 12px; color: #334155; }
+input, select { padding: 8px; font-size: 13px; border: 1px solid #94a3b8; border-radius: 4px; }
+table.item-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; }
+table.item-table th, table.item-table td { border: 1px solid #cbd5e1; padding: 6px 8px; }
+table.item-table th { background: #f1f5f9; font-size: 12px; }
+.btn { background: #0f172a; color: #fff; padding: 10px 18px; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 14px; }
+.btn:hover { background: #1e293b; }
+.btn-sm { background: #f97316; padding: 4px 10px; font-size: 12px; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Create New Issue Challan</h2>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div style="padding: 10px; margin-bottom: 15px; background: {% if category=='success' %}#dcfce7{% else %}#fee2e2{% endif %}; border-radius: 4px; font-size: 13px;">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid">
+      <div class="form-group">
+        <label>Challan No.:</label>
+        <input type="text" name="challan_no" required placeholder="e.g. 98/A">
+      </div>
+      <div class="form-group">
+        <label>Date:</label>
+        <input type="text" name="date" required placeholder="DD-MM-YYYY" value="02-09-2026">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="form-group">
+        <label>Party:</label>
+        <select name="party_id" required>
+          <option value="">Select Party</option>
+          {% for p in parties %}
+          <option value="{{ p.Party_ID }}">{{ p.Party_Name or p.Name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Site:</label>
+        <select name="site_id" required>
+          <option value="">Select Site</option>
+          {% for s in sites %}
+          <option value="{{ s.Site_ID }}">{{ s.Site_Name or s.Address }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="form-group">
+        <label>Vehicle No.:</label>
+        <input type="text" name="vehicle_no" value="GJ01HT0732">
+      </div>
+      <div class="form-group">
+        <label>Driver Name:</label>
+        <input type="text" name="driver_name" value="SATISH BHAI">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="form-group">
+        <label>Driver Mobile No.:</label>
+        <input type="text" name="driver_mob" value="9924899108">
+      </div>
+      <div class="form-group">
+        <label>Weight (Kg):</label>
+        <input type="text" name="weight" value="7300 Kg">
+      </div>
+    </div>
+
+    <h3>Items List</h3>
+    <table class="item-table" id="itemsTable">
+      <thead>
+        <tr>
+          <th>Item ID / Description</th>
+          <th>Quantity (Nos)</th>
+          <th style="width: 80px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="text" name="item_id[]" required placeholder="Enter Item ID or Name"></td>
+          <td><input type="number" name="quantity[]" required placeholder="Qty"></td>
+          <td><button type="button" class="btn-sm" onclick="this.closest('tr').remove()">Remove</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-sm" style="background:#0f172a; margin-bottom: 20px;" onclick="addRow()">+ Add Row</button>
+    
+    <div>
+      <button type="submit" class="btn">Save & Print Issue Challan</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function addRow() {
+    const tbody = document.querySelector("#itemsTable tbody");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><input type="text" name="item_id[]" required placeholder="Enter Item ID or Name"></td>
+      <td><input type="number" name="quantity[]" required placeholder="Qty"></td>
+      <td><button type="button" class="btn-sm" onclick="this.closest('tr').remove()">Remove</button></td>
+    `;
+    tbody.appendChild(row);
+}
+</script>
+</body>
+</html>

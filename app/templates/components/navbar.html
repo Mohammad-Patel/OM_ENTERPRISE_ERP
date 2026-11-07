@@ -1,0 +1,32 @@
+<header class="top-navbar">
+    <div class="navbar-left">
+        <button
+            type="button"
+            class="icon-button sidebar-toggle"
+            id="sidebarToggle"
+            aria-label="Toggle sidebar"
+            aria-expanded="true">
+            <span aria-hidden="true">☰</span>
+        </button>
+
+        <a class="brand" href="{{ url_for('dashboard.dashboard') }}">
+            <span class="brand-mark">OM</span>
+            <span class="brand-text">
+                <strong>OM ENTERPRISE</strong>
+                <small>Enterprise Resource Planning</small>
+            </span>
+        </a>
+    </div>
+
+    <div class="navbar-right">
+        <span class="system-status">
+            <span class="status-dot"></span>
+            Local System
+        </span>
+
+        <div class="profile-chip">
+            <span class="profile-avatar">A</span>
+            <span class="profile-label">Administrator</span>
+        </div>
+    </div>
+</header>

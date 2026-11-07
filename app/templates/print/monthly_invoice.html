@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Invoice - OM Enterprise</title>
+<style>
+@page { size: A4 portrait; margin: 10mm; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html, body { margin: 0; padding: 0; background: #cbd5e1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #0f172a; font-size: 11px; line-height: 1.5; }
+.page { width: 210mm; min-height: 297mm; margin: 15px auto; padding: 10mm 12mm; background: #ffffff; border: 1px solid #94a3b8; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+.header { display: grid; grid-template-columns: 90mm 1fr; border-bottom: 3px solid #0f172a; padding-bottom: 6mm; margin-bottom: 5mm; align-items: center; }
+.logo-area { display: flex; align-items: center; gap: 14px; }
+.brand-logo { width: 72px; height: 60px; flex-shrink: 0; }
+.logo-text { display: flex; flex-direction: column; gap: 3px; }
+.logo-text .brand-name { font-size: 19px; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; line-height: 1.1; }
+.logo-text .brand-sub { font-size: 6.5px; font-weight: 800; color: #f97316; letter-spacing: 0.6px; text-transform: uppercase; }
+.title-area { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.title-area h1 { font-size: 20px; margin: 0 0 3px 0; font-weight: 900; color: #0f172a; letter-spacing: 0.8px; }
+.title-area .company-name { font-size: 13px; font-weight: 800; color: #1e293b; margin: 0; }
+.title-area p { font-size: 9px; margin: 0; color: #334155; line-height: 1.4; }
+.tax-details { font-weight: 800; color: #0f172a !important; margin-top: 4px !important; }
+.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1px solid #334155; margin-bottom: 5mm; page-break-inside: avoid; border-radius: 2px; }
+.receiver, .meta { display: flex; flex-direction: column; }
+.receiver { border-right: 1px solid #334155; }
+.box-title { background: #f1f5f9; padding: 6px 10px; border-bottom: 1px solid #334155; font-weight: 800; font-size: 9.5px; text-transform: uppercase; color: #0f172a; letter-spacing: 0.3px; }
+.box-content { padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; gap: 6px; }
+.top-fields, .bottom-fields { display: flex; flex-direction: column; gap: 4px; }
+.field-row { display: grid; grid-template-columns: 28mm 1fr; font-size: 10px; line-height: 1.4; }
+.field-row b { color: #334155; white-space: nowrap; font-weight: 700; }
+.field-row span { color: #000000; font-weight: 600; word-break: break-word; }
+.items-table { width: 100%; border-collapse: collapse; border: 1px solid #334155; margin-bottom: 5mm; }
+.items-table th { background: #f1f5f9; color: #0f172a; border-bottom: 2px solid #0f172a; border-right: 1px solid #334155; padding: 7px 6px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.2px; }
+.items-table td { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #cbd5e1; padding: 6px 8px; font-size: 9.5px; line-height: 1.4; vertical-align: middle; }
+.items-table tr { page-break-inside: avoid; }
+.items-table th:last-child, .items-table td:last-child { border-right: none; }
+.items-table tr.item-group-end td { border-bottom: 2px solid #0f172a !important; padding-bottom: 8px; }
+.text-center { text-align: center; } .text-right { text-align: right; } .text-left { text-left: left; }
+.font-bold { font-weight: 700; color: #0f172a; }
+.sub-text { font-size: 8.5px; color: #475569; padding-left: 6px; }
+.summary-wrapper { display: grid; grid-template-columns: 58% 42%; gap: 12px; margin-bottom: 5mm; page-break-inside: avoid; }
+.balance-block { border: 1px solid #334155; display: flex; flex-direction: column; border-radius: 2px; }
+.balance-content { padding: 8px 10px; font-size: 9.5px; line-height: 1.4; flex: 1; }
+.words-block { padding: 8px 10px; font-size: 9.5px; line-height: 1.4; border-top: 1px dashed #cbd5e1; background: #f8fafc; }
+.balance-content b, .words-block b { color: #0f172a; display: block; margin-bottom: 3px; letter-spacing: 0.2px; }
+.balance-content p, .words-block p { margin: 0; color: #334155; font-weight: 600; }
+.tax-table { width: 100%; border-collapse: collapse; border: 1px solid #334155; }
+.tax-table td { padding: 5px 8px; font-size: 9.5px; border-bottom: 1px solid #e2e8f0; line-height: 1.4; }
+.net-total-row { background: #0f172a; color: #ffffff; font-weight: 800; }
+.net-total-row td { color: #ffffff; padding: 7px 8px; font-size: 11px !important; }
+.terms { font-size: 8.5px; line-height: 1.5; color: #1e293b; margin-top: 4mm; margin-bottom: 3mm; padding: 6px 8px; background: #f8fafc; border-left: 3px solid #0f172a; page-break-inside: avoid; }
+.terms-heading { font-weight: 800; font-size: 9px; color: #0f172a; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+.terms ol { margin: 0 0 0 14px; padding: 0; }
+.terms li { margin-bottom: 2px; }
+.footer { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: flex-end; margin-top: 4mm; text-align: center; page-break-inside: avoid; }
+.sign-box { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 18mm; }
+.sign-line { border-top: 1px solid #334155; width: 85%; padding-top: 4px; font-size: 8.5px; font-weight: 700; color: #0f172a; }
+.stamp-container { display: flex; justify-content: center; align-items: center; }
+.stamp { width: 28mm; height: 28mm; border: 1.5px dashed #f97316; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #0f172a; transform: rotate(-6deg); padding: 2px; }
+.stamp b { font-size: 8.5px; line-height: 1.1; } .stamp small { font-size: 5.5px; font-weight: 800; letter-spacing: 0.3px; color: #f97316; margin-top: 2px; }
+@media print { html, body { background: #ffffff; } .page { margin: 0; border: none; box-shadow: none; width: 100%; min-height: 297mm; padding: 6mm 8mm; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div>
+    <header class="header">
+      <div class="logo-area">
+        <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="15" width="210" height="170" rx="12" fill="#0F172A" />
+          <circle cx="28" cy="28" r="4" fill="#F97316" /><circle cx="212" cy="28" r="4" fill="#F97316" />
+          <circle cx="28" cy="172" r="4" fill="#F97316" /><circle cx="212" cy="172" r="4" fill="#F97316" />
+          <line x1="15" y1="65" x2="225" y2="65" stroke="#1E293B" stroke-width="2" />
+          <line x1="15" y1="135" x2="225" y2="135" stroke="#1E293B" stroke-width="2" />
+          <line x1="85" y1="15" x2="85" y2="185" stroke="#1E293B" stroke-width="2" />
+          <line x1="155" y1="15" x2="155" y2="185" stroke="#1E293B" stroke-width="2" />
+          <path d="M 40,50 L 105,50 C 115,50 120,55 120,65 L 120,135 C 120,145 115,150 105,150 L 40,150 Z" fill="none" stroke="#F97316" stroke-width="14" stroke-linejoin="round" />
+          <path d="M 120,150 L 120,60 L 148,110 L 176,60 L 176,150" fill="none" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="110" y="96" width="80" height="8" rx="2" fill="#F97316" />
+        </svg>
+        <div class="logo-text">
+          <span class="brand-name">OM ENTERPRISE</span>
+          <span class="brand-sub">RCC FORM-WORK & SCAFFOLDING RENTALS</span>
+        </div>
+      </div>
+
+      <div class="title-area">
+        <h1>TAX INVOICE</h1>
+        <p class="company-name">OM ENTERPRISE</p>
+        <p>C-203 VISHWAS CITY 5, GOTA CROSS ROAD, GOTA, AHMEDABAD-382481</p>
+        <p>Contact: +91 9998802167, 9824219138 | Email: sbsanghvi.86@gmail.com</p>
+        <p class="tax-details">GSTIN: 24AAGFO5616E1ZI &nbsp;|&nbsp; SAC: 99713</p>
+      </div>
+    </header>
+
+    <section class="party-grid">
+      <div class="receiver">
+        <div class="box-title">RECIPIENT DETAILS</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Name:</b><span>{{ party.Name or party.Party_Name }}</span></div>
+            <div class="field-row"><b>Address:</b><span>{{ party.Address or party.Billing_Address }}</span></div>
+          </div>
+          <div class="bottom-fields">
+            <div class="field-row"><b>Mobile No.:</b><span>{{ party.Mobile or party.Mobile_No }}</span></div>
+            <div class="field-row"><b>GSTIN No:</b><span>{{ party.GSTIN or '-' }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="box-title">INVOICE DETAILS</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Invoice No.:</b><span>AUTO/26-27</span></div>
+            <div class="field-row"><b>Invoice Date:</b><span>{{ bill.end_date }}</span></div>
+          </div>
+          <div class="bottom-fields">
+            <div class="field-row"><b>Period:</b><span>{{ bill.start_date }} TO {{ bill.end_date }}</span></div>
+            <div class="field-row"><b>Site:</b><span>{{ site.Address or site.Site_Address }}</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th style="width: 5%" class="text-center">S.No.</th>
+          <th style="width: 25%" class="text-left">Description</th>
+          <th style="width: 10%" class="text-right">NOS.</th>
+          <th style="width: 20%" class="text-center">Period</th>
+          <th style="width: 8%" class="text-center">Days</th>
+          <th style="width: 12%" class="text-right">Number</th>
+          <th style="width: 8%" class="text-right">Rate</th>
+          <th style="width: 12%" class="text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b_item in bill.items %}
+          {% for seg in b_item.segments %}
+          <tr {% if loop.last %}class="item-group-end"{% endif %}>
+            {% if loop.first %}
+            <td class="text-center" rowspan="{{ b_item.rowspan }}">{{ b_item.s_no }}</td>
+            <td class="font-bold">{{ b_item.item_name }}</td>
+            {% else %}
+            <td class="sub-text">(Qty Bal)</td>
+            {% endif %}
+            <td class="text-right">{{ seg.qty|int }}</td>
+            <td class="text-center">{{ seg.period_str }}</td>
+            <td class="text-center">{{ seg.days }}</td>
+            <td class="text-right">{{ seg.nos|int }}</td>
+            <td class="text-right">{{ "%.2f"|format(seg.rate) }}</td>
+            <td class="text-right">{{ "%.2f"|format(seg.amount) }}</td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="summary-wrapper">
+      <div class="balance-block">
+        <div class="box-title">BALANCE QUANTITY DETAILS</div>
+        <div class="balance-content">
+          <b>BALANCE QTY. :-</b>
+          <p>{{ balance_summary }}</p>
+        </div>
+        <div class="words-block">
+          <b>AMOUNT IN WORDS:</b>
+          <p>{{ amount_in_words }}</p>
+        </div>
+      </div>
+
+      <table class="tax-table">
+        <tr>
+          <td>Taxable Value:</td>
+          <td class="text-right">{{ "%.2f"|format(bill.summary.taxable_value) }}</td>
+        </tr>
+        <tr>
+          <td>CGST (9%):</td>
+          <td class="text-right">{{ "%.2f"|format(bill.summary.cgst) }}</td>
+        </tr>
+        <tr>
+          <td>SGST (9%):</td>
+          <td class="text-right">{{ "%.2f"|format(bill.summary.sgst) }}</td>
+        </tr>
+        <tr>
+          <td>Total Amount:</td>
+          <td class="text-right">{{ "%.2f"|format(bill.summary.total_amount) }}</td>
+        </tr>
+        <tr>
+          <td>Round Off:</td>
+          <td class="text-right">{{ "%+.2f"|format(bill.summary.round_off) }}</td>
+        </tr>
+        <tr class="net-total-row">
+          <td>NET TOTAL:</td>
+          <td class="text-right">₹ {{ "%.2f"|format(bill.summary.net_total) }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <section class="terms">
+      <div class="terms-heading">TERMS &amp; CONDITIONS</div>
+      <ol>
+        <li>Client will be responsible for breakage or loss of goods.</li>
+        <li>Transportation for both sides will be borne by client.</li>
+        <li>Company/Client who hire the goods will have total responsibility of it.</li>
+        <li>All disputes are subject to Ahmedabad jurisdiction only.</li>
+      </ol>
+    </section>
+  </div>
+
+  <footer class="footer">
+    <div class="sign-box"><div class="sign-line">Client Stamp &amp; Signature</div></div>
+    <div class="sign-box"><div class="sign-line">Checked By</div></div>
+    <div class="stamp-container">
+      <div class="stamp">
+        <b>OM ENTERPRISE</b>
+        <small>EQUIPMENT RENTALS</small>
+        <small>AUTH. SIGNATORY</small>
+      </div>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

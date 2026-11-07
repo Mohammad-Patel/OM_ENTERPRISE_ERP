@@ -1,0 +1,958 @@
+
+{% extends "base.html" %}
+
+{% block title %}Party Master | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">MASTER MANAGEMENT</p>
+        <h1>Party Master</h1>
+        <p class="page-description">
+            GST aur Without GST parties ko manage karein.
+        </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="openPartyModal">
+        <span class="btn-icon">+</span>
+        Add New Party
+    </button>
+</section>
+
+<!-- SEARCH AND FILTERS -->
+<section class="panel filter-panel">
+    <form method="get"
+          action="{{ url_for('parties.index') }}"
+          class="filter-form">
+
+        <div class="form-group search-group">
+            <label for="q">Search Party</label>
+            <input
+                id="q"
+                type="search"
+                name="q"
+                value="{{ search }}"
+                placeholder="Party name, ID, phone or GSTIN">
+        </div>
+
+        <div class="form-group">
+            <label for="type">Party Type</label>
+            <select id="type" name="type">
+                <option value="" {% if not selected_type %}selected{% endif %}>
+                    All Types
+                </option>
+                <option value="GST"
+                    {% if selected_type == 'GST' %}selected{% endif %}>
+                    GST Party
+                </option>
+                <option value="WITHOUT_GST"
+                    {% if selected_type == 'WITHOUT_GST' %}selected{% endif %}>
+                    Without GST Party
+                </option>
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <span>⌕</span> Search
+            </button>
+
+            <a class="btn btn-secondary"
+               href="{{ url_for('parties.index') }}">
+                Reset
+            </a>
+        </div>
+    </form>
+</section>
+
+<!-- PARTY RECORDS -->
+<section class="panel records-panel">
+    <div class="section-heading">
+        <div>
+            <h2>Party Records</h2>
+            <p>{{ parties|length }} record(s) displayed</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Party ID</th>
+                    <th>Party Name</th>
+                    <th>Party Type</th>
+                    <th>GSTIN</th>
+                    <th>Phone</th>
+                    <th>State</th>
+                    <th>Status</th>
+                    <th class="actions-heading">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for party in parties %}
+                {% set active_value = party.get('Is_Active') %}
+                {% set is_active = active_value == True or active_value|string|lower in ['true', '1'] %}
+
+                <tr>
+                    <td class="party-id">
+                        {{ party.get('Party_ID', '') }}
+                    </td>
+
+                    <td class="party-name">
+                        <strong>{{ party.get('Party_Name', '') }}</strong>
+                    </td>
+
+                    <td>
+                        {% if party.get('Party_Type') == 'GST' %}
+                            <span class="status-badge badge-gst">GST</span>
+                        {% else %}
+                            <span class="status-badge badge-without-gst">
+                                Without GST
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td class="gstin-cell">
+                        {{ party.get('GSTIN') or '—' }}
+                    </td>
+
+                    <td>{{ party.get('Phone') or '—' }}</td>
+
+                    <td>
+                        {{ party.get('State') or '—' }}
+                        {% if party.get('State_Code') %}
+                            <span class="state-code">
+                                ({{ party.get('State_Code') }})
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if is_active %}
+                            <span class="status-badge status-active">
+                                <span class="status-dot"></span>
+                                Active
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-inactive">
+                                <span class="status-dot"></span>
+                                Inactive
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="table-actions">
+
+                            <!-- VIEW PARTY -->
+                            <a class="btn btn-small btn-view"
+                               href="{{ url_for('parties.view', party_id=party.get('Party_ID')) }}"
+                               title="View complete party information">
+                                <svg viewBox="0 0 24 24"
+                                     width="16" height="16"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     aria-hidden="true">
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                View
+                            </a>
+
+                            <!-- EDIT PARTY -->
+                            <a class="btn btn-small btn-edit"
+                               href="{{ url_for('parties.edit', party_id=party.get('Party_ID')) }}"
+                               title="Edit party information">
+                                <svg viewBox="0 0 24 24"
+                                     width="15" height="15"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     aria-hidden="true">
+                                    <path d="M12 20h9"/>
+                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>
+                                </svg>
+                                Edit
+                            </a>
+
+                        </div>
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        <div class="empty-icon">⌕</div>
+                        <strong>No party records found</strong>
+                        <p>
+                            Search filters change karein ya Add New Party
+                            par click karke naya record banayein.
+                        </p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ADD PARTY MODAL -->
+<dialog id="partyModal" class="party-modal">
+
+    <div class="modal-header">
+        <div>
+            <p class="eyebrow">MASTER MANAGEMENT</p>
+            <h2>Add Party</h2>
+            <p class="modal-subtitle">
+                Party ki details fill karein.
+            </p>
+        </div>
+
+        <button type="button"
+                class="modal-close"
+                id="closePartyModal"
+                aria-label="Close modal">
+            &times;
+        </button>
+    </div>
+
+    <form method="post"
+          action="{{ url_for('parties.create') }}"
+          id="modalPartyForm">
+
+        <div class="modal-body">
+
+            <fieldset class="form-section">
+                <legend>Party Classification</legend>
+
+                <div class="form-group">
+                    <span class="field-label">
+                        Party Type <span class="required">*</span>
+                    </span>
+
+                    <div class="radio-options">
+                        <label class="radio-card">
+                            <input
+                                type="radio"
+                                name="Party_Type"
+                                value="GST"
+                                checked
+                                required>
+                            <span>
+                                <strong>GST Party</strong>
+                                <small>GST billing workflow</small>
+                            </span>
+                        </label>
+
+                        <label class="radio-card">
+                            <input
+                                type="radio"
+                                name="Party_Type"
+                                value="WITHOUT_GST"
+                                required>
+                            <span>
+                                <strong>Without GST Party</strong>
+                                <small>Without GST billing workflow</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="modalGstinGroup">
+                    <label for="modalGSTIN">
+                        GSTIN
+                        <span id="modalGstinRequired" class="required">*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="modalGSTIN"
+                        name="GSTIN"
+                        maxlength="15"
+                        minlength="15"
+                        pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]"
+                        placeholder="Enter 15-character GSTIN"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                        spellcheck="false">
+
+                    <small>
+                        GST Party ke liye 15-character GSTIN zaroori hai.
+                    </small>
+                </div>
+            </fieldset>
+
+            <fieldset class="form-section">
+                <legend>Party Details</legend>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="modalPartyName">
+                            Party Name <span class="required">*</span>
+                        </label>
+
+                        <input
+                            type="text"
+                            id="modalPartyName"
+                            name="Party_Name"
+                            maxlength="150"
+                            placeholder="Enter party / company name"
+                            required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalPhone">Mobile / Phone</label>
+
+                        <input
+                            type="tel"
+                            id="modalPhone"
+                            name="Phone"
+                            maxlength="20"
+                            placeholder="Enter mobile or phone number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalState">State</label>
+
+                        <input
+                            type="text"
+                            id="modalState"
+                            name="State"
+                            maxlength="100"
+                            placeholder="e.g. Gujarat">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalStateCode">State Code</label>
+
+                        <input
+                            type="text"
+                            id="modalStateCode"
+                            name="State_Code"
+                            maxlength="2"
+                            minlength="2"
+                            pattern="[0-9]{2}"
+                            inputmode="numeric"
+                            placeholder="e.g. 24">
+
+                        <small>State code ke liye 2 digits.</small>
+                    </div>
+
+                    <div class="form-group form-group-full">
+                        <label for="modalAddress">Address</label>
+
+                        <textarea
+                            id="modalAddress"
+                            name="Address"
+                            rows="3"
+                            maxlength="500"
+                            placeholder="Enter complete party address"></textarea>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button"
+                    class="btn btn-secondary"
+                    id="cancelPartyModal">
+                Cancel
+            </button>
+
+            <button type="submit" class="btn btn-primary">
+                Create Party
+            </button>
+        </div>
+    </form>
+</dialog>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .panel {
+        background: var(--surface, #fff);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 12px;
+        padding: 22px;
+        margin-bottom: 22px;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: minmax(220px, 2fr) minmax(170px, 1fr) auto;
+        gap: 16px;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-bottom: 15px;
+        min-width: 0;
+    }
+
+    .form-group label,
+    .field-label {
+        font-size: 13px;
+        font-weight: 650;
+        color: #1e293b;
+    }
+
+    .form-group input:not([type="radio"]),
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 11px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        color: #1e293b;
+        font: inherit;
+        font-size: 14px;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+    }
+
+    .form-group small,
+    .radio-card small {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    .form-section {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 18px;
+        margin: 0 0 18px;
+        min-width: 0;
+    }
+
+    .form-section legend {
+        font-weight: 700;
+        font-size: 14px;
+        padding: 0 8px;
+        color: #0f172a;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 18px;
+    }
+
+    .form-group-full {
+        grid-column: 1 / -1;
+    }
+
+    .radio-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 7px;
+    }
+
+    .radio-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 13px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: border-color .15s, background .15s;
+    }
+
+    .radio-card:has(input:checked) {
+        border-color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .radio-card input {
+        margin-top: 3px;
+        accent-color: #2563eb;
+    }
+
+    .radio-card span {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .required {
+        color: #dc2626;
+    }
+
+    .filter-actions,
+    .table-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+    }
+
+    .data-table thead th {
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .data-table th,
+    .data-table td {
+        text-align: left;
+        padding: 14px 12px;
+        border-bottom: 1px solid #e8edf4;
+        vertical-align: middle;
+    }
+
+    .data-table tbody tr {
+        transition: background .15s;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .data-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .party-id {
+        color: #475569;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .party-name strong {
+        color: #0f172a;
+        font-weight: 650;
+    }
+
+    .gstin-cell {
+        white-space: nowrap;
+    }
+
+    .state-code {
+        color: #64748b;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 20px;
+        padding: 5px 9px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .badge-gst {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .badge-without-gst {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .actions-heading {
+        min-width: 145px;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 14px;
+        gap: 7px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 650;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background .15s, border-color .15s, transform .15s;
+    }
+
+    .btn:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, .25);
+        outline-offset: 2px;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background: #1d4ed8;
+    }
+
+    .btn-primary:hover {
+        background: #1e40af;
+    }
+
+    .btn-secondary {
+        color: #334155;
+        background: #fff;
+        border-color: #cbd5e1;
+    }
+
+    .btn-secondary:hover {
+        background: #f8fafc;
+    }
+
+    .btn-small {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .btn-view {
+        color: #1d4ed8;
+        background: #eff6ff;
+        border-color: #bfdbfe;
+    }
+
+    .btn-view:hover {
+        background: #dbeafe;
+        border-color: #93c5fd;
+    }
+
+    .btn-edit {
+        color: #334155;
+        background: #fff;
+        border-color: #cbd5e1;
+    }
+
+    .btn-edit:hover {
+        background: #f1f5f9;
+    }
+
+    .btn-icon {
+        font-size: 20px;
+        line-height: 14px;
+    }
+
+    .empty-state {
+        text-align: center !important;
+        padding: 38px 20px !important;
+        color: #64748b;
+    }
+
+    .empty-state strong {
+        display: block;
+        margin: 8px 0;
+        color: #334155;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 13px;
+    }
+
+    .empty-icon {
+        font-size: 28px;
+        color: #94a3b8;
+    }
+
+    /* Add Party modal */
+    .party-modal {
+        width: min(760px, calc(100% - 30px));
+        max-width: 760px;
+        max-height: 90vh;
+        padding: 0;
+        border: 0;
+        border-radius: 14px;
+        background: #fff;
+        color: #1e293b;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, .28);
+        overflow: hidden;
+    }
+
+    .party-modal::backdrop {
+        background: rgba(15, 23, 42, .58);
+        backdrop-filter: blur(3px);
+    }
+
+    .party-modal[open] {
+        animation: modal-enter .18s ease-out;
+    }
+
+    @keyframes modal-enter {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(.99);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 22px 25px 18px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-header h2 {
+        margin: 4px 0 0;
+        font-size: 23px;
+    }
+
+    .modal-subtitle {
+        margin: 7px 0 0;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .modal-close {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        border: 0;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 27px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .modal-close:hover {
+        background: #e2e8f0;
+    }
+
+    .modal-body {
+        padding: 22px 25px;
+        overflow-y: auto;
+        max-height: calc(90vh - 155px);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 16px 25px;
+        border-top: 1px solid #e2e8f0;
+        background: #fff;
+    }
+
+    @media (max-width: 900px) {
+        .filter-form {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .filter-actions {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .filter-form,
+        .form-grid,
+        .radio-options {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group-full {
+            grid-column: auto;
+        }
+
+        .filter-actions {
+            grid-column: auto;
+        }
+
+        .panel {
+            padding: 15px;
+        }
+
+        .modal-header {
+            padding: 18px;
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-footer {
+            padding: 14px 16px;
+        }
+
+        .table-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .table-actions .btn {
+            width: 100%;
+            box-sizing: border-box;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    "use strict";
+
+    const modal = document.getElementById("partyModal");
+    const openButton = document.getElementById("openPartyModal");
+    const closeButton = document.getElementById("closePartyModal");
+    const cancelButton = document.getElementById("cancelPartyModal");
+    const form = document.getElementById("modalPartyForm");
+
+    const gstinGroup = document.getElementById("modalGstinGroup");
+    const gstinInput = document.getElementById("modalGSTIN");
+    const gstinRequired = document.getElementById("modalGstinRequired");
+    const partyTypeRadios = form.querySelectorAll(
+        'input[name="Party_Type"]'
+    );
+
+    function updateGSTINField() {
+        const selected = form.querySelector(
+            'input[name="Party_Type"]:checked'
+        );
+
+        const isGST = selected && selected.value === "GST";
+
+        gstinGroup.hidden = !isGST;
+        gstinInput.required = Boolean(isGST);
+        gstinRequired.hidden = !isGST;
+
+        if (!isGST) {
+            gstinInput.value = "";
+            gstinInput.setCustomValidity("");
+        }
+    }
+
+    function validateGSTIN() {
+        const selected = form.querySelector(
+            'input[name="Party_Type"]:checked'
+        );
+
+        if (!selected || selected.value !== "GST") {
+            gstinInput.setCustomValidity("");
+            return true;
+        }
+
+        const value = gstinInput.value.trim().toUpperCase();
+        const pattern =
+            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+        gstinInput.value = value;
+
+        if (!pattern.test(value)) {
+            gstinInput.setCustomValidity(
+                "GSTIN format sahi nahi hai. 15-character GSTIN check karein."
+            );
+            return false;
+        }
+
+        gstinInput.setCustomValidity("");
+        return true;
+    }
+
+    openButton.addEventListener("click", function () {
+        if (typeof modal.showModal === "function") {
+            modal.showModal();
+        } else {
+            alert(
+                "Is browser mein modal support nahi hai. Updated browser use karein."
+            );
+        }
+    });
+
+    function closeModal() {
+        modal.close();
+    }
+
+    closeButton.addEventListener("click", closeModal);
+    cancelButton.addEventListener("click", closeModal);
+
+    modal.addEventListener("click", function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    partyTypeRadios.forEach(function (radio) {
+        radio.addEventListener("change", updateGSTINField);
+    });
+
+    gstinInput.addEventListener("input", function () {
+        gstinInput.value = gstinInput.value.toUpperCase();
+        gstinInput.setCustomValidity("");
+    });
+
+    gstinInput.addEventListener("blur", validateGSTIN);
+
+    form.addEventListener("submit", function (event) {
+        if (!validateGSTIN()) {
+            event.preventDefault();
+            gstinInput.reportValidity();
+        }
+    });
+
+    updateGSTINField();
+})();
+</script>
+{% endblock %}

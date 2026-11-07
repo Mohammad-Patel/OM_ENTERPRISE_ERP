@@ -1,0 +1,28 @@
+
+from flask import Flask
+from flask_wtf.csrf import CSRFProtect
+
+from app.config import Config
+
+
+csrf = CSRFProtect()
+
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    # Enable CSRF protection for unsafe HTTP methods.
+    csrf.init_app(app)
+
+    from app.routes.dashboard import dashboard_bp
+    from app.routes.parties import parties_bp
+    from app.routes.sites import sites_bp
+    from app.routes.items import items_bp
+
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(parties_bp)
+    app.register_blueprint(sites_bp)
+    app.register_blueprint(items_bp)
+
+    return app

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Party & Site Outstanding Stock - OM Enterprise</title>
+<style>
+body { font-family: sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }
+.container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border: 1px solid #cbd5e1; border-radius: 6px; }
+h2 { margin-top: 0; border-bottom: 2px solid #0f172a; padding-bottom: 8px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: flex-end; margin-bottom: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+label { font-weight: 700; font-size: 12px; color: #334155; }
+select { padding: 8px; font-size: 13px; border: 1px solid #94a3b8; border-radius: 4px; }
+.btn { background: #0f172a; color: #fff; padding: 8px 16px; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 13px; text-align: left; }
+th { background: #f1f5f9; font-weight: 700; }
+.text-right { text-align: right; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Party & Site Outstanding In-Hand Material</h2>
+  <form method="GET" class="grid">
+    <div class="form-group">
+      <label>Party:</label>
+      <select name="party_id" required>
+        <option value="">Select Party</option>
+        {% for p in parties %}
+        <option value="{{ p.Party_ID }}" {% if selected_party_id == p.Party_ID|string %}selected{% endif %}>{{ p.Party_Name or p.Name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Site:</label>
+      <select name="site_id" required>
+        <option value="">Select Site</option>
+        {% for s in sites %}
+        <option value="{{ s.Site_ID }}" {% if selected_site_id == s.Site_ID|string %}selected{% endif %}>{{ s.Site_Name or s.Address }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn">View Report</button>
+    </div>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item ID</th>
+        <th>Item Name</th>
+        <th class="text-right">Outstanding Quantity at Site</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in report %}
+      <tr>
+        <td><b>{{ row.item_id }}</b></td>
+        <td>{{ row.item_name }}</td>
+        <td class="text-right"><b>{{ row.outstanding_qty }}</b></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3" style="text-align: center; color: #64748b;">Select Party and Site to view outstanding stock.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Godown Stock Summary - OM Enterprise</title>
+<style>
+body { font-family: sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }
+.container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border: 1px solid #cbd5e1; border-radius: 6px; }
+h2 { margin-top: 0; border-bottom: 2px solid #0f172a; padding-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 13px; text-align: left; }
+th { background: #f1f5f9; font-weight: 700; }
+.text-right { text-align: right; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Godown Stock Summary</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Item ID</th>
+        <th>Item Description</th>
+        <th class="text-right">Usable Qty</th>
+        <th class="text-right">Damaged Qty</th>
+        <th class="text-right">Total Qty</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in stock_items %}
+      <tr>
+        <td><b>{{ item.Item_ID }}</b></td>
+        <td>{{ item.Item_Name }}</td>
+        <td class="text-right">{{ item.Usable_Qty }}</td>
+        <td class="text-right" style="color: #dc2626;">{{ item.Damaged_Qty }}</td>
+        <td class="text-right"><b>{{ item.Total_Qty }}</b></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" style="text-align: center; color: #64748b;">No stock summary available.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

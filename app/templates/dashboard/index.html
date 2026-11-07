@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">OVERVIEW</p>
+        <h1>Dashboard</h1>
+        <p class="page-description">
+            Welcome to OM ENTERPRISE ERP. Your business workspace starts here.
+        </p>
+    </div>
+    <div class="date-chip" id="dashboardDate">Business Overview</div>
+</section>
+
+<section class="welcome-panel">
+    <div>
+        <p class="eyebrow">OM ENTERPRISE ERP</p>
+        <h2>Everything in one workspace.</h2>
+        <p>
+            Manage parties, site locations, items, challans and monthly billing
+            from a single dashboard.
+        </p>
+    </div>
+    <div class="welcome-symbol" aria-hidden="true">OM</div>
+</section>
+
+<section class="section-heading">
+    <div>
+        <h2>Master Overview</h2>
+        <p>Real-time summary counts from your Excel master database.</p>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <span class="stat-label">Total Parties</span>
+        <strong>{{ total_parties|default(0) }}</strong>
+        <small>Active clients</small>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">Site Locations</span>
+        <strong>{{ total_sites|default(0) }}</strong>
+        <small>Party-wise active sites</small>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">Item Master</span>
+        <strong>{{ total_items|default(0) }}</strong>
+        <small>Registered equipment</small>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">Stock Status</span>
+        <strong style="font-size: 16px; color: #f97316;">Live Active</strong>
+        <small>Ledger sync enabled</small>
+    </article>
+</section>
+
+<section class="section-heading">
+    <div>
+        <h2>Quick Access & Modules</h2>
+        <p>Direct navigation to transactions, inventory, and billing engines.</p>
+    </div>
+</section>
+
+<section class="quick-access-grid">
+    <a href="{{ url_for('parties.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
+        <span class="quick-icon">♙</span>
+        <h3>Party Master</h3>
+        <p>Create and manage GST and Without GST parties.</p>
+        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">Open Module →</span>
+    </a>
+
+    <a href="{{ url_for('items.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
+        <span class="quick-icon">▤</span>
+        <h3>Item Master</h3>
+        <p>Maintain item descriptions, weight and rent rates.</p>
+        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">Open Module →</span>
+    </a>
+
+    <a href="{{ url_for('issue_challan.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
+        <span class="quick-icon">↗</span>
+        <h3>Issue Challan</h3>
+        <p>Prepare site-wise material issue challans & transport.</p>
+        <span class="coming-soon" style="color: #f97316; font-weight: 700;">Manage Issue →</span>
+    </a>
+
+    <a href="{{ url_for('receive_challan.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
+        <span class="quick-icon">↙</span>
+        <h3>Receive Challan</h3>
+        <p>Process return material and log breakage/damages.</p>
+        <span class="coming-soon" style="color: #f97316; font-weight: 700;">Manage Receive →</span>
+    </a>
+
+    <a href="{{ url_for('stock.godown_stock') }}" class="quick-card" style="text-decoration: none; color: inherit;">
+        <span class="quick-icon">📦</span>
+        <h3>Godown Stock</h3>
+        <p>View real-time available usable & damaged stock.</p>
+        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">View Summary →</span>
+    </a>
+
+    <a href="{{ url_for('stock.party_site_stock') }}" class="quick-card" style="text-decoration: none; color: inherit;">
+        <span class="quick-icon">🔍</span>
+        <h3>Site Outstanding</h3>
+        <p>Check in-hand material balance at any party site.</p>
+        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">Check Outstanding →</span>
+    </a>
+
+    <a href="{{ url_for('monthly_billing.generate') }}" class="quick-card" style="text-decoration: none; color: inherit; border-color: #f97316; background: #fffaf5;">
+        <span class="quick-icon">▧</span>
+        <h3>Monthly Billing</h3>
+        <p>Prepare date-range rental invoices with GST & calculation.</p>
+        <span class="coming-soon" style="color: #f97316; font-weight: 700;">Generate Invoice →</span>
+    </a>
+</section>
+
+{% endblock %}

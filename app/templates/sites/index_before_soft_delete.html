@@ -1,0 +1,312 @@
+
+{% extends "base.html" %}
+
+{% block title %}Site Locations - OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<style>
+    .sites-page {
+        max-width: 1150px;
+        margin: 24px auto;
+        padding: 0 16px;
+    }
+
+    .sites-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .sites-title {
+        margin: 0 0 6px;
+        color: #182433;
+        font-size: 25px;
+    }
+
+    .sites-subtitle {
+        margin: 0;
+        color: #667085;
+        font-size: 14px;
+    }
+
+    .sites-card {
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e4e7ec;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, .04);
+    }
+
+    .sites-table-wrap {
+        overflow-x: auto;
+    }
+
+    .sites-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 750px;
+    }
+
+    .sites-table th,
+    .sites-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #eaecf0;
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+    }
+
+    .sites-table th {
+        background: #f8fafc;
+        color: #475467;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .sites-table td {
+        color: #344054;
+        overflow-wrap: anywhere;
+    }
+
+    .sites-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .site-name {
+        font-weight: 700;
+        color: #182433;
+    }
+
+    .site-status {
+        display: inline-block;
+        padding: 5px 9px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .site-status-active {
+        background: #ecfdf3;
+        color: #027a48;
+    }
+
+    .site-status-inactive {
+        background: #f2f4f7;
+        color: #475467;
+    }
+
+    .site-action {
+        display: inline-block;
+        padding: 7px 10px;
+        border: 1px solid #d0d5dd;
+        border-radius: 6px;
+        color: #344054;
+        background: #fff;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .site-action:hover {
+        background: #f8fafc;
+    }
+
+    .site-action-danger {
+        border-color: #fecdca;
+        color: #b42318;
+    }
+
+    .site-action-danger:hover {
+        background: #fff1f0;
+    }
+
+    .site-primary-btn {
+        display: inline-block;
+        padding: 10px 15px;
+        border: 1px solid #175cd3;
+        border-radius: 7px;
+        color: #fff;
+        background: #175cd3;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .site-primary-btn:hover {
+        background: #1849a9;
+        color: #fff;
+    }
+
+    .sites-empty {
+        padding: 45px 20px;
+        text-align: center;
+        color: #667085;
+    }
+
+    .sites-empty h3 {
+        margin: 0 0 8px;
+        color: #344054;
+    }
+
+    .sites-footer {
+        padding: 14px 16px;
+        background: #fcfcfd;
+        border-top: 1px solid #eaecf0;
+        color: #667085;
+        font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+        .sites-page {
+            padding: 0 10px;
+            margin: 16px auto;
+        }
+
+        .sites-title {
+            font-size: 21px;
+        }
+
+        .sites-header > div,
+        .sites-header > a {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .sites-header > a {
+            text-align: center;
+        }
+    }
+</style>
+
+{% set active_count = sites | selectattr('Is_Active', 'equalto', 'YES') | list | length %}
+
+<div class="sites-page">
+    <div class="sites-header">
+        <div>
+            <h1 class="sites-title">Site Locations</h1>
+            <p class="sites-subtitle">
+                Party: <strong>{{ party.get('Party_Name', '—') }}</strong>
+                · Party ID: {{ party.get('Party_ID', '—') }}
+            </p>
+        </div>
+
+        <a
+            class="site-primary-btn"
+            href="{{ url_for('sites.create', party_id=party.get('Party_ID')) }}"
+        >
+            + Add Site
+        </a>
+    </div>
+
+    <div class="sites-card">
+        {% if sites %}
+        <div class="sites-table-wrap">
+            <table class="sites-table">
+                <thead>
+                    <tr>
+                        <th>Site Name</th>
+                        <th>Address</th>
+                        <th>Contact Person</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for site in sites %}
+                    {% set is_active = site.get('Is_Active', '') | string | upper in ['YES', 'TRUE', '1', 'ACTIVE'] %}
+                    <tr>
+                        <td>
+                            <div class="site-name">
+                                {{ site.get('Site_Name') or '—' }}
+                            </div>
+                            <small>{{ site.get('Site_ID') or '' }}</small>
+                        </td>
+
+                        <td>{{ site.get('Site_Address') or '—' }}</td>
+                        <td>{{ site.get('Contact_Person') or '—' }}</td>
+                        <td>{{ site.get('Phone') or '—' }}</td>
+
+                        <td>
+                            {% if is_active %}
+                            <span class="site-status site-status-active">Active</span>
+                            {% else %}
+                            <span class="site-status site-status-inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if is_active %}
+                            <a
+                                class="site-action"
+                                href="{{ url_for('sites.edit', party_id=party.get('Party_ID'), site_id=site.get('Site_ID')) }}"
+                            >
+                                Edit
+                            </a>
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('sites.deactivate', party_id=party.get('Party_ID'), site_id=site.get('Site_ID')) }}"
+                                style="display:inline"
+                                onsubmit="return confirm('Is Site ko deactivate karna hai? Historical records delete nahi honge.');"
+                            >
+				<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input
+                                    type="hidden"
+                                    name="Reason"
+                                    value="Deactivated from Site Locations page"
+                                >
+                                <button
+                                    type="submit"
+                                    class="site-action site-action-danger"
+                                >
+                                    Deactivate
+                                </button>
+                            </form>
+                            {% else %}
+                            <span>—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="sites-footer">
+            Total Sites: {{ sites|length }}
+            · Active: {{ active_count }}
+            · Inactive: {{ sites|length - active_count }}
+        </div>
+        {% else %}
+        <div class="sites-empty">
+            <h3>No Sites Added Yet</h3>
+            <p>Is Party ke liye pehla Site add karein.</p>
+            <a
+                class="site-primary-btn"
+                href="{{ url_for('sites.create', party_id=party.get('Party_ID')) }}"
+            >
+                + Add First Site
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <p style="margin-top:16px">
+        <a
+            href="{{ url_for('parties.view', party_id=party.get('Party_ID')) }}"
+            style="color:#175cd3;text-decoration:none;font-weight:600"
+        >
+            &larr; Back to Party Details
+        </a>
+    </p>
+</div>
+{% endblock %}

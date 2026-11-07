@@ -1,0 +1,401 @@
+from __future__ import annotations
+
+import json
+import uuid
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
+
+from openpyxl import load_workbook
+
+from app.services.excel_service import (
+    WORKBOOK_PATH,
+    ExcelServiceError,
+    _WORKBOOK_LOCK,
+    _save_atomic,
+    initialize_workbook,
+    get_sheet_rows,
+)
+from app.services.item_service import get_item
+from app.services.party_service import get_party
+from app.services.site_service import get_site
+
+
+class OpeningStockServiceError(Exception):
+    """Opening Stock validation or storage error."""
+
+
+def _now() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _text(value) -> str:
+    return str(value or "").strip()
+
+
+def _quantity(value, label: str, required: bool = True):
+    if value is None or _text(value) == "":
+        if required:
+            raise OpeningStockServiceError(f"{label} is required.")
+        return None
+
+    try:
+        number = Decimal(str(value).strip())
+    except (InvalidOperation, ValueError):
+        raise OpeningStockServiceError(f"{label} must be a valid number.")
+
+    if not number.is_finite() or number < 0:
+        raise OpeningStockServiceError(
+            f"{label} must be zero or a positive number."
+        )
+
+    return float(number)
+
+
+def _date(value, label: str) -> str:
+    raw = _text(value)
+    if not raw:
+        raise OpeningStockServiceError(f"{label} is required.")
+
+    try:
+        return date.fromisoformat(raw).isoformat()
+    except ValueError:
+        raise OpeningStockServiceError(
+            f"{label} must be in YYYY-MM-DD format."
+        )
+
+
+def _active(record: dict | None) -> bool:
+    if not record:
+        return False
+    return _text(record.get("Is_Active") or "YES").upper() in {
+        "YES", "Y", "TRUE", "1"
+    }
+
+
+def _validate_location(location_type, party_id, site_id):
+    location_type = _text(location_type).upper()
+    party_id = _text(party_id)
+    site_id = _text(site_id)
+
+    if location_type == "GODOWN":
+        if party_id or site_id:
+            raise OpeningStockServiceError(
+                "Godown opening stock ke liye Party aur Site select na karein."
+            )
+        return location_type, "", ""
+
+    if location_type == "SITE":
+        if not party_id or not site_id:
+            raise OpeningStockServiceError(
+                "Site location ke liye Party aur Site dono required hain."
+            )
+
+        party = get_party(party_id)
+        if not _active(party):
+            raise OpeningStockServiceError(
+                "Selected Party nahi mili ya inactive hai."
+            )
+
+        site = get_site(party_id, site_id)
+        if not _active(site):
+            raise OpeningStockServiceError(
+                "Selected Site nahi mili ya inactive hai."
+            )
+
+        return location_type, party_id, site_id
+
+    raise OpeningStockServiceError(
+        "Location Type sirf GODOWN ya SITE ho sakta hai."
+    )
+
+
+def _headers(ws) -> dict[str, int]:
+    result = {}
+    for column in range(1, ws.max_column + 1):
+        name = _text(ws.cell(1, column).value)
+        if name:
+            result[name] = column
+    return result
+
+
+def _audit(wb, action, stock_id, before=None, after=None, reason="",
+           username="Administrator"):
+    if "Audit_Log" not in wb.sheetnames:
+        raise OpeningStockServiceError(
+            "Audit_Log sheet missing hai; koi change save nahi kiya gaya."
+        )
+
+    ws = wb["Audit_Log"]
+    headers = _headers(ws)
+
+    record = {
+        "Audit_ID": "AUD-" + uuid.uuid4().hex[:10].upper(),
+        "Event_Time": _now(),
+        "Username": _text(username) or "Administrator",
+        "Action": action,
+        "Entity_Type": "OPENING_STOCK",
+        "Entity_ID": stock_id,
+        "Reason": _text(reason),
+        "Before_Data": json.dumps(
+            before, ensure_ascii=False, default=str
+        ) if before else "",
+        "After_Data": json.dumps(
+            after, ensure_ascii=False, default=str
+        ) if after else "",
+    }
+
+    required = set(record) - {"Username"}
+    missing = required - set(headers)
+    if missing:
+        raise OpeningStockServiceError(
+            "Audit_Log mein required columns missing hain: "
+            + ", ".join(sorted(missing))
+        )
+
+    row_number = ws.max_row + 1
+    for key, value in record.items():
+        if key in headers:
+            ws.cell(row_number, headers[key]).value = value
+
+
+def list_opening_stock(location_type="", party_id="", site_id="", workbook_path=None):
+    """Return opening-stock records; estimates remain separate from verification."""
+    try:
+        rows = get_sheet_rows("OpeningStock", workbook_path=workbook_path)
+    except ExcelServiceError as exc:
+        raise OpeningStockServiceError(str(exc)) from exc
+
+    location_type = _text(location_type).upper()
+    party_id = _text(party_id)
+    site_id = _text(site_id)
+
+    result = []
+    for row in rows:
+        if location_type and _text(row.get("Location_Type")).upper() != location_type:
+            continue
+        if party_id and _text(row.get("Party_ID")) != party_id:
+            continue
+        if site_id and _text(row.get("Site_ID")) != site_id:
+            continue
+        result.append(row)
+
+    return sorted(
+        result,
+        key=lambda row: (
+            _text(row.get("Location_Type")),
+            _text(row.get("Party_ID")),
+            _text(row.get("Site_ID")),
+            _text(row.get("Item_ID")),
+        ),
+    )
+
+
+def create_estimate(data, username="Administrator"):
+    """Create estimated quantity without posting confirmed stock."""
+    path = initialize_workbook(WORKBOOK_PATH)
+
+    location_type, party_id, site_id = _validate_location(
+        data.get("Location_Type"),
+        data.get("Party_ID"),
+        data.get("Site_ID"),
+    )
+
+    item_id = _text(data.get("Item_ID"))
+    item = get_item(item_id)
+    if not item or not _active(item):
+        raise OpeningStockServiceError(
+            "Selected Item nahi mila ya inactive hai."
+        )
+
+    quantity = _quantity(data.get("Estimated_Qty"), "Estimated Quantity")
+    estimated_date = _date(data.get("Estimated_Date"), "Estimated Date")
+    notes = _text(data.get("Estimated_Notes"))
+
+    existing = list_opening_stock(
+        location_type=location_type,
+        party_id=party_id,
+        site_id=site_id,
+        workbook_path=path,
+    )
+    if any(_text(row.get("Item_ID")) == item_id for row in existing):
+        raise OpeningStockServiceError(
+            "Is location aur item ka opening-stock record pehle se hai. "
+            "Duplicate record create nahi kiya."
+        )
+
+    stock_id = "OST-" + uuid.uuid4().hex[:12].upper()
+    now = _now()
+
+    record = {
+        "Opening_Stock_ID": stock_id,
+        "Location_Type": location_type,
+        "Party_ID": party_id,
+        "Site_ID": site_id,
+        "Item_ID": item_id,
+        "Estimated_Qty": quantity,
+        "Estimated_Date": estimated_date,
+        "Estimated_Notes": notes,
+        "Verified_Qty": None,
+        "Verified_Date": None,
+        "Verified_Notes": "",
+        "Status": "ESTIMATED",
+        "Created_At": now,
+        "Updated_At": now,
+    }
+
+    with _WORKBOOK_LOCK:
+        wb = None
+        try:
+            wb = load_workbook(path)
+            if "OpeningStock" not in wb.sheetnames:
+                raise OpeningStockServiceError(
+                    "OpeningStock worksheet missing hai."
+                )
+
+            ws = wb["OpeningStock"]
+            headers = _headers(ws)
+            missing = set(record) - set(headers)
+            if missing:
+                raise OpeningStockServiceError(
+                    "OpeningStock mein columns missing hain: "
+                    + ", ".join(sorted(missing))
+                )
+
+            ws.append([record.get(header) for header in headers])
+            _audit(
+                wb,
+                "CREATE_ESTIMATE",
+                stock_id,
+                after=record,
+                reason="Estimated opening quantity recorded",
+                username=username,
+            )
+            _save_atomic(wb, path)
+        except OpeningStockServiceError:
+            raise
+        except Exception as exc:
+            raise OpeningStockServiceError(
+                "Estimated opening stock save nahi hua. "
+                "Excel workbook khuli ho to close karke retry karein."
+            ) from exc
+        finally:
+            if wb is not None:
+                wb.close()
+
+    return stock_id
+
+
+def verify_opening_stock(
+    opening_stock_id,
+    verified_qty,
+    verified_date,
+    verified_notes="",
+    username="Administrator",
+):
+    """Record physical count separately; does not create stock movements."""
+    target_id = _text(opening_stock_id)
+    quantity = _quantity(verified_qty, "Verified Quantity")
+    counted_date = _date(verified_date, "Verification Date")
+    path = initialize_workbook(WORKBOOK_PATH)
+
+    with _WORKBOOK_LOCK:
+        wb = None
+        try:
+            wb = load_workbook(path)
+            if "OpeningStock" not in wb.sheetnames:
+                raise OpeningStockServiceError(
+                    "OpeningStock worksheet missing hai."
+                )
+
+            ws = wb["OpeningStock"]
+            headers = _headers(ws)
+
+            required = {
+                "Opening_Stock_ID", "Verified_Qty", "Verified_Date",
+                "Verified_Notes", "Status", "Updated_At",
+                "Estimated_Qty", "Estimated_Date", "Estimated_Notes",
+            }
+            missing = required - set(headers)
+            if missing:
+                raise OpeningStockServiceError(
+                    "OpeningStock mein columns missing hain: "
+                    + ", ".join(sorted(missing))
+                )
+
+            row_number = None
+            for row in range(2, ws.max_row + 1):
+                if _text(ws.cell(row, headers["Opening_Stock_ID"]).value) == target_id:
+                    row_number = row
+                    break
+
+            if row_number is None:
+                raise OpeningStockServiceError(
+                    "Opening Stock record nahi mila."
+                )
+
+            before = {
+                key: ws.cell(row_number, column).value
+                for key, column in headers.items()
+                if key in required or key in {
+                    "Location_Type", "Party_ID", "Site_ID", "Item_ID"
+                }
+            }
+
+            if _text(before.get("Status")).upper() == "VERIFIED":
+                raise OpeningStockServiceError(
+                    "Record already verified hai. Re-verification ke liye "
+                    "separate adjustment workflow zaroori hoga."
+                )
+
+            updated = {
+                "Verified_Qty": quantity,
+                "Verified_Date": counted_date,
+                "Verified_Notes": _text(verified_notes),
+                "Status": "VERIFIED",
+                "Updated_At": _now(),
+            }
+
+            for key, value in updated.items():
+                ws.cell(row_number, headers[key]).value = value
+
+            after = dict(before)
+            after.update(updated)
+
+            _audit(
+                wb,
+                "VERIFY_OPENING_STOCK",
+                target_id,
+                before=before,
+                after=after,
+                reason="Physical quantity verified",
+                username=username,
+            )
+
+            _save_atomic(wb, path)
+        except OpeningStockServiceError:
+            raise
+        except Exception as exc:
+            raise OpeningStockServiceError(
+                "Physical verification save nahi hui. "
+                "Workbook Excel mein khuli ho to close karke retry karein."
+            ) from exc
+        finally:
+            if wb is not None:
+                wb.close()
+
+    return True
+
+
+def quantity_difference(record: dict) -> float | None:
+    """Return physical minus estimated quantity; None until verified."""
+    estimated = _quantity(
+        record.get("Estimated_Qty"), "Estimated Quantity", required=False
+    )
+    verified = _quantity(
+        record.get("Verified_Qty"), "Verified Quantity", required=False
+    )
+
+    if estimated is None or verified is None:
+        return None
+
+    return verified - estimated

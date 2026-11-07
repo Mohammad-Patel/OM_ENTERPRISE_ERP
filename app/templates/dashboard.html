@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">OVERVIEW</p>
+        <h1>Dashboard</h1>
+        <p class="page-description">
+            Welcome to OM ENTERPRISE ERP. Your business workspace starts here.
+        </p>
+    </div>
+    <div class="date-chip" id="dashboardDate">Business Overview</div>
+</section>
+
+<section class="welcome-panel">
+    <div>
+        <p class="eyebrow">OM ENTERPRISE ERP</p>
+        <h2>Everything in one workspace.</h2>
+        <p>
+            Manage parties, site locations, items, challans and monthly billing
+            from a single dashboard.
+        </p>
+    </div>
+    <div class="welcome-symbol" aria-hidden="true">OM</div>
+</section>
+
+<section class="section-heading">
+    <div>
+        <h2>Master Overview</h2>
+        <p>Summary cards will connect to Excel data in a later step.</p>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <span class="stat-label">Total Parties</span>
+        <strong>—</strong>
+        <small>GST and Without GST</small>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">Site Locations</span>
+        <strong>—</strong>
+        <small>Party-wise sites</small>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">Item Master</span>
+        <strong>—</strong>
+        <small>Registered items</small>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">Stock Overview</span>
+        <strong>—</strong>
+        <small>Excel integration pending</small>
+    </article>
+</section>
+
+<section class="section-heading">
+    <div>
+        <h2>Quick Access</h2>
+        <p>Module pages will be implemented step by step.</p>
+    </div>
+</section>
+
+<section class="quick-access-grid">
+    <article class="quick-card">
+        <span class="quick-icon">♙</span>
+        <h3>Party Master</h3>
+        <p>Create and manage GST and Without GST parties.</p>
+        <span class="coming-soon">Planned module</span>
+    </article>
+
+    <article class="quick-card">
+        <span class="quick-icon">▤</span>
+        <h3>Item Master</h3>
+        <p>Maintain item descriptions, weight and goods valuation.</p>
+        <span class="coming-soon">Planned module</span>
+    </article>
+
+    <article class="quick-card">
+        <span class="quick-icon">↗</span>
+        <h3>Issue Challan</h3>
+        <p>Prepare site-wise material issue challans.</p>
+        <span class="coming-soon">Planned module</span>
+    </article>
+
+    <article class="quick-card">
+        <span class="quick-icon">▧</span>
+        <h3>Monthly Billing</h3>
+        <p>Prepare date-range rental invoices for each site.</p>
+        <span class="coming-soon">Planned module</span>
+    </article>
+</section>
+{% endblock %}

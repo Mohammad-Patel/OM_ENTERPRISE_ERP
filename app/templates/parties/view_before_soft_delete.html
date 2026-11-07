@@ -1,0 +1,809 @@
+
+{% extends "base.html" %}
+
+{% block title %}Party Details - OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<style>
+.party-page{max-width:1150px;margin:auto;padding:20px;color:#182433}
+.party-hero-card,.party-card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;box-shadow:0 3px 10px rgba(16,24,40,.05);margin-bottom:20px;overflow:hidden}
+.party-hero-card{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding:22px 24px}
+.party-hero-info{display:flex;align-items:center;gap:15px;min-width:0;flex:1}
+.party-hero-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:52px;height:52px;border-radius:12px;background:#eaf2ff;color:#175cd3;font-size:23px;font-weight:700}
+.party-hero-title{margin:0 0 6px;font-size:23px;line-height:1.4;overflow-wrap:anywhere}
+.party-breadcrumb{color:#667085;font-size:13px;margin:0}
+.party-hero-badge{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.party-hero-actions,.site-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.party-card-heading{padding:17px 20px;border-bottom:1px solid #eaecf0;background:#f8fafc}
+.party-card-heading h2{margin:0 0 4px;font-size:17px}
+.party-card-heading p{margin:0;color:#667085;font-size:13px}
+.party-table{width:100%;border-collapse:collapse}
+.party-table th,.party-table td{padding:14px 20px;border-bottom:1px solid #eaecf0;text-align:left;vertical-align:top;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.party-table tr:last-child th,.party-table tr:last-child td{border-bottom:none}
+.party-table th{width:235px;background:#fbfcfe;color:#475467;font-weight:600}
+.party-badge,.sites-count{display:inline-block;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+.party-badge{background:#e8f2ff;color:#175cd3}
+.party-badge.without-gst{background:#ecfdf3;color:#027a48}
+.party-badge.inactive{background:#f2f4f7;color:#475467}
+.party-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 13px;border:1px solid #d0d5dd;border-radius:7px;background:#fff;color:#344054;text-decoration:none;font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap;cursor:pointer;font-family:inherit}
+.party-btn:hover{background:#f8fafc}
+.party-btn-edit{background:#175cd3;border-color:#175cd3;color:#fff}
+.party-btn-edit:hover{background:#1849a9;color:#fff}
+.party-btn-danger{color:#b42318;border-color:#fecdca;background:#fff}
+.party-btn-danger:hover{background:#fff1f0}
+.sites-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.sites-count{padding:3px 8px;background:#eaf2ff;color:#175cd3}
+.sites-table-wrap{width:100%;overflow-x:auto}
+.sites-table{width:100%;min-width:850px;border-collapse:collapse}
+.sites-table th,.sites-table td{padding:13px 14px;border-bottom:1px solid #eaecf0;text-align:left;vertical-align:top;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.sites-table th{background:#fbfcfe;color:#475467;font-weight:700;white-space:nowrap}
+.sites-table tbody tr:last-child td{border-bottom:none}
+.site-name{font-weight:700}
+.site-id{display:block;margin-top:4px;color:#667085;font-size:11px}
+.sites-footer{padding:13px 18px;border-top:1px solid #eaecf0;background:#fcfcfd;color:#667085;font-size:12px}
+.sites-empty{padding:35px 20px;text-align:center;color:#667085}
+.sites-empty h3{margin:0 0 8px;color:#344054;font-size:16px}
+.sites-empty p{margin:0 0 16px;font-size:13px}
+.site-actions form{margin:0}
+body.site-modal-open,body.sweet-popup-open{overflow:hidden}
+
+.site-modal{display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.site-modal.is-open{display:flex}
+.site-modal-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.58)}
+.site-modal-dialog{position:relative;z-index:1;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(16,24,40,.25)}
+.site-modal-header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 22px;border-bottom:1px solid #eaecf0;background:#f8fafc}
+.site-modal-header h2{margin:0;font-size:19px}
+.site-modal-close{border:0;background:transparent;color:#667085;font-size:27px;cursor:pointer}
+.site-modal-body{padding:22px}
+.site-form-field{margin-bottom:16px}
+.site-form-field label{display:block;margin-bottom:7px;color:#344054;font-size:13px;font-weight:600}
+.site-form-field .required{color:#d92d20}
+.site-form-field input,.site-form-field textarea,.site-form-field select{display:block;width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #d0d5dd;border-radius:7px;background:#fff;color:#182433;font-family:inherit;font-size:14px;outline:none}
+.site-form-field input:focus,.site-form-field textarea:focus,.site-form-field select:focus{border-color:#84adff;box-shadow:0 0 0 3px rgba(23,92,211,.12)}
+.site-form-field textarea{min-height:85px;resize:vertical}
+.site-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.site-modal-footer{display:flex;justify-content:flex-end;gap:10px;padding-top:8px}
+.party-type-options{display:flex;gap:18px;flex-wrap:wrap}
+.party-type-options label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer}
+.party-type-options input[type=radio]{width:auto;margin:0;accent-color:#175cd3}
+.field-hint{margin:6px 0 0;color:#667085;font-size:12px;line-height:1.5}
+
+.sweet-overlay{display:none;position:fixed;inset:0;z-index:10010;background:rgba(16,24,40,.66);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
+.sweet-overlay.is-open{display:flex}
+.sweet-box{position:relative;width:100%;max-width:460px;box-sizing:border-box;padding:30px 28px 26px;background:#fff;border:1px solid #eaecf0;border-radius:18px;text-align:center;box-shadow:0 28px 80px rgba(16,24,40,.28);animation:sweetIn .18s ease-out}
+@keyframes sweetIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.sweet-close{position:absolute;top:12px;right:13px;width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:#667085;font-size:25px;cursor:pointer}
+.sweet-permanent-label{display:none;width:max-content;max-width:100%;box-sizing:border-box;margin:0 auto 19px;padding:7px 11px;border:1px solid #fecdca;border-radius:6px;background:#fef3f2;color:#b42318;font-size:10px;font-weight:800;letter-spacing:1.2px}
+.sweet-icon{width:66px;height:66px;border:3px solid #fecdca;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;background:#fff5f4;color:#d92d20;font-size:34px;font-weight:700;box-sizing:border-box}
+.sweet-icon.success{border-color:#abefc6;background:#ecfdf3;color:#079455}
+.sweet-icon.warning{border-color:#fedf89;background:#fffaeb;color:#dc6803}
+.sweet-title{margin:0 0 12px;color:#101828;font-size:24px;font-weight:750;line-height:1.3}
+.sweet-message{margin:0 auto 25px;max-width:370px;color:#475467;font-size:14px;line-height:1.75;overflow-wrap:anywhere}
+.sweet-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.sweet-btn{min-height:43px;padding:11px 17px;border:1px solid transparent;border-radius:8px;background:#175cd3;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.sweet-btn:hover{background:#1849a9}
+.sweet-btn.cancel{border-color:#d0d5dd;background:#fff;color:#344054}
+.sweet-btn.danger{background:#d92d20;color:#fff}
+.sweet-btn.danger:hover{background:#b42318}
+.sweet-btn:focus-visible,.sweet-close:focus-visible{outline:3px solid #84adff;outline-offset:3px}
+
+@media(max-width:600px){
+.party-page{padding:12px}
+.party-hero-card{padding:16px;align-items:flex-start}
+.party-hero-info{align-items:flex-start;width:100%}
+.party-hero-icon{width:44px;height:44px;font-size:20px}
+.party-hero-title{font-size:19px}
+.party-hero-actions{width:100%}
+.party-hero-actions .party-btn{flex:1}
+.party-card-heading{padding:15px}
+.party-table th,.party-table td{display:block;width:100%;box-sizing:border-box;padding:9px 14px}
+.party-table th{border-bottom:none;padding-bottom:2px}
+.party-table td{padding-top:4px}
+.party-table tr{display:block;border-bottom:1px solid #eaecf0;padding:5px 0}
+.sites-heading{align-items:flex-start}
+.sites-heading>button{width:100%}
+.site-form-grid{grid-template-columns:1fr;gap:0}
+.site-modal{padding:10px}
+.site-modal-dialog{max-height:94vh}
+.site-modal-header,.site-modal-body{padding:16px}
+.site-actions{align-items:flex-start}
+.sweet-box{padding:30px 19px 22px}
+.sweet-actions{flex-direction:column-reverse}
+.sweet-btn{width:100%}
+}
+@media print{
+.party-hero-actions,.site-actions,.sites-heading>button,.site-modal,.sweet-overlay{display:none!important}
+.party-card,.party-hero-card{box-shadow:none}
+.party-page{max-width:none;padding:0}
+}
+</style>
+
+{% set party_type = party.get('Party_Type', '') %}
+{% set gstin = party.get('GSTIN', '') %}
+{% set party_id = party.get('Party_ID', '') %}
+{% set site_count = sites|length if sites is defined else 0 %}
+{% set page_alerts = get_flashed_messages(with_categories=true) %}
+
+<div class="party-page">
+    <section class="party-hero-card">
+        <div class="party-hero-info">
+            <div class="party-hero-icon">P</div>
+            <div>
+                <h1 class="party-hero-title">{{ party.get('Party_Name', 'Party Details') }}</h1>
+                <p class="party-breadcrumb">Master Management / Party Details</p>
+                <div class="party-hero-badge">
+                    <span class="party-badge {% if 'WITHOUT' in party_type|upper %}without-gst{% endif %}">{{ party_type or 'Not specified' }}</span>
+                    {% if party.get('Is_Active') is not none %}
+                        {% set party_active = party.get('Is_Active')|string|upper not in ['', '0', 'FALSE', 'NO', 'N', 'INACTIVE'] %}
+                        <span class="party-badge {% if not party_active %}inactive{% endif %}">{{ 'Active' if party_active else 'Inactive' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="party-hero-actions">
+            <a href="{{ url_for('parties.index') }}" class="party-btn">← Back to Parties</a>
+            <button type="button" class="party-btn party-btn-edit" id="openEditPartyButton">✎ Edit Party</button>
+        </div>
+    </section>
+
+    <section class="party-card">
+        <div class="party-card-heading">
+            <h2>Party Classification</h2>
+            <p>Party type and applicable tax registration</p>
+        </div>
+        <table class="party-table"><tbody>
+            <tr><th>Party Type</th><td>{{ party_type or '—' }}</td></tr>
+            {% if 'GST' in party_type|upper and 'WITHOUT' not in party_type|upper %}
+            <tr><th>GSTIN</th><td>{{ gstin or '—' }}</td></tr>
+            {% endif %}
+        </tbody></table>
+    </section>
+
+    <section class="party-card">
+        <div class="party-card-heading">
+            <h2>Party Details</h2>
+            <p>Business name and contact information</p>
+        </div>
+        <table class="party-table"><tbody>
+            <tr><th>Party Name</th><td>{{ party.get('Party_Name') or '—' }}</td></tr>
+            <tr><th>Mobile / Phone</th><td>{{ party.get('Phone') or party.get('Mobile') or '—' }}</td></tr>
+            <tr><th>State</th><td>{{ party.get('State') or '—' }}</td></tr>
+            <tr><th>State Code</th><td>{{ party.get('State_Code') or '—' }}</td></tr>
+            <tr><th>Address</th><td>{{ party.get('Address') or '—' }}</td></tr>
+        </tbody></table>
+    </section>
+
+    <section class="party-card">
+        <div class="party-card-heading sites-heading">
+            <div>
+                <h2>Site Locations <span class="sites-count">{{ site_count }}</span></h2>
+                <p>Project and delivery locations for this party</p>
+            </div>
+            <button type="button" class="party-btn party-btn-edit" id="addSiteButton">+ Add Site</button>
+        </div>
+
+        {% if sites is defined and sites %}
+        <div class="sites-table-wrap">
+            <table class="sites-table">
+                <thead><tr><th>Site Name / ID</th><th>Site Address</th><th>State</th><th>State Code</th><th>Phone</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for site in sites %}
+                    <tr>
+                        <td>
+                            <span class="site-name">{{ site.get('Site_Name') or '—' }}</span>
+                            <span class="site-id">{{ site.get('Site_ID') or '' }}</span>
+                        </td>
+                        <td>{{ site.get('Site_Address') or '—' }}</td>
+                        <td>{{ site.get('State') or '—' }}</td>
+                        <td>{{ site.get('State_Code') or '—' }}</td>
+                        <td>{{ site.get('Phone') or '—' }}</td>
+                        <td>
+                            <div class="site-actions">
+                                <button type="button" class="party-btn edit-site-button"
+                                    data-url="{{ url_for('sites.edit', party_id=party_id, site_id=site.get('Site_ID')) }}"
+                                    data-name="{{ site.get('Site_Name') or '' }}"
+                                    data-address="{{ site.get('Site_Address') or '' }}"
+                                    data-state="{{ site.get('State') or '' }}"
+                                    data-state-code="{{ site.get('State_Code') or '' }}"
+                                    data-phone="{{ site.get('Phone') or '' }}">Edit</button>
+
+                                <button type="button" class="party-btn view-site-button"
+                                    data-id="{{ site.get('Site_ID') or '' }}"
+                                    data-name="{{ site.get('Site_Name') or '' }}"
+                                    data-address="{{ site.get('Site_Address') or '' }}"
+                                    data-state="{{ site.get('State') or '' }}"
+                                    data-state-code="{{ site.get('State_Code') or '' }}"
+                                    data-phone="{{ site.get('Phone') or '' }}">View</button>
+
+                                <form method="POST"
+                                      action="{{ url_for('sites.delete', party_id=party_id, site_id=site.get('Site_ID')) }}"
+                                      class="delete-site-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="button" class="party-btn party-btn-danger delete-site-button"
+                                            data-site-name="{{ site.get('Site_Name') or 'this site' }}">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="sites-footer">Total Sites: {{ site_count }}</div>
+        {% else %}
+        <div class="sites-empty">
+            <h3>No Site Locations Added</h3>
+            <p>There are currently no sites associated with this party.</p>
+            <button type="button" class="party-btn party-btn-edit" id="addFirstSiteButton">+ Add First Site</button>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<!-- Edit Party Modal -->
+<div id="partyEditModal" class="site-modal" aria-hidden="true">
+    <div class="site-modal-backdrop" data-close-party-edit></div>
+    <div class="site-modal-dialog" role="dialog" aria-modal="true"
+         aria-labelledby="partyEditModalTitle" aria-describedby="partyEditHelp">
+        <div class="site-modal-header">
+            <h2 id="partyEditModalTitle">Edit Party</h2>
+            <button type="button" class="site-modal-close" aria-label="Close" data-close-party-edit>&times;</button>
+        </div>
+        <div class="site-modal-body">
+            <p id="partyEditHelp" class="field-hint" style="margin:0 0 18px">
+                Update the party details below. Fields marked * are required.
+            </p>
+
+            <form id="partyEditForm" method="POST"
+                  action="{{ url_for('parties.edit', party_id=party_id) }}">
+		<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="site-form-field">
+                    <label>Party Type <span class="required">*</span></label>
+                    <div class="party-type-options">
+                        <label>
+                            <input type="radio" name="Party_Type" value="GST" required>
+                            GST Registered
+                        </label>
+                        <label>
+                            <input type="radio" name="Party_Type" value="WITHOUT_GST" required>
+                            Without GST
+                        </label>
+                    </div>
+                </div>
+
+                <div class="site-form-field" id="partyEditGstinGroup">
+                    <label for="partyEditGSTIN">GSTIN <span class="required">*</span></label>
+                    <input type="text" id="partyEditGSTIN" name="GSTIN"
+                           maxlength="15" minlength="15" autocomplete="off"
+                           autocapitalize="characters" spellcheck="false">
+                    <p class="field-hint">GSTIN should contain 15 characters.</p>
+                </div>
+
+                <div class="site-form-field">
+                    <label for="partyEditName">Party Name <span class="required">*</span></label>
+                    <input type="text" id="partyEditName" name="Party_Name"
+                           maxlength="200" autocomplete="organization" required>
+                </div>
+
+                <div class="site-form-grid">
+                    <div class="site-form-field">
+                        <label for="partyEditPhone">Mobile / Phone</label>
+                        <input type="text" id="partyEditPhone" name="Phone"
+                               maxlength="30" autocomplete="tel">
+                    </div>
+                    <div class="site-form-field">
+                        <label for="partyEditState">State</label>
+                        <input type="text" id="partyEditState" name="State" maxlength="100">
+                    </div>
+                </div>
+
+                <div class="site-form-grid">
+                    <div class="site-form-field">
+                        <label for="partyEditStateCode">State Code</label>
+                        <input type="text" id="partyEditStateCode" name="State_Code" maxlength="20">
+                    </div>
+                    <div class="site-form-field">
+                        <label for="partyEditReason">Reason for Change</label>
+                        <input type="text" id="partyEditReason" name="Reason"
+                               maxlength="500" placeholder="Optional reason">
+                    </div>
+                </div>
+
+                <div class="site-form-field">
+                    <label for="partyEditAddress">Address</label>
+                    <textarea id="partyEditAddress" name="Address" rows="3" maxlength="1000"></textarea>
+                </div>
+
+                <div class="site-modal-footer">
+                    <button type="button" class="party-btn" data-close-party-edit>Cancel</button>
+                    <button type="submit" class="party-btn party-btn-edit" id="partyEditSaveButton">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Site Modal -->
+<div id="siteModal" class="site-modal" aria-hidden="true">
+    <div class="site-modal-backdrop" data-close-site-modal></div>
+    <div class="site-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="siteModalTitle">
+        <div class="site-modal-header">
+            <h2 id="siteModalTitle">Add Site</h2>
+            <button type="button" class="site-modal-close" aria-label="Close" data-close-site-modal>&times;</button>
+        </div>
+        <div class="site-modal-body">
+            <form id="siteModalForm" method="POST" action="{{ url_for('sites.create', party_id=party_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="site-form-field">
+                    <label for="modalSiteName">Site Name <span class="required">*</span></label>
+                    <input type="text" id="modalSiteName" name="Site_Name" maxlength="150" required>
+                </div>
+                <div class="site-form-field">
+                    <label for="modalSiteAddress">Site Address</label>
+                    <textarea id="modalSiteAddress" name="Site_Address" rows="3"></textarea>
+                </div>
+                <div class="site-form-grid">
+                    <div class="site-form-field">
+                        <label for="modalSiteState">State</label>
+                        <input type="text" id="modalSiteState" name="State" maxlength="100">
+                    </div>
+                    <div class="site-form-field">
+                        <label for="modalSiteStateCode">State Code</label>
+                        <input type="text" id="modalSiteStateCode" name="State_Code" maxlength="20">
+                    </div>
+                </div>
+                <div class="site-form-field">
+                    <label for="modalSitePhone">Phone</label>
+                    <input type="text" id="modalSitePhone" name="Phone" autocomplete="off">
+                </div>
+                <div class="site-modal-footer">
+                    <button type="button" class="party-btn" data-close-site-modal>Cancel</button>
+                    <button type="submit" class="party-btn party-btn-edit" id="siteModalSaveButton">Save Site</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Site Modal -->
+<div id="siteViewModal" class="site-modal" aria-hidden="true">
+    <div class="site-modal-backdrop" data-close-view-modal></div>
+    <div class="site-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="siteViewModalTitle">
+        <div class="site-modal-header">
+            <h2 id="siteViewModalTitle">Site Details</h2>
+            <button type="button" class="site-modal-close" aria-label="Close" data-close-view-modal>&times;</button>
+        </div>
+        <div class="site-modal-body">
+            <table class="party-table"><tbody>
+                <tr><th>Site ID</th><td id="viewSiteId">—</td></tr>
+                <tr><th>Site Name</th><td id="viewSiteName">—</td></tr>
+                <tr><th>Site Address</th><td id="viewSiteAddress">—</td></tr>
+                <tr><th>State</th><td id="viewSiteState">—</td></tr>
+                <tr><th>State Code</th><td id="viewSiteStateCode">—</td></tr>
+                <tr><th>Phone</th><td id="viewSitePhone">—</td></tr>
+            </tbody></table>
+            <div class="site-modal-footer">
+                <button type="button" class="party-btn" data-close-view-modal>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom confirmation / flash alert -->
+<div id="sweetOverlay" class="sweet-overlay" aria-hidden="true">
+    <div class="sweet-box" role="dialog" aria-modal="true" aria-labelledby="sweetTitle" aria-describedby="sweetMessage">
+        <button type="button" id="sweetClose" class="sweet-close" aria-label="Close popup">&times;</button>
+        <div id="sweetPermanentLabel" class="sweet-permanent-label">PERMANENT ACTION</div>
+        <div id="sweetIcon" class="sweet-icon">!</div>
+        <h2 id="sweetTitle" class="sweet-title">Confirmation</h2>
+        <p id="sweetMessage" class="sweet-message"></p>
+        <div id="sweetActions" class="sweet-actions"></div>
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    const modal = document.getElementById("siteModal");
+    const form = document.getElementById("siteModalForm");
+    const modalTitle = document.getElementById("siteModalTitle");
+    const saveButton = document.getElementById("siteModalSaveButton");
+    const viewModal = document.getElementById("siteViewModal");
+
+    const partyEditModal = document.getElementById("partyEditModal");
+    const openPartyEditButton = document.getElementById("openEditPartyButton");
+    const partyEditForm = document.getElementById("partyEditForm");
+    const partyEditGSTIN = document.getElementById("partyEditGSTIN");
+    const partyEditGstinGroup = document.getElementById("partyEditGstinGroup");
+    const partyEditSaveButton = document.getElementById("partyEditSaveButton");
+
+    const fields = {
+        name: document.getElementById("modalSiteName"),
+        address: document.getElementById("modalSiteAddress"),
+        state: document.getElementById("modalSiteState"),
+        stateCode: document.getElementById("modalSiteStateCode"),
+        phone: document.getElementById("modalSitePhone")
+    };
+
+    const createUrl = {{ url_for('sites.create', party_id=party_id)|tojson }};
+
+    const currentParty = {{ {
+        "Party_Type": party.get("Party_Type", ""),
+        "Party_Name": party.get("Party_Name", ""),
+        "GSTIN": party.get("GSTIN", ""),
+        "Phone": party.get("Phone") or party.get("Mobile", ""),
+        "State": party.get("State", ""),
+        "State_Code": party.get("State_Code", ""),
+        "Address": party.get("Address", "")
+    } | tojson }};
+
+    const sweetOverlay = document.getElementById("sweetOverlay");
+    const sweetIcon = document.getElementById("sweetIcon");
+    const sweetTitle = document.getElementById("sweetTitle");
+    const sweetMessage = document.getElementById("sweetMessage");
+    const sweetActions = document.getElementById("sweetActions");
+    const sweetPermanentLabel = document.getElementById("sweetPermanentLabel");
+    const sweetClose = document.getElementById("sweetClose");
+
+    let lastFocusedElement = null;
+
+    function openModal(element) {
+        if (!element) return;
+        element.classList.add("is-open");
+        element.setAttribute("aria-hidden", "false");
+        document.body.classList.add("site-modal-open");
+    }
+
+    function closeModal(element) {
+        if (!element) return;
+        element.classList.remove("is-open");
+        element.setAttribute("aria-hidden", "true");
+
+        if (!document.querySelector(".site-modal.is-open")) {
+            document.body.classList.remove("site-modal-open");
+        }
+    }
+
+    function closeSweetAlert() {
+        sweetOverlay.classList.remove("is-open");
+        sweetOverlay.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("sweet-popup-open");
+
+        if (lastFocusedElement && document.contains(lastFocusedElement)) {
+            lastFocusedElement.focus();
+        }
+    }
+
+    function showSweetAlert(options) {
+        lastFocusedElement = document.activeElement;
+
+        sweetIcon.className = "sweet-icon" + (options.type ? " " + options.type : "");
+        sweetIcon.textContent = options.icon || "!";
+        sweetTitle.textContent = options.title || "Message";
+        sweetMessage.textContent = options.message || "";
+        sweetPermanentLabel.style.display = options.permanent ? "block" : "none";
+        sweetActions.replaceChildren();
+
+        const buttons = options.buttons || [
+            { text: "OK", className: "sweet-btn", action: closeSweetAlert }
+        ];
+
+        buttons.forEach(function (item) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = item.className || "sweet-btn";
+            button.textContent = item.text;
+            button.addEventListener("click", function () {
+                if (typeof item.action === "function") {
+                    item.action();
+                }
+            });
+            sweetActions.appendChild(button);
+        });
+
+        sweetOverlay.classList.add("is-open");
+        sweetOverlay.setAttribute("aria-hidden", "false");
+        document.body.classList.add("sweet-popup-open");
+
+        const firstButton = sweetActions.querySelector("button");
+        if (firstButton) firstButton.focus();
+    }
+
+    // ===== EDIT PARTY MODAL =====
+    function normalizedPartyType(value) {
+        const type = String(value || "").trim().toUpperCase();
+
+        if (type.includes("WITHOUT") || type.includes("NON GST") || type === "NON-GST") {
+            return "WITHOUT_GST";
+        }
+
+        if (type.includes("GST")) {
+            return "GST";
+        }
+
+        return "";
+    }
+
+    function updatePartyEditGSTIN() {
+        const selected = partyEditForm.querySelector('input[name="Party_Type"]:checked');
+        const isGST = Boolean(selected && selected.value === "GST");
+
+        partyEditGstinGroup.hidden = !isGST;
+        partyEditGSTIN.required = isGST;
+        partyEditGSTIN.disabled = !isGST;
+
+        if (!isGST) {
+            partyEditGSTIN.value = "";
+            partyEditGSTIN.setCustomValidity("");
+        }
+    }
+
+    openPartyEditButton.addEventListener("click", function () {
+        partyEditForm.reset();
+
+        const selectedType = normalizedPartyType(currentParty.Party_Type);
+
+        partyEditForm.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+            radio.checked = radio.value === selectedType;
+        });
+
+        document.getElementById("partyEditName").value = currentParty.Party_Name || "";
+        partyEditGSTIN.value = currentParty.GSTIN || "";
+        document.getElementById("partyEditPhone").value = currentParty.Phone || "";
+        document.getElementById("partyEditState").value = currentParty.State || "";
+        document.getElementById("partyEditStateCode").value = currentParty.State_Code || "";
+        document.getElementById("partyEditAddress").value = currentParty.Address || "";
+        document.getElementById("partyEditReason").value = "";
+
+        updatePartyEditGSTIN();
+        openModal(partyEditModal);
+
+        window.setTimeout(function () {
+            document.getElementById("partyEditName").focus();
+        }, 50);
+    });
+
+    partyEditForm.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+        radio.addEventListener("change", updatePartyEditGSTIN);
+    });
+
+    partyEditGSTIN.addEventListener("input", function () {
+        partyEditGSTIN.value = partyEditGSTIN.value.toUpperCase();
+        partyEditGSTIN.setCustomValidity("");
+    });
+
+    partyEditForm.addEventListener("submit", function (event) {
+        const selected = partyEditForm.querySelector('input[name="Party_Type"]:checked');
+
+        if (!selected) {
+            event.preventDefault();
+            showSweetAlert({
+                title: "Party Type Required",
+                message: "Please GST Registered ya Without GST select karein.",
+                icon: "!",
+                type: "warning"
+            });
+            return;
+        }
+
+        const partyName = document.getElementById("partyEditName").value.trim();
+
+        if (!partyName) {
+            event.preventDefault();
+            document.getElementById("partyEditName").focus();
+            return;
+        }
+
+        if (selected.value === "GST") {
+            const value = partyEditGSTIN.value.trim().toUpperCase();
+            const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+            partyEditGSTIN.value = value;
+
+            if (!pattern.test(value)) {
+                event.preventDefault();
+                partyEditGSTIN.setCustomValidity("Valid 15-character GSTIN enter karein.");
+                partyEditGSTIN.reportValidity();
+                return;
+            }
+
+            partyEditGSTIN.setCustomValidity("");
+        }
+
+        partyEditSaveButton.disabled = true;
+        partyEditSaveButton.textContent = "Saving...";
+    });
+
+    // ===== SITE DELETE CONFIRMATION =====
+    function confirmSiteDelete(deleteForm, siteName) {
+        if (!deleteForm || !(deleteForm instanceof HTMLFormElement)) {
+            console.error("Delete blocked: invalid delete form.");
+            return;
+        }
+
+        showSweetAlert({
+            permanent: true,
+            type: "warning",
+            icon: "!",
+            title: "Delete Site?",
+            message: 'You are about to permanently delete "' +
+                String(siteName || "this site") +
+                '". This action cannot be undone. Historical records will be preserved.',
+            buttons: [
+                {
+                    text: "Cancel",
+                    className: "sweet-btn cancel",
+                    action: closeSweetAlert
+                },
+                {
+                    text: "Yes, Delete Permanently",
+                    className: "sweet-btn danger",
+                    action: function () {
+                        let confirmation = deleteForm.querySelector('input[name="confirm_delete"]');
+
+                        if (!confirmation) {
+                            confirmation = document.createElement("input");
+                            confirmation.type = "hidden";
+                            confirmation.name = "confirm_delete";
+                            deleteForm.appendChild(confirmation);
+                        }
+
+                        confirmation.value = "YES_DELETE";
+                        closeSweetAlert();
+
+                        HTMLFormElement.prototype.submit.call(deleteForm);
+                    }
+                }
+            ]
+        });
+    }
+
+    function openSiteModal(button) {
+        form.reset();
+
+        if (button && button.dataset.url) {
+            modalTitle.textContent = "Edit Site";
+            saveButton.textContent = "Update Site";
+            form.action = button.dataset.url;
+
+            fields.name.value = button.dataset.name || "";
+            fields.address.value = button.dataset.address || "";
+            fields.state.value = button.dataset.state || "";
+            fields.stateCode.value = button.dataset.stateCode || "";
+            fields.phone.value = button.dataset.phone || "";
+        } else {
+            modalTitle.textContent = "Add Site";
+            saveButton.textContent = "Save Site";
+            form.action = createUrl;
+        }
+
+        openModal(modal);
+
+        window.setTimeout(function () {
+            fields.name.focus();
+        }, 50);
+    }
+
+    function viewSite(button) {
+        const data = button.dataset;
+
+        document.getElementById("viewSiteId").textContent = data.id || "—";
+        document.getElementById("viewSiteName").textContent = data.name || "—";
+        document.getElementById("viewSiteAddress").textContent = data.address || "—";
+        document.getElementById("viewSiteState").textContent = data.state || "—";
+        document.getElementById("viewSiteStateCode").textContent = data.stateCode || "—";
+        document.getElementById("viewSitePhone").textContent = data.phone || "—";
+
+        openModal(viewModal);
+    }
+
+    document.getElementById("addSiteButton").addEventListener("click", function () {
+        openSiteModal(null);
+    });
+
+    const addFirstButton = document.getElementById("addFirstSiteButton");
+
+    if (addFirstButton) {
+        addFirstButton.addEventListener("click", function () {
+            openSiteModal(null);
+        });
+    }
+
+    document.addEventListener("click", function (event) {
+        const deleteButton = event.target.closest(".delete-site-button");
+
+        if (deleteButton) {
+            event.preventDefault();
+            const deleteForm = deleteButton.closest("form.delete-site-form");
+            const siteName = deleteButton.dataset.siteName || "this site";
+            confirmSiteDelete(deleteForm, siteName);
+            return;
+        }
+
+        const editButton = event.target.closest(".edit-site-button");
+
+        if (editButton) {
+            openSiteModal(editButton);
+            return;
+        }
+
+        const viewButton = event.target.closest(".view-site-button");
+
+        if (viewButton) {
+            viewSite(viewButton);
+            return;
+        }
+
+        if (event.target.closest("[data-close-party-edit]")) {
+            closeModal(partyEditModal);
+            return;
+        }
+
+        if (event.target.closest("[data-close-site-modal]")) {
+            closeModal(modal);
+            return;
+        }
+
+        if (event.target.closest("[data-close-view-modal]")) {
+            closeModal(viewModal);
+        }
+    });
+
+    sweetClose.addEventListener("click", closeSweetAlert);
+
+    sweetOverlay.addEventListener("click", function (event) {
+        if (event.target === sweetOverlay) {
+            closeSweetAlert();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            if (partyEditModal.classList.contains("is-open")) closeModal(partyEditModal);
+            if (modal.classList.contains("is-open")) closeModal(modal);
+            if (viewModal.classList.contains("is-open")) closeModal(viewModal);
+            if (sweetOverlay.classList.contains("is-open")) closeSweetAlert();
+        }
+    });
+
+    // ===== FLASH MESSAGES =====
+    const flashMessages = {{ page_alerts|tojson }};
+
+    if (Array.isArray(flashMessages) && flashMessages.length > 0) {
+        const lastMessage = flashMessages[flashMessages.length - 1];
+        const category = String(lastMessage[0] || "info").toLowerCase();
+        const message = String(lastMessage[1] || "");
+
+        let type = "";
+        let icon = "i";
+        let heading = "Information";
+
+        if (category === "success") {
+            type = "success";
+            icon = "✓";
+            heading = "Success!";
+        } else if (category === "danger" || category === "error") {
+            icon = "×";
+            heading = "Operation Failed";
+        } else if (category === "warning") {
+            type = "warning";
+            icon = "!";
+            heading = "Warning";
+        }
+
+        showSweetAlert({
+            type: type,
+            icon: icon,
+            title: heading,
+            message: message,
+            permanent: false
+        });
+    }
+})();
+</script>
+{% endblock %}

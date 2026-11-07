@@ -1,0 +1,430 @@
+
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">MASTER MANAGEMENT</p>
+        <h1>{{ page_title }}</h1>
+        <p class="page-description">
+            Party details sahi tarah fill karein.
+        </p>
+    </div>
+
+    <a class="btn btn-secondary" href="{{ url_for('parties.index') }}">
+        ← Back to Party List
+    </a>
+</section>
+
+<section class="panel form-panel">
+    <form method="post" action="{{ form_action }}" id="partyForm">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if is_edit %}
+        <div class="form-group">
+            <label>Party ID</label>
+            <input type="text"
+                   value="{{ party.get('Party_ID', '') }}"
+                   readonly>
+        </div>
+        {% endif %}
+
+        <fieldset class="form-section">
+            <legend>Party Classification</legend>
+
+            <div class="form-group">
+                <span class="field-label">Party Type <span class="required">*</span></span>
+
+                <div class="radio-options">
+                    <label class="radio-card">
+                        <input
+                            type="radio"
+                            name="Party_Type"
+                            value="GST"
+                            {% if party.get('Party_Type', 'GST') == 'GST' %}checked{% endif %}
+                            required>
+                        <span>
+                            <strong>GST Party</strong>
+                            <small>GST invoice workflow</small>
+                        </span>
+                    </label>
+
+                    <label class="radio-card">
+                        <input
+                            type="radio"
+                            name="Party_Type"
+                            value="WITHOUT_GST"
+                            {% if party.get('Party_Type') == 'WITHOUT_GST' %}checked{% endif %}
+                            required>
+                        <span>
+                            <strong>Without GST Party</strong>
+                            <small>Without GST document workflow</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" id="gstinGroup">
+                <label for="GSTIN">
+                    GSTIN <span id="gstinRequired" class="required">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="GSTIN"
+                    name="GSTIN"
+                    value="{{ party.get('GSTIN') or '' }}"
+                    maxlength="15"
+                    placeholder="Enter 15-character GSTIN"
+                    autocomplete="off">
+                <small>GST Party ke liye GSTIN zaroori hai.</small>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+            <legend>Party Details</legend>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="Party_Name">
+                        Party Name <span class="required">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="Party_Name"
+                        name="Party_Name"
+                        value="{{ party.get('Party_Name', '') }}"
+                        maxlength="150"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="Contact_Person">Contact Person</label>
+                    <input
+                        type="text"
+                        id="Contact_Person"
+                        name="Contact_Person"
+                        value="{{ party.get('Contact_Person') or '' }}"
+                        maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="Phone">Mobile / Phone</label>
+                    <input
+                        type="tel"
+                        id="Phone"
+                        name="Phone"
+                        value="{{ party.get('Phone') or '' }}"
+                        maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label for="Email">Email</label>
+                    <input
+                        type="email"
+                        id="Email"
+                        name="Email"
+                        value="{{ party.get('Email') or '' }}"
+                        maxlength="150">
+                </div>
+
+                <div class="form-group">
+                    <label for="State">State</label>
+                    <input
+                        type="text"
+                        id="State"
+                        name="State"
+                        value="{{ party.get('State') or '' }}"
+                        maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="Pincode">Pincode</label>
+                    <input
+                        type="text"
+                        id="Pincode"
+                        name="Pincode"
+                        value="{{ party.get('Pincode') or '' }}"
+                        maxlength="10">
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label for="Address">Address</label>
+                    <textarea
+                        id="Address"
+                        name="Address"
+                        rows="3"
+                        maxlength="500">{{ party.get('Address') or '' }}</textarea>
+                </div>
+            </div>
+        </fieldset>
+
+        {% if is_edit %}
+        <fieldset class="form-section">
+            <legend>Change History</legend>
+            <div class="form-group">
+                <label for="Reason">
+                    Reason for Change <span class="required">*</span>
+                </label>
+                <textarea
+                    id="Reason"
+                    name="Reason"
+                    rows="2"
+                    maxlength="500"
+                    placeholder="Explain why party details are being changed"
+                    required></textarea>
+            </div>
+        </fieldset>
+        {% endif %}
+
+        <div class="form-actions">
+            <a class="btn btn-secondary"
+               href="{{ url_for('parties.index') }}">Cancel</a>
+
+            <button type="submit" class="btn btn-primary">
+                {% if is_edit %}Save Changes{% else %}Create Party{% endif %}
+            </button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .panel {
+        background: var(--surface, #ffffff);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .form-section {
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 10px;
+        padding: 20px;
+        margin: 0 0 22px;
+        min-width: 0;
+    }
+
+    .form-section legend {
+        font-weight: 700;
+        padding: 0 8px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-bottom: 16px;
+        min-width: 0;
+    }
+
+    .form-group label,
+    .field-label {
+        font-weight: 600;
+    }
+
+    .form-group input:not([type="radio"]),
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid var(--border, #cbd5e1);
+        border-radius: 7px;
+        font: inherit;
+    }
+
+    .form-group-full {
+        grid-column: 1 / -1;
+    }
+
+    .radio-options {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+
+    .radio-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        border: 1px solid var(--border, #cbd5e1);
+        border-radius: 9px;
+        padding: 14px;
+        cursor: pointer;
+        flex: 1 1 220px;
+    }
+
+    .radio-card input {
+        margin-top: 4px;
+    }
+
+    .radio-card span,
+    .radio-card small {
+        display: block;
+    }
+
+    .radio-card small,
+    .form-group small {
+        color: var(--muted, #64748b);
+        margin-top: 4px;
+    }
+
+    .required {
+        color: #dc2626;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 14px;
+        border-radius: 7px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background: #1d4ed8;
+    }
+
+    .btn-secondary {
+        color: #334155;
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .btn-danger {
+        color: #fff;
+        background: #b91c1c;
+    }
+
+    .btn-small {
+        padding: 6px 9px;
+        font-size: 13px;
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 16px;
+        align-items: end;
+    }
+
+    .filter-actions,
+    .table-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+        text-align: left;
+        padding: 12px;
+        border-bottom: 1px solid var(--border, #e2e8f0);
+        vertical-align: top;
+    }
+
+    .data-table small {
+        display: block;
+        margin-top: 4px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        border-radius: 20px;
+        padding: 4px 9px;
+        font-size: 12px;
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .empty-state {
+        text-align: center !important;
+        padding: 28px !important;
+        color: #64748b;
+    }
+
+    @media (max-width: 700px) {
+        .form-grid,
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+
+        .panel {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const radios = document.querySelectorAll('input[name="Party_Type"]');
+    const gstinGroup = document.getElementById('gstinGroup');
+    const gstinInput = document.getElementById('GSTIN');
+    const gstinRequired = document.getElementById('gstinRequired');
+
+    function updateGSTINField() {
+        const selected = document.querySelector(
+            'input[name="Party_Type"]:checked'
+        );
+        const isGST = selected && selected.value === 'GST';
+
+        gstinGroup.hidden = !isGST;
+        gstinInput.required = Boolean(isGST);
+        gstinRequired.hidden = !isGST;
+
+        if (!isGST) {
+            gstinInput.value = '';
+        }
+    }
+
+    radios.forEach(function (radio) {
+        radio.addEventListener('change', updateGSTINField);
+    });
+
+    updateGSTINField();
+})();
+</script>
+{% endblock %}

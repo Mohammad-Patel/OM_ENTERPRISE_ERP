@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Receive Challans - OM Enterprise</title>
+<style>
+body { font-family: sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }
+.container { max-width: 1000px; margin: auto; background: #fff; padding: 20px; border: 1px solid #cbd5e1; border-radius: 6px; }
+h2 { margin-top: 0; color: #0f172a; border-bottom: 2px solid #0f172a; padding-bottom: 8px; }
+.btn { background: #0f172a; color: #fff; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 13px; display: inline-block; margin-bottom: 15px; }
+.btn:hover { background: #1e293b; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 13px; text-align: left; }
+th { background: #f1f5f9; font-weight: 700; }
+a.print-link { color: #f97316; font-weight: 600; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Receive Challans List</h2>
+  <a href="{{ url_for('receive_challan.create') }}" class="btn">+ Create New Receive Challan</a>
+  <table>
+    <thead>
+      <tr>
+        <th>Challan No.</th>
+        <th>Date</th>
+        <th>Party ID</th>
+        <th>Site ID</th>
+        <th>Vehicle No.</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in challans %}
+      <tr>
+        <td><b>{{ c.Challan_No }}</b></td>
+        <td>{{ c.Date }}</td>
+        <td>{{ c.Party_ID }}</td>
+        <td>{{ c.Site_ID }}</td>
+        <td>{{ c.Vehicle_No or '-' }}</td>
+        <td><a href="{{ url_for('receive_challan.print_challan', challan_no=c.Challan_No) }}" class="print-link" target="_blank">Print View</a></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" style="text-align: center; color: #64748b;">No receive challans found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

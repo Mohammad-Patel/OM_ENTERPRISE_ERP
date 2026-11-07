@@ -1,0 +1,320 @@
+﻿{% extends "base.html" %}
+{% block title %}Opening Stock | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<style>
+.os-page{padding:8px 0 28px;color:#18263b}
+.os-head{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:20px}
+.os-head h1{margin:0 0 6px;font-size:27px}
+.os-head p{margin:0;color:#718096;font-size:13px}
+.os-card{background:#fff;border:1px solid #e4e9f0;border-radius:12px;padding:19px;margin-bottom:18px;box-shadow:0 4px 15px rgba(20,40,70,.04)}
+.os-card h2{font-size:17px;margin:0 0 6px;color:#203752}
+.os-sub{font-size:12px;color:#718096;margin:0 0 17px}
+.os-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.os-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:700;color:#526176}
+.os-field input,.os-field select,.os-field textarea{width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #d8e0ea;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#24364c}
+.os-field textarea{min-height:72px;resize:vertical}
+.os-wide{grid-column:1/-1}
+.os-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:0;border-radius:8px;background:#173b68;color:#fff;font-weight:700;font-size:12px;text-decoration:none;cursor:pointer}
+.os-btn-light{background:#edf1f6;color:#34445b}
+.os-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+.os-note{padding:12px 14px;background:#fff8e8;border:1px solid #f3dfae;border-radius:9px;color:#825b14;font-size:12px;line-height:1.6;margin-bottom:18px}
+.os-table-wrap{overflow-x:auto}
+.os-table{width:100%;border-collapse:collapse;font-size:12px}
+.os-table th{background:#f5f7fb;color:#58677b;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:12px 10px;white-space:nowrap}
+.os-table td{padding:12px 10px;border-bottom:1px solid #edf0f5;vertical-align:top}
+.os-table tr:last-child td{border-bottom:0}
+.os-badge{display:inline-block;padding:5px 8px;border-radius:20px;font-size:10px;font-weight:800;white-space:nowrap}
+.os-estimated{background:#fff3d6;color:#895b00}
+.os-verified{background:#dcfce7;color:#166534}
+.os-muted{color:#718096}
+.os-inline-form{min-width:230px;display:grid;gap:7px}
+.os-inline-form input,.os-inline-form textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d8e0ea;border-radius:6px;font:inherit;font-size:12px}
+.os-empty{text-align:center;padding:30px!important;color:#718096}
+@media(max-width:800px){.os-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.os-grid{grid-template-columns:1fr}.os-wide{grid-column:auto}.os-card{padding:14px}.os-head h1{font-size:23px}}
+</style>
+
+<div class="os-page">
+  <header class="os-head">
+    <div>
+      <h1>Opening Stock</h1>
+      <p>Estimated quantities, physical verification and stock differences</p>
+    </div>
+  </header>
+
+  <div class="os-note">
+    <strong>Important:</strong> Estimated quantity confirmed stock nahi hai.
+    Physical counting aur verification alag se record hogi. Is module ki
+    entries automatically StockLedger mein post nahi hoti.
+  </div>
+
+  <section class="os-card">
+    <h2>Record Estimated Opening Stock</h2>
+    <p class="os-sub">Godown ya Party Site ki approximate quantity record karein.</p>
+
+    <form method="post" action="{{ url_for('opening_stock.estimate') }}" id="os-estimate-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="os-grid">
+        <div class="os-field">
+          <label for="os-location">Stock Location *</label>
+          <select id="os-location" name="Location_Type" required>
+            <option value="GODOWN" {% if selected_location_type == 'GODOWN' %}selected{% endif %}>Our Godown</option>
+            <option value="SITE" {% if selected_location_type == 'SITE' %}selected{% endif %}>Party Site</option>
+          </select>
+        </div>
+
+        <div class="os-field" id="os-party-field" hidden>
+          <label for="os-party">Party *</label>
+          <select id="os-party" name="Party_ID">
+            <option value="">Select Party</option>
+            {% for party in parties %}
+            <option value="{{ party.Party_ID }}"
+              {% if selected_party_id == party.Party_ID %}selected{% endif %}>
+              {{ party.Party_Name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="os-field" id="os-site-field" hidden>
+          <label for="os-site">Site *</label>
+          <select id="os-site" name="Site_ID">
+            <option value="">Select Site</option>
+            {% for site in sites_by_party.get(selected_party_id, []) %}
+            <option value="{{ site.Site_ID }}"
+              {% if selected_site_id == site.Site_ID %}selected{% endif %}>
+              {{ site.Site_Name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="os-field">
+          <label for="os-item">Item *</label>
+          <select id="os-item" name="Item_ID" required>
+            <option value="">Select Item</option>
+            {% for item in items %}
+            <option value="{{ item.Item_ID }}">
+              {{ item.Item_Code }} — {{ item.Item_Name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="os-field">
+          <label for="os-estimated-qty">Estimated Quantity *</label>
+          <input id="os-estimated-qty" type="number" name="Estimated_Qty"
+                 min="0" step="any" required placeholder="e.g. 250">
+        </div>
+
+        <div class="os-field">
+          <label for="os-estimated-date">Estimate Date *</label>
+          <input id="os-estimated-date" type="date" name="Estimated_Date" required>
+        </div>
+
+        <div class="os-field os-wide">
+          <label for="os-estimated-notes">Notes</label>
+          <textarea id="os-estimated-notes" name="Estimated_Notes"
+                    maxlength="500" placeholder="Approximation ka source ya remarks"></textarea>
+        </div>
+      </div>
+
+      <div class="os-actions">
+        <button type="reset" class="os-btn os-btn-light">Reset</button>
+        <button type="submit" class="os-btn">Save Estimate</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="os-card">
+    <h2>Opening Stock Register</h2>
+    <p class="os-sub">Verification se pehle aur baad ki quantities alag dikhayi jaati hain.</p>
+
+    <form method="get" action="{{ url_for('opening_stock.index') }}" class="os-grid" style="margin-bottom:16px">
+      <div class="os-field">
+        <label for="os-filter-location">Filter Location</label>
+        <select id="os-filter-location" name="location_type">
+          <option value="">All Locations</option>
+          <option value="GODOWN" {% if selected_location_type == 'GODOWN' %}selected{% endif %}>Our Godown</option>
+          <option value="SITE" {% if selected_location_type == 'SITE' %}selected{% endif %}>Party Site</option>
+        </select>
+      </div>
+      <div class="os-field">
+        <label for="os-filter-party">Party ID</label>
+        <select id="os-filter-party" name="party_id">
+          <option value="">All Parties</option>
+          {% for party in parties %}
+          <option value="{{ party.Party_ID }}" {% if selected_party_id == party.Party_ID %}selected{% endif %}>{{ party.Party_Name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="os-field" style="align-self:end">
+        <button class="os-btn" type="submit">Apply Filter</button>
+        <a class="os-btn os-btn-light" href="{{ url_for('opening_stock.index') }}">Clear</a>
+      </div>
+    </form>
+
+    <div class="os-table-wrap">
+      <table class="os-table">
+        <thead>
+          <tr>
+            <th>Item / Location</th>
+            <th>Estimated Qty</th>
+            <th>Verified Qty</th>
+            <th>Difference</th>
+            <th>Status</th>
+            <th>Physical Verification</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+          <tr>
+            <td>
+              <strong>{{ record.Item_ID }}</strong>
+              <div class="os-muted" style="margin-top:5px">
+                {% if record.Location_Type == 'GODOWN' %}
+                  Our Godown
+                {% else %}
+                  Party: {{ record.Party_ID }}<br>Site: {{ record.Site_ID }}
+                {% endif %}
+              </div>
+              <div class="os-muted" style="margin-top:5px;font-size:11px">
+                Date: {{ record.Estimated_Date or '-' }}
+              </div>
+              {% if record.Estimated_Notes %}
+              <div class="os-muted" style="margin-top:5px">{{ record.Estimated_Notes }}</div>
+              {% endif %}
+            </td>
+            <td>{{ record.Estimated_Qty }}</td>
+            <td>
+              {% if record.Verified_Qty is not none and record.Verified_Qty != '' %}
+                {{ record.Verified_Qty }}
+                <div class="os-muted" style="margin-top:4px;font-size:11px">{{ record.Verified_Date or '' }}</div>
+              {% else %}
+                <span class="os-muted">Not verified</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if record.Quantity_Difference is not none %}
+                <strong>{{ record.Quantity_Difference }}</strong>
+              {% else %}
+                <span class="os-muted">Pending</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if record.Status == 'VERIFIED' %}
+                <span class="os-badge os-verified">VERIFIED</span>
+              {% else %}
+                <span class="os-badge os-estimated">ESTIMATED</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if record.Status != 'VERIFIED' %}
+              <form method="post"
+                    action="{{ url_for('opening_stock.verify', stock_id=record.Opening_Stock_ID) }}"
+                    class="os-inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="os-muted">Counted quantity</label>
+                <input type="number" name="Verified_Qty" min="0" step="any" required placeholder="Physical count">
+                <label class="os-muted">Verification date</label>
+                <input type="date" name="Verified_Date" required>
+                <textarea name="Verified_Notes" maxlength="500" placeholder="Verification notes (optional)"></textarea>
+                <button type="submit" class="os-btn">Save Verification</button>
+              </form>
+              {% else %}
+                <span class="os-muted">Verification saved</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="os-empty">No opening stock records yet. First save an estimate above.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const locationSelect = document.getElementById('os-location');
+  const partyField = document.getElementById('os-party-field');
+  const siteField = document.getElementById('os-site-field');
+  const partySelect = document.getElementById('os-party');
+  const siteSelect = document.getElementById('os-site');
+  const estimateForm = document.getElementById('os-estimate-form');
+
+  function updateLocationFields() {
+    const isSite = locationSelect.value === 'SITE';
+    partyField.hidden = !isSite;
+    siteField.hidden = !isSite;
+    partySelect.required = isSite;
+    siteSelect.required = isSite;
+    if (!isSite) {
+      partySelect.value = '';
+      siteSelect.value = '';
+    }
+  }
+
+  async function loadSites(preserveSelection) {
+    const partyId = partySelect.value;
+    const previousSite = preserveSelection ? siteSelect.value : '';
+    siteSelect.innerHTML = '<option value="">Loading sites...</option>';
+
+    if (!partyId) {
+      siteSelect.innerHTML = '<option value="">Select Party First</option>';
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "{{ url_for('opening_stock.party_sites', party_id='__PARTY__') }}".replace('__PARTY__', encodeURIComponent(partyId))
+      );
+      if (!response.ok) throw new Error('Could not load sites');
+
+      const data = await response.json();
+      siteSelect.innerHTML = '<option value="">Select Site</option>';
+
+      data.sites.forEach(function (site) {
+        const option = document.createElement('option');
+        option.value = site.Site_ID;
+        option.textContent = site.Site_Name;
+        if (preserveSelection && site.Site_ID === previousSite) {
+          option.selected = true;
+        }
+        siteSelect.appendChild(option);
+      });
+
+      if (!data.sites.length) {
+        siteSelect.innerHTML = '<option value="">No active sites for this party</option>';
+      }
+    } catch (error) {
+      siteSelect.innerHTML = '<option value="">Unable to load sites</option>';
+    }
+  }
+
+  locationSelect.addEventListener('change', updateLocationFields);
+  partySelect.addEventListener('change', function () { loadSites(false); });
+
+  estimateForm.addEventListener('reset', function () {
+    setTimeout(function () {
+      updateLocationFields();
+      document.getElementById('os-estimated-date').value =
+        new Date().toISOString().slice(0, 10);
+    }, 0);
+  });
+
+  updateLocationFields();
+  document.getElementById('os-estimated-date').value =
+    new Date().toISOString().slice(0, 10);
+
+  if (locationSelect.value === 'SITE' && partySelect.value) {
+    loadSites(true);
+  }
+})();
+</script>
+{% endblock %}

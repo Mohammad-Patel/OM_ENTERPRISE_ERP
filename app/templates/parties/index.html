@@ -1,0 +1,891 @@
+
+{% extends "base.html" %}
+
+{% block title %}Party Master | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<style>
+/* ===== PAGE HEADER ===== */
+.pm-page { max-width: 1500px; margin: 0 auto; padding: 4px 0 24px; }
+.pm-heading {
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:18px; margin-bottom:22px;
+}
+.pm-eyebrow {
+    margin:0 0 7px; color:#2563eb; font-size:11px;
+    font-weight:800; letter-spacing:1.3px;
+}
+.pm-heading h1 { margin:0; color:#172033; font-size:27px; font-weight:750; }
+.pm-description { margin:7px 0 0; color:#64748b; font-size:14px; }
+.pm-heading-actions { display:flex; align-items:center; gap:10px; }
+
+/* ===== BUTTONS ===== */
+.pm-btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    padding:10px 14px; border:1px solid transparent; border-radius:8px;
+    font:inherit; font-size:13px; font-weight:650; text-decoration:none;
+    white-space:nowrap; cursor:pointer; transition:background .15s, border-color .15s;
+}
+.pm-btn-primary { background:#1d4ed8; color:#fff; }
+.pm-btn-primary:hover { background:#1e40af; color:#fff; }
+.pm-btn-secondary { background:#fff; color:#334155; border-color:#cbd5e1; }
+.pm-btn-secondary:hover { background:#f8fafc; }
+.pm-btn-view { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.pm-btn-edit { background:#fff; color:#334155; border-color:#cbd5e1; }
+.pm-btn-delete { background:#b91c1c; color:#fff; border-color:#b91c1c; }
+.pm-btn-delete:hover { background:#991b1b; }
+.pm-btn-small { padding:7px 10px; font-size:12px; border-radius:7px; }
+
+/* ===== PANELS ===== */
+.pm-panel {
+    background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+    margin-bottom:20px; box-shadow:0 3px 12px rgba(15,23,42,.035);
+}
+.pm-panel-heading {
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:12px; padding:19px 22px;
+    border-bottom:1px solid #e8edf4;
+}
+.pm-panel-heading h2 { margin:0; font-size:17px; font-weight:750; color:#172033; }
+.pm-panel-heading p { margin:5px 0 0; color:#64748b; font-size:13px; }
+.pm-panel-body { padding:20px 22px; }
+
+/* ===== FILTERS ===== */
+.pm-filter-grid {
+    display:grid; grid-template-columns:minmax(220px,2fr) minmax(170px,1fr) auto;
+    gap:16px; align-items:end;
+}
+.pm-field { display:flex; flex-direction:column; gap:7px; min-width:0; }
+.pm-field label { font-size:12px; font-weight:700; color:#334155; }
+.pm-input, .pm-select, .pm-textarea {
+    width:100%; box-sizing:border-box; padding:10px 12px;
+    border:1px solid #cbd5e1; border-radius:8px; background:#fff;
+    color:#1e293b; font:inherit; font-size:13px;
+}
+.pm-input:focus, .pm-select:focus, .pm-textarea:focus {
+    outline:none; border-color:#2563eb;
+    box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+.pm-filter-actions { display:flex; gap:8px; align-items:center; }
+
+/* ===== TABLE TOOLBAR ===== */
+.pm-table-toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:14px; padding:16px 22px;
+    border-bottom:1px solid #e8edf4;
+}
+.pm-entry-control { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.pm-entry-control label, .pm-search-control label {
+    color:#475569; font-size:13px; font-weight:600;
+}
+.pm-entry-select {
+    min-width:75px; padding:8px 28px 8px 10px; border:1px solid #cbd5e1;
+    border-radius:7px; background:#fff; color:#334155; font:inherit; font-size:13px;
+}
+.pm-search-control { display:flex; align-items:center; gap:9px; }
+.pm-table-search {
+    width:220px; max-width:100%; padding:9px 11px;
+    border:1px solid #cbd5e1; border-radius:8px; font:inherit; font-size:13px;
+}
+.pm-table-search:focus {
+    outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1);
+}
+
+/* ===== DATA TABLE ===== */
+.pm-table-wrap { width:100%; overflow-x:auto; }
+.pm-table { width:100%; min-width:950px; border-collapse:separate; border-spacing:0; }
+.pm-table thead th {
+    padding:14px 15px; background:#f5f8fc; color:#475569;
+    border-bottom:1px solid #dfe7f1; text-align:left;
+    font-size:11px; font-weight:800; letter-spacing:.35px;
+    text-transform:uppercase; white-space:nowrap;
+}
+.pm-table tbody td {
+    padding:14px 15px; border-bottom:1px solid #edf1f6;
+    color:#334155; font-size:13px; vertical-align:middle;
+}
+.pm-table tbody tr { transition:background .12s; }
+.pm-table tbody tr:hover { background:#f8fbff; }
+.pm-table tbody tr:last-child td { border-bottom:none; }
+.pm-table .pm-party-name { color:#172033; font-weight:700; }
+.pm-party-id { color:#64748b; font-size:12px; font-weight:650; white-space:nowrap; }
+.pm-muted { color:#94a3b8; }
+.pm-state { white-space:nowrap; }
+.pm-badge {
+    display:inline-flex; align-items:center; border-radius:20px;
+    padding:5px 9px; font-size:11px; font-weight:750; white-space:nowrap;
+}
+.pm-badge-gst { background:#dbeafe; color:#1d4ed8; }
+.pm-badge-without { background:#f1f5f9; color:#475569; }
+.pm-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:6px; }
+.pm-delete-form { display:inline-flex; margin:0; }
+.pm-no-results { padding:38px 20px !important; text-align:center; color:#64748b !important; }
+.pm-no-results strong { display:block; margin-bottom:7px; color:#334155; font-size:14px; }
+
+/* ===== TABLE FOOTER & PAGINATION ===== */
+.pm-table-footer {
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:14px; padding:16px 22px;
+    border-top:1px solid #e8edf4;
+}
+.pm-record-info { color:#64748b; font-size:12px; line-height:1.6; }
+.pm-pagination { display:flex; align-items:center; flex-wrap:wrap; gap:5px; }
+.pm-page-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:34px; height:34px; padding:0 9px;
+    border:1px solid #dbe2ea; border-radius:7px;
+    background:#fff; color:#334155; font-size:12px; font-weight:650;
+    cursor:pointer;
+}
+.pm-page-btn:hover:not(:disabled) { background:#eff6ff; border-color:#93c5fd; }
+.pm-page-btn.active { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+.pm-page-btn:disabled { opacity:.42; cursor:not-allowed; }
+.pm-page-ellipsis { padding:0 3px; color:#94a3b8; }
+
+/* ===== EMPTY / FILTERED STATE ===== */
+.pm-empty { padding:35px 20px; text-align:center; color:#64748b; }
+.pm-empty-icon {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:44px; height:44px; margin-bottom:10px; border-radius:12px;
+    background:#eff6ff; color:#2563eb; font-size:22px;
+}
+.pm-empty strong { display:block; color:#334155; font-size:14px; }
+.pm-empty p { margin:6px 0 0; font-size:12px; }
+
+/* ===== MODALS ===== */
+.pm-modal, .pm-confirm-modal {
+    width:min(760px, calc(100% - 28px)); max-width:760px;
+    max-height:90vh; padding:0; border:0; border-radius:14px;
+    background:#fff; color:#1e293b; overflow:auto;
+    box-shadow:0 24px 80px rgba(15,23,42,.28);
+}
+.pm-confirm-modal { max-width:520px; }
+.pm-modal::backdrop, .pm-confirm-modal::backdrop {
+    background:rgba(15,23,42,.58); backdrop-filter:blur(3px);
+}
+.pm-modal-header {
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:20px; padding:22px 25px 18px; border-bottom:1px solid #e2e8f0;
+}
+.pm-modal-header h2 { margin:4px 0 0; font-size:22px; color:#172033; }
+.pm-modal-subtitle { margin:7px 0 0; color:#64748b; font-size:13px; }
+.pm-close {
+    width:36px; height:36px; flex-shrink:0; border:0; border-radius:8px;
+    background:#f1f5f9; color:#334155; font-size:26px; line-height:1; cursor:pointer;
+}
+.pm-modal-body { padding:22px 25px; }
+.pm-modal-footer {
+    display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px;
+    padding:16px 25px; border-top:1px solid #e2e8f0; background:#fff;
+}
+.pm-form-section {
+    border:1px solid #e2e8f0; border-radius:10px;
+    padding:18px; margin:0 0 18px; min-width:0;
+}
+.pm-form-section legend { padding:0 8px; font-size:14px; font-weight:750; color:#172033; }
+.pm-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 18px; }
+.pm-form-group { display:flex; flex-direction:column; gap:7px; margin-bottom:15px; min-width:0; }
+.pm-form-group label { font-size:12px; font-weight:700; color:#334155; }
+.pm-form-group small { color:#64748b; font-size:12px; line-height:1.5; }
+.pm-form-group input:not([type=radio]), .pm-form-group textarea {
+    width:100%; box-sizing:border-box; padding:10px 12px;
+    border:1px solid #cbd5e1; border-radius:8px; font:inherit; font-size:13px;
+}
+.pm-form-group input:focus, .pm-form-group textarea:focus {
+    outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1);
+}
+.pm-form-group textarea { resize:vertical; }
+.pm-form-full { grid-column:1/-1; }
+.pm-required { color:#dc2626; }
+.pm-radio-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:7px; }
+.pm-radio-card {
+    display:flex; align-items:flex-start; gap:10px; padding:13px;
+    border:1px solid #cbd5e1; border-radius:9px; cursor:pointer;
+}
+.pm-radio-card:has(input:checked) { border-color:#2563eb; background:#eff6ff; }
+.pm-radio-card input { margin-top:3px; accent-color:#2563eb; }
+.pm-radio-card span { display:flex; flex-direction:column; gap:5px; }
+.pm-radio-card strong { font-size:13px; }
+.pm-radio-card small { color:#64748b; font-size:11px; line-height:1.5; }
+
+@media (max-width:900px) {
+    .pm-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .pm-filter-actions { grid-column:1/-1; }
+}
+@media (max-width:650px) {
+    .pm-page { padding-top:0; }
+    .pm-heading h1 { font-size:23px; }
+    .pm-heading-actions { width:100%; }
+    .pm-heading-actions .pm-btn { flex:1; }
+    .pm-panel-body { padding:15px; }
+    .pm-filter-grid, .pm-form-grid, .pm-radio-options { grid-template-columns:1fr; }
+    .pm-filter-actions, .pm-form-full { grid-column:auto; }
+    .pm-filter-actions .pm-btn { flex:1; }
+    .pm-table-toolbar { padding:14px 15px; }
+    .pm-search-control { width:100%; align-items:stretch; flex-direction:column; }
+    .pm-table-search { width:100%; box-sizing:border-box; }
+    .pm-table-footer { padding:14px 15px; }
+    .pm-pagination { width:100%; }
+    .pm-modal-header { padding:18px; }
+    .pm-modal-body { padding:16px; }
+    .pm-modal-footer { padding:14px 16px; }
+}
+@media print {
+    .pm-heading-actions, .pm-panel:first-of-type, .pm-table-toolbar,
+    .pm-table-footer, .pm-actions { display:none !important; }
+    .pm-panel { box-shadow:none; }
+}
+</style>
+
+<div class="pm-page">
+
+    <!-- PAGE HEADER -->
+    <section class="pm-heading">
+        <div>
+            <p class="pm-eyebrow">MASTER MANAGEMENT</p>
+            <h1>Party Master</h1>
+            <p class="pm-description">GST aur Without GST parties ko manage karein.</p>
+        </div>
+        <div class="pm-heading-actions">
+            <button type="button" class="pm-btn pm-btn-primary" id="openPartyModal">
+                + Add New Party
+            </button>
+        </div>
+    </section>
+
+    <!-- SEARCH & FILTERS -->
+    <section class="pm-panel">
+        <div class="pm-panel-heading">
+            <div>
+                <h2>Search &amp; Filters</h2>
+                <p>Party name, ID, phone ya GSTIN se records search karein.</p>
+            </div>
+        </div>
+        <div class="pm-panel-body">
+            <form method="get" action="{{ url_for('parties.index') }}" class="pm-filter-grid">
+                <div class="pm-field">
+                    <label for="q">Search Party</label>
+                    <input class="pm-input" id="q" type="search" name="q" value="{{ search }}"
+                           placeholder="Party name, ID, phone ya GSTIN">
+                </div>
+
+                <div class="pm-field">
+                    <label for="type">Party Type</label>
+                    <select class="pm-select" id="type" name="type">
+                        <option value="" {% if not selected_type %}selected{% endif %}>All Types</option>
+                        <option value="GST" {% if selected_type == 'GST' %}selected{% endif %}>GST Party</option>
+                        <option value="WITHOUT_GST" {% if selected_type == 'WITHOUT_GST' %}selected{% endif %}>Without GST Party</option>
+                    </select>
+                </div>
+
+                <div class="pm-filter-actions">
+                    <button type="submit" class="pm-btn pm-btn-primary">Search</button>
+                    <a class="pm-btn pm-btn-secondary" href="{{ url_for('parties.index') }}">Reset</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- PARTY RECORDS TABLE -->
+    <section class="pm-panel">
+        <div class="pm-panel-heading">
+            <div>
+                <h2>Party Records</h2>
+                <p>Party master ke records aur unke actions.</p>
+            </div>
+            <span class="pm-badge pm-badge-gst" id="pmTotalBadge">
+                {{ parties|length }} loaded
+            </span>
+        </div>
+
+        <!-- ENTRY DROPDOWN ABOVE TABLE -->
+        <div class="pm-table-toolbar">
+            <div class="pm-entry-control">
+                <label for="pmEntries">Show</label>
+                <select id="pmEntries" class="pm-entry-select">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="all">All</option>
+                </select>
+                <label for="pmEntries">entries per page</label>
+            </div>
+
+            <div class="pm-search-control">
+                <label for="pmTableSearch">Quick filter</label>
+                <input type="search" id="pmTableSearch" class="pm-table-search"
+                       placeholder="Filter visible records..." autocomplete="off">
+            </div>
+        </div>
+
+        <div class="pm-table-wrap">
+            <table class="pm-table" id="pmPartyTable">
+                <thead>
+                    <tr>
+                        <th>Party ID</th>
+                        <th>Party Name</th>
+                        <th>Party Type</th>
+                        <th>GSTIN</th>
+                        <th>Phone</th>
+                        <th>State</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pmPartyTableBody">
+                    {% for party in parties %}
+                    <tr data-party-row>
+                        <td class="pm-party-id">{{ party.get('Party_ID', '') }}</td>
+                        <td><span class="pm-party-name">{{ party.get('Party_Name', '') }}</span></td>
+                        <td>
+                            {% if party.get('Party_Type') == 'GST' %}
+                                <span class="pm-badge pm-badge-gst">GST Party</span>
+                            {% else %}
+                                <span class="pm-badge pm-badge-without">Without GST</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ party.get('GSTIN') or '—' }}</td>
+                        <td>{{ party.get('Phone') or '—' }}</td>
+                        <td class="pm-state">
+                            {{ party.get('State') or '—' }}
+                            {% if party.get('State_Code') %}
+                                ({{ party.get('State_Code') }})
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="pm-actions">
+                                <a class="pm-btn pm-btn-small pm-btn-view"
+                                   href="{{ url_for('parties.view', party_id=party.get('Party_ID')) }}">
+                                    View
+                                </a>
+
+                                <button type="button"
+                                        class="pm-btn pm-btn-small pm-btn-edit"
+                                        data-edit-party
+                                        data-edit-url="{{ url_for('parties.edit', party_id=party.get('Party_ID')) }}"
+                                        data-party-id="{{ party.get('Party_ID', '') }}"
+                                        data-party-name="{{ party.get('Party_Name', '') }}"
+                                        data-party-type="{{ party.get('Party_Type', 'GST') }}"
+                                        data-gstin="{{ party.get('GSTIN', '') or '' }}"
+                                        data-phone="{{ party.get('Phone', '') or '' }}"
+                                        data-state="{{ party.get('State', '') or '' }}"
+                                        data-state-code="{{ party.get('State_Code', '') or '' }}"
+                                        data-address="{{ party.get('Address', '') or '' }}">
+                                    Edit
+                                </button>
+
+                                <form method="post"
+                                      action="{{ url_for('parties.delete', party_id=party.get('Party_ID')) }}"
+                                      class="pm-delete-form"
+                                      data-party-name="{{ party.get('Party_Name', '') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="pm-btn pm-btn-small pm-btn-delete">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="pm-empty">
+                                <div class="pm-empty-icon">⌕</div>
+                                <strong>No party records found</strong>
+                                <p>Filters change karein ya Add New Party par click karein.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION BELOW TABLE -->
+        <div class="pm-table-footer">
+            <div class="pm-record-info" id="pmRecordInfo" aria-live="polite">
+                Loading records...
+            </div>
+            <nav class="pm-pagination" id="pmPagination" aria-label="Party table pagination"></nav>
+        </div>
+    </section>
+</div>
+
+<!-- ADD PARTY MODAL -->
+<dialog id="partyModal" class="pm-modal">
+    <div class="pm-modal-header">
+        <div>
+            <p class="pm-eyebrow">MASTER MANAGEMENT</p>
+            <h2>Add Party</h2>
+            <p class="pm-modal-subtitle">Party ki details fill karein.</p>
+        </div>
+        <button type="button" class="pm-close" id="closePartyModal" aria-label="Close">&times;</button>
+    </div>
+
+    <form method="post" action="{{ url_for('parties.create') }}" id="modalPartyForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="pm-modal-body">
+            <fieldset class="pm-form-section">
+                <legend>Party Classification</legend>
+                <div class="pm-form-group">
+                    <label>Party Type <span class="pm-required">*</span></label>
+                    <div class="pm-radio-options">
+                        <label class="pm-radio-card">
+                            <input type="radio" name="Party_Type" value="GST" checked required>
+                            <span><strong>GST Party</strong><small>GST billing workflow</small></span>
+                        </label>
+                        <label class="pm-radio-card">
+                            <input type="radio" name="Party_Type" value="WITHOUT_GST" required>
+                            <span><strong>Without GST Party</strong><small>Without GST billing workflow</small></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pm-form-group" id="modalGstinGroup">
+                    <label for="modalGSTIN">GSTIN <span id="modalGstinRequired" class="pm-required">*</span></label>
+                    <input type="text" id="modalGSTIN" name="GSTIN" maxlength="15" minlength="15"
+                           pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]"
+                           placeholder="Enter 15-character GSTIN" autocomplete="off"
+                           autocapitalize="characters" spellcheck="false">
+                    <small>GST Party ke liye 15-character GSTIN zaroori hai.</small>
+                </div>
+            </fieldset>
+
+            <fieldset class="pm-form-section">
+                <legend>Party Details</legend>
+                <div class="pm-form-grid">
+                    <div class="pm-form-group">
+                        <label for="modalPartyName">Party Name <span class="pm-required">*</span></label>
+                        <input type="text" id="modalPartyName" name="Party_Name"
+                               maxlength="150" placeholder="Party / company name" required>
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="modalPhone">Mobile / Phone</label>
+                        <input type="tel" id="modalPhone" name="Phone" maxlength="25"
+                               placeholder="Mobile or phone number">
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="modalState">State</label>
+                        <input type="text" id="modalState" name="State" maxlength="100"
+                               placeholder="e.g. Gujarat">
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="modalStateCode">State Code</label>
+                        <input type="text" id="modalStateCode" name="State_Code"
+                               maxlength="2" minlength="2" pattern="[0-9]{2}"
+                               inputmode="numeric" placeholder="e.g. 24">
+                    </div>
+                    <div class="pm-form-group pm-form-full">
+                        <label for="modalAddress">Address</label>
+                        <textarea id="modalAddress" name="Address" rows="3"
+                                  maxlength="500" placeholder="Complete party address"></textarea>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        <div class="pm-modal-footer">
+            <button type="button" class="pm-btn pm-btn-secondary" id="cancelPartyModal">Cancel</button>
+            <button type="submit" class="pm-btn pm-btn-primary">Create Party</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- EDIT PARTY MODAL -->
+<dialog id="editPartyModal" class="pm-modal">
+    <div class="pm-modal-header">
+        <div>
+            <p class="pm-eyebrow">MASTER MANAGEMENT</p>
+            <h2>Edit Party</h2>
+            <p class="pm-modal-subtitle">Party ki existing details update karein.</p>
+        </div>
+        <button type="button" class="pm-close" id="closeEditPartyModal" aria-label="Close">&times;</button>
+    </div>
+
+    <form method="post" id="editPartyForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="pm-modal-body">
+            <fieldset class="pm-form-section">
+                <legend>Party Classification</legend>
+                <div class="pm-form-group">
+                    <label>Party Type <span class="pm-required">*</span></label>
+                    <div class="pm-radio-options">
+                        <label class="pm-radio-card">
+                            <input type="radio" name="Party_Type" value="GST" required>
+                            <span><strong>GST Party</strong><small>GST billing workflow</small></span>
+                        </label>
+                        <label class="pm-radio-card">
+                            <input type="radio" name="Party_Type" value="WITHOUT_GST" required>
+                            <span><strong>Without GST Party</strong><small>Without GST billing workflow</small></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pm-form-group" id="editGstinGroup">
+                    <label for="editGSTIN">GSTIN <span id="editGstinRequired" class="pm-required">*</span></label>
+                    <input type="text" id="editGSTIN" name="GSTIN" maxlength="15" minlength="15"
+                           pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]"
+                           placeholder="Enter 15-character GSTIN" autocomplete="off"
+                           autocapitalize="characters" spellcheck="false">
+                    <small>GST Party ke liye 15-character GSTIN zaroori hai.</small>
+                </div>
+            </fieldset>
+
+            <fieldset class="pm-form-section">
+                <legend>Party Details</legend>
+                <div class="pm-form-grid">
+                    <div class="pm-form-group">
+                        <label for="editPartyName">Party Name <span class="pm-required">*</span></label>
+                        <input type="text" id="editPartyName" name="Party_Name" maxlength="150" required>
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="editPhone">Mobile / Phone</label>
+                        <input type="tel" id="editPhone" name="Phone" maxlength="25">
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="editState">State</label>
+                        <input type="text" id="editState" name="State" maxlength="100">
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="editStateCode">State Code</label>
+                        <input type="text" id="editStateCode" name="State_Code"
+                               maxlength="2" minlength="2" pattern="[0-9]{2}" inputmode="numeric">
+                    </div>
+                    <div class="pm-form-group pm-form-full">
+                        <label for="editAddress">Address</label>
+                        <textarea id="editAddress" name="Address" rows="3" maxlength="500"></textarea>
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="pm-form-group">
+                <label for="editReason">Reason for Change <span class="pm-required">*</span></label>
+                <input type="text" id="editReason" name="Reason" required maxlength="250"
+                       placeholder="e.g. Updated phone number">
+            </div>
+        </div>
+
+        <div class="pm-modal-footer">
+            <button type="button" class="pm-btn pm-btn-secondary" id="cancelEditPartyModal">Cancel</button>
+            <button type="submit" class="pm-btn pm-btn-primary">Save Changes</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- DELETE CONFIRMATION -->
+<dialog id="deletePartyModal" class="pm-confirm-modal">
+    <form method="dialog">
+        <div class="pm-modal-header">
+            <div>
+                <p class="pm-eyebrow">PERMANENT ACTION</p>
+                <h2>Delete Party?</h2>
+                <p class="pm-modal-subtitle" id="deletePartyMessage">
+                    Yeh action undo nahi kiya ja sakta.
+                </p>
+            </div>
+            <button type="submit" class="pm-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="pm-modal-footer">
+            <button type="submit" class="pm-btn pm-btn-secondary" value="cancel">Cancel</button>
+            <button type="button" class="pm-btn pm-btn-delete" id="confirmDeleteParty">
+                Yes, Delete Permanently
+            </button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    "use strict";
+
+    /* ===== CLIENT-SIDE TABLE PAGINATION ===== */
+    const tableBody = document.getElementById("pmPartyTableBody");
+    const entriesSelect = document.getElementById("pmEntries");
+    const tableSearch = document.getElementById("pmTableSearch");
+    const recordInfo = document.getElementById("pmRecordInfo");
+    const pagination = document.getElementById("pmPagination");
+    const totalBadge = document.getElementById("pmTotalBadge");
+
+    const allRows = Array.from(tableBody.querySelectorAll("tr[data-party-row]"));
+    let currentPage = 1;
+    let pageSize = 10;
+    let filteredRows = allRows.slice();
+
+    function filterTable() {
+        const query = tableSearch.value.trim().toLowerCase();
+
+        filteredRows = allRows.filter(function (row) {
+            return row.textContent.toLowerCase().includes(query);
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function createPageButton(label, page, options) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pm-page-btn" + (options.active ? " active" : "");
+        button.textContent = label;
+        button.disabled = Boolean(options.disabled);
+        if (options.active) button.setAttribute("aria-current", "page");
+        button.addEventListener("click", function () {
+            currentPage = page;
+            renderTable();
+        });
+        pagination.appendChild(button);
+    }
+
+    function renderTable() {
+        const total = filteredRows.length;
+        const pages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(total / pageSize));
+
+        if (currentPage > pages) currentPage = pages;
+
+        allRows.forEach(function (row) { row.hidden = true; });
+
+        const startIndex = pageSize === Infinity ? 0 : (currentPage - 1) * pageSize;
+        const endIndex = pageSize === Infinity ? total : Math.min(startIndex + pageSize, total);
+
+        filteredRows.slice(startIndex, endIndex).forEach(function (row) {
+            row.hidden = false;
+        });
+
+        pagination.replaceChildren();
+
+        createPageButton("‹", Math.max(1, currentPage - 1), {
+            disabled: currentPage <= 1
+        });
+
+        if (pages <= 7) {
+            for (let page = 1; page <= pages; page++) {
+                createPageButton(String(page), page, {
+                    active: page === currentPage
+                });
+            }
+        } else {
+            const visiblePages = new Set([1, pages, currentPage, currentPage - 1, currentPage + 1]);
+            const orderedPages = Array.from(visiblePages)
+                .filter(function (page) { return page >= 1 && page <= pages; })
+                .sort(function (a, b) { return a - b; });
+
+            let previousPage = 0;
+            orderedPages.forEach(function (page) {
+                if (previousPage && page - previousPage > 1) {
+                    const dots = document.createElement("span");
+                    dots.className = "pm-page-ellipsis";
+                    dots.textContent = "…";
+                    pagination.appendChild(dots);
+                }
+
+                createPageButton(String(page), page, {
+                    active: page === currentPage
+                });
+                previousPage = page;
+            });
+        }
+
+        createPageButton("›", Math.min(pages, currentPage + 1), {
+            disabled: currentPage >= pages
+        });
+
+        const shownStart = total === 0 ? 0 : startIndex + 1;
+        const shownEnd = Math.min(endIndex, total);
+
+        recordInfo.textContent = total === 0
+            ? "No matching records"
+            : "Showing " + shownStart + " to " + shownEnd + " of " + total + " entries";
+
+        totalBadge.textContent = total + " record(s)";
+    }
+
+    entriesSelect.addEventListener("change", function () {
+        pageSize = entriesSelect.value === "all" ? Infinity : Number(entriesSelect.value);
+        currentPage = 1;
+        renderTable();
+    });
+
+    tableSearch.addEventListener("input", filterTable);
+
+    pageSize = Number(entriesSelect.value);
+    renderTable();
+
+    /* ===== ADD PARTY MODAL ===== */
+    const modal = document.getElementById("partyModal");
+    const openButton = document.getElementById("openPartyModal");
+    const closeButton = document.getElementById("closePartyModal");
+    const cancelButton = document.getElementById("cancelPartyModal");
+    const form = document.getElementById("modalPartyForm");
+    const gstinGroup = document.getElementById("modalGstinGroup");
+    const gstinInput = document.getElementById("modalGSTIN");
+    const gstinRequired = document.getElementById("modalGstinRequired");
+
+    function updateGSTINField(formElement, input, group, requiredLabel) {
+        const selected = formElement.querySelector('input[name="Party_Type"]:checked');
+        const isGST = Boolean(selected && selected.value === "GST");
+
+        group.hidden = !isGST;
+        input.required = isGST;
+        input.disabled = !isGST;
+        requiredLabel.hidden = !isGST;
+
+        if (!isGST) {
+            input.value = "";
+            input.setCustomValidity("");
+        }
+    }
+
+    function validateGSTIN(input, formElement) {
+        const selected = formElement.querySelector('input[name="Party_Type"]:checked');
+
+        if (!selected || selected.value !== "GST") {
+            input.setCustomValidity("");
+            return true;
+        }
+
+        const value = input.value.trim().toUpperCase();
+        const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+        input.value = value;
+
+        if (!pattern.test(value)) {
+            input.setCustomValidity("GSTIN format sahi nahi hai. 15-character GSTIN check karein.");
+            return false;
+        }
+
+        input.setCustomValidity("");
+        return true;
+    }
+
+    openButton.addEventListener("click", function () {
+        form.reset();
+        updateGSTINField(form, gstinInput, gstinGroup, gstinRequired);
+        modal.showModal();
+    });
+
+    function closeAddModal() { modal.close(); }
+    closeButton.addEventListener("click", closeAddModal);
+    cancelButton.addEventListener("click", closeAddModal);
+
+    modal.addEventListener("click", function (event) {
+        if (event.target === modal) closeAddModal();
+    });
+
+    form.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+        radio.addEventListener("change", function () {
+            updateGSTINField(form, gstinInput, gstinGroup, gstinRequired);
+        });
+    });
+
+    gstinInput.addEventListener("input", function () {
+        gstinInput.value = gstinInput.value.toUpperCase();
+        gstinInput.setCustomValidity("");
+    });
+
+    gstinInput.addEventListener("blur", function () {
+        validateGSTIN(gstinInput, form);
+    });
+
+    form.addEventListener("submit", function (event) {
+        if (!validateGSTIN(gstinInput, form)) {
+            event.preventDefault();
+            gstinInput.reportValidity();
+        }
+    });
+
+    /* ===== EDIT PARTY MODAL ===== */
+    const editModal = document.getElementById("editPartyModal");
+    const editForm = document.getElementById("editPartyForm");
+    const closeEditButton = document.getElementById("closeEditPartyModal");
+    const cancelEditButton = document.getElementById("cancelEditPartyModal");
+    const editGstinGroup = document.getElementById("editGstinGroup");
+    const editGstinInput = document.getElementById("editGSTIN");
+    const editGstinRequired = document.getElementById("editGstinRequired");
+    const editReason = document.getElementById("editReason");
+
+    document.querySelectorAll("[data-edit-party]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            editForm.action = button.dataset.editUrl;
+
+            editForm.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+                radio.checked = radio.value === (button.dataset.partyType || "GST");
+            });
+
+            document.getElementById("editPartyName").value = button.dataset.partyName || "";
+            editGstinInput.value = button.dataset.gstin || "";
+            document.getElementById("editPhone").value = button.dataset.phone || "";
+            document.getElementById("editState").value = button.dataset.state || "";
+            document.getElementById("editStateCode").value = button.dataset.stateCode || "";
+            document.getElementById("editAddress").value = button.dataset.address || "";
+            editReason.value = "";
+
+            updateGSTINField(editForm, editGstinInput, editGstinGroup, editGstinRequired);
+            editGstinInput.setCustomValidity("");
+            editModal.showModal();
+        });
+    });
+
+    editForm.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+        radio.addEventListener("change", function () {
+            updateGSTINField(editForm, editGstinInput, editGstinGroup, editGstinRequired);
+        });
+    });
+
+    editGstinInput.addEventListener("input", function () {
+        editGstinInput.value = editGstinInput.value.toUpperCase();
+        editGstinInput.setCustomValidity("");
+    });
+
+    editGstinInput.addEventListener("blur", function () {
+        validateGSTIN(editGstinInput, editForm);
+    });
+
+    editForm.addEventListener("submit", function (event) {
+        if (!validateGSTIN(editGstinInput, editForm)) {
+            event.preventDefault();
+            editGstinInput.reportValidity();
+        }
+    });
+
+    function closeEditModal() { editModal.close(); }
+    closeEditButton.addEventListener("click", closeEditModal);
+    cancelEditButton.addEventListener("click", closeEditModal);
+
+    editModal.addEventListener("click", function (event) {
+        if (event.target === editModal) closeEditModal();
+    });
+
+    /* ===== DELETE CONFIRMATION ===== */
+    const deleteModal = document.getElementById("deletePartyModal");
+    const deleteMessage = document.getElementById("deletePartyMessage");
+    const confirmDeleteButton = document.getElementById("confirmDeleteParty");
+    let pendingDeleteForm = null;
+
+    document.querySelectorAll(".pm-delete-form").forEach(function (deleteForm) {
+        deleteForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            pendingDeleteForm = deleteForm;
+
+            const partyName = deleteForm.dataset.partyName || "this party";
+            deleteMessage.textContent =
+                'Aap "' + partyName + '" ko permanently delete karne ja rahe hain. ' +
+                "Yeh action undo nahi kiya ja sakta. Linked records hone par server deletion rok dega.";
+
+            deleteModal.showModal();
+        });
+    });
+
+    confirmDeleteButton.addEventListener("click", function () {
+        if (!pendingDeleteForm) return;
+
+        confirmDeleteButton.disabled = true;
+        pendingDeleteForm.submit();
+    });
+
+    deleteModal.addEventListener("close", function () {
+        pendingDeleteForm = null;
+        confirmDeleteButton.disabled = false;
+    });
+})();
+</script>
+{% endblock %}

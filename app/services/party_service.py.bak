@@ -1,0 +1,631 @@
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import uuid
+from datetime import datetime
+from pathlib import Path
+from threading import RLock
+from typing import Any
+
+from openpyxl import load_workbook
+
+from app.config import Config
+from app.services.excel_service import initialize_workbook
+
+
+_LOCK = RLock()
+
+PARTY_REQUIRED_HEADERS = {
+    "Party_ID",
+    "Party_Name",
+    "Party_Type",
+    "GSTIN",
+    "Phone",
+    "Address",
+    "State",
+    "State_Code",
+    "Is_Active",
+    "Created_At",
+    "Updated_At",
+}
+
+AUDIT_HEADERS = [
+    "Audit_ID",
+    "Timestamp",
+    "Username",
+    "Action",
+    "Object_Type",
+    "Object_ID",
+    "Reason",
+    "Before_Data",
+    "After_Data",
+]
+
+
+class PartyServiceError(Exception):
+    """A validation or data-storage error in Party Master."""
+
+
+def _now() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _get_path() -> Path:
+    return Path(Config.WORKBOOK_PATH)
+
+
+def _headers(ws) -> list[str]:
+    """Read and validate worksheet header names."""
+    result = []
+
+    for column in range(1, ws.max_column + 1):
+        value = ws.cell(row=1, column=column).value
+        result.append(_text(value))
+
+    while result and not result[-1]:
+        result.pop()
+
+    if not result or not any(result):
+        raise PartyServiceError(
+            f"Worksheet '{ws.title}' does not contain a header row."
+        )
+
+    nonempty = [header for header in result if header]
+    if len(nonempty) != len(set(nonempty)):
+        raise PartyServiceError(
+            f"Worksheet '{ws.title}' has duplicate column headers."
+        )
+
+    return result
+
+
+def _require_headers(ws, required: set[str]) -> list[str]:
+    headers = _headers(ws)
+    missing = sorted(required - set(headers))
+
+    if missing:
+        raise PartyServiceError(
+            f"Worksheet '{ws.title}' is missing required columns: "
+            + ", ".join(missing)
+        )
+
+    return headers
+
+
+def _validate_party(data: dict[str, Any]) -> dict[str, Any]:
+    party_name = _text(data.get("Party_Name"))
+    party_type = _text(data.get("Party_Type")).upper()
+    gstin = _text(data.get("GSTIN")).upper()
+
+    if not party_name:
+        raise PartyServiceError("Party name is required.")
+
+    if len(party_name) > 150:
+        raise PartyServiceError(
+            "Party name must not exceed 150 characters."
+        )
+
+    if party_type not in {"GST", "WITHOUT_GST"}:
+        raise PartyServiceError(
+            "Select GST Party or Without GST Party."
+        )
+
+    if party_type == "GST":
+        gstin_pattern = (
+            r"[0-9]{2}[A-Z]{5}[0-9]{4}"
+            r"[A-Z][1-9A-Z]Z[0-9A-Z]"
+        )
+
+        if not gstin:
+            raise PartyServiceError(
+                "GSTIN is required for a GST Party."
+            )
+
+        if not re.fullmatch(gstin_pattern, gstin):
+            raise PartyServiceError(
+                "GSTIN must have a valid 15-character format."
+            )
+    else:
+        gstin = ""
+
+    phone = _text(data.get("Phone"))
+    if len(phone) > 25:
+        raise PartyServiceError("Phone number must not exceed 25 characters.")
+
+    state = _text(data.get("State"))
+    state_code = _text(data.get("State_Code"))
+
+    if state_code and not re.fullmatch(r"[0-9]{2}", state_code):
+        raise PartyServiceError(
+            "State Code must contain exactly 2 digits."
+        )
+
+    address = _text(data.get("Address"))
+    if len(address) > 500:
+        raise PartyServiceError("Address must not exceed 500 characters.")
+
+    if len(state) > 100:
+        raise PartyServiceError("State must not exceed 100 characters.")
+
+    return {
+        "Party_Name": party_name,
+        "Party_Type": party_type,
+        "GSTIN": gstin,
+        "Phone": phone,
+        "Address": address,
+        "State": state,
+        "State_Code": state_code,
+    }
+
+
+def _read_parties(wb) -> list[dict[str, Any]]:
+    if "Customers" not in wb.sheetnames:
+        raise PartyServiceError(
+            "Customers worksheet was not found in the workbook."
+        )
+
+    ws = wb["Customers"]
+    headers = _require_headers(ws, PARTY_REQUIRED_HEADERS)
+    rows: list[dict[str, Any]] = []
+
+    for row_number in range(2, ws.max_row + 1):
+        values = [
+            ws.cell(row=row_number, column=column).value
+            for column in range(1, len(headers) + 1)
+        ]
+
+        if not any(value is not None for value in values):
+            continue
+
+        record = dict(zip(headers, values))
+        record["_row_number"] = row_number
+        rows.append(record)
+
+    return rows
+
+
+def _find_party_row(ws, party_id: str, headers: list[str]) -> int | None:
+    id_column = headers.index("Party_ID") + 1
+
+    for row_number in range(2, ws.max_row + 1):
+        cell_value = _text(
+            ws.cell(row=row_number, column=id_column).value
+        )
+        if cell_value == party_id:
+            return row_number
+
+    return None
+
+
+def _append_audit(
+    wb,
+    action: str,
+    party_id: str,
+    reason: str,
+    before: dict[str, Any] | None,
+    after: dict[str, Any] | None,
+    username: str,
+) -> None:
+    if "Audit_Log" not in wb.sheetnames:
+        raise PartyServiceError(
+            "Audit_Log worksheet is missing. No changes were saved."
+        )
+
+    ws = wb["Audit_Log"]
+    headers = _headers(ws)
+
+    missing = [header for header in AUDIT_HEADERS if header not in headers]
+    if missing:
+        raise PartyServiceError(
+            "Audit_Log is missing required columns: "
+            + ", ".join(missing)
+        )
+
+    def serializable(data: dict[str, Any] | None) -> str:
+        if data is None:
+            return ""
+
+        clean_data = {
+            key: value
+            for key, value in data.items()
+            if not key.startswith("_")
+        }
+
+        return json.dumps(
+            clean_data,
+            ensure_ascii=False,
+            default=str,
+        )
+
+    record = {
+        "Audit_ID": "AUD-" + uuid.uuid4().hex[:12].upper(),
+        "Timestamp": _now(),
+        "Username": _text(username) or "Administrator",
+        "Action": action,
+        "Object_Type": "PARTY",
+        "Object_ID": party_id,
+        "Reason": reason,
+        "Before_Data": serializable(before),
+        "After_Data": serializable(after),
+    }
+
+    ws.append([record.get(header) for header in headers])
+
+
+def _save_atomic(wb, path: Path) -> None:
+    """Save to a temporary workbook first, then replace the original."""
+    temporary_path = path.with_name(
+        f"{path.stem}.tmp{path.suffix}"
+    )
+
+    try:
+        wb.save(temporary_path)
+        os.replace(temporary_path, path)
+
+    except PermissionError as exc:
+        if temporary_path.exists():
+            try:
+                temporary_path.unlink()
+            except OSError:
+                pass
+
+        raise PartyServiceError(
+            "Workbook save nahi ho paya. Excel mein workbook open ho "
+            "to close karke dobara try karein."
+        ) from exc
+
+    except Exception as exc:
+        if temporary_path.exists():
+            try:
+                temporary_path.unlink()
+            except OSError:
+                pass
+
+        raise PartyServiceError(
+            "Could not save workbook. Check file permissions and retry."
+        ) from exc
+
+
+def _is_active(party: dict[str, Any]) -> bool:
+    value = _text(party.get("Is_Active")).lower()
+    return value in {"true", "1", "yes", "active"}
+
+
+def _is_duplicate_gstin(
+    parties: list[dict[str, Any]],
+    gstin: str,
+    exclude_party_id: str | None = None,
+) -> bool:
+    if not gstin:
+        return False
+
+    for party in parties:
+        if _text(party.get("Party_ID")) == exclude_party_id:
+            continue
+
+        if _text(party.get("GSTIN")).upper() == gstin:
+            return True
+
+    return False
+
+
+def list_parties(
+    party_type: str | None = None,
+    search: str = "",
+    active_only: bool = True,
+) -> list[dict[str, Any]]:
+    """Return parties, optionally filtered by type and search."""
+    path = initialize_workbook()
+
+    with _LOCK:
+        wb = load_workbook(path, read_only=True, data_only=True)
+        try:
+            parties = _read_parties(wb)
+        finally:
+            wb.close()
+
+    requested_type = _text(party_type).upper()
+    query = _text(search).casefold()
+    result = []
+
+    for original in parties:
+        party = dict(original)
+
+        if active_only and not _is_active(party):
+            continue
+
+        if requested_type and _text(party.get("Party_Type")).upper() != requested_type:
+            continue
+
+        if query:
+            searchable = " ".join(
+                _text(party.get(field))
+                for field in (
+                    "Party_ID",
+                    "Party_Name",
+                    "GSTIN",
+                    "Phone",
+                    "Contact_Person",
+                    "Address",
+                    "State",
+                )
+            ).casefold()
+
+            if query not in searchable:
+                continue
+
+        party.pop("_row_number", None)
+        result.append(party)
+
+    return sorted(
+        result,
+        key=lambda item: _text(item.get("Party_Name")).casefold(),
+    )
+
+
+def get_party(party_id: str) -> dict[str, Any] | None:
+    """Return one party by its ID."""
+    target = _text(party_id)
+
+    if not target:
+        return None
+
+    for party in list_parties(active_only=False):
+        if _text(party.get("Party_ID")) == target:
+            return party
+
+    return None
+
+
+def create_party(
+    data: dict[str, Any],
+    username: str = "Administrator",
+) -> str:
+    """Validate and create a party; return its unique ID."""
+    clean = _validate_party(data)
+    path = initialize_workbook()
+
+    with _LOCK:
+        wb = load_workbook(path)
+        try:
+            parties = _read_parties(wb)
+
+            if (
+                clean["Party_Type"] == "GST"
+                and _is_duplicate_gstin(parties, clean["GSTIN"])
+            ):
+                raise PartyServiceError(
+                    "This GSTIN already exists in Party Master."
+                )
+
+            max_number = 0
+            existing_ids = set()
+
+            for party in parties:
+                existing_id = _text(party.get("Party_ID"))
+                if existing_id:
+                    existing_ids.add(existing_id)
+
+                match = re.fullmatch(r"P(\d+)", existing_id)
+                if match:
+                    max_number = max(max_number, int(match.group(1)))
+
+            party_id = f"P{max_number + 1:06d}"
+            while party_id in existing_ids:
+                max_number += 1
+                party_id = f"P{max_number + 1:06d}"
+
+            created_at = _now()
+            record = {
+                **clean,
+                "Party_ID": party_id,
+                "Is_Active": True,
+                "Created_At": created_at,
+                "Updated_At": created_at,
+            }
+
+            ws = wb["Customers"]
+            headers = _require_headers(ws, PARTY_REQUIRED_HEADERS)
+            ws.append([record.get(header) for header in headers])
+
+            _append_audit(
+                wb,
+                "CREATE",
+                party_id,
+                "Party created",
+                None,
+                record,
+                username,
+            )
+
+            _save_atomic(wb, path)
+            return party_id
+        finally:
+            wb.close()
+
+
+def update_party(
+    party_id: str,
+    data: dict[str, Any],
+    reason: str,
+    username: str = "Administrator",
+) -> None:
+    """Update a party while preserving its ID and creation timestamp."""
+    target = _text(party_id)
+    reason = _text(reason)
+
+    if not target:
+        raise PartyServiceError("Party ID is required.")
+
+    if not reason:
+        raise PartyServiceError(
+            "A reason is required when editing a party."
+        )
+
+    if len(reason) > 250:
+        raise PartyServiceError(
+            "Reason for change must not exceed 250 characters."
+        )
+
+    clean = _validate_party(data)
+    path = initialize_workbook()
+
+    with _LOCK:
+        wb = load_workbook(path)
+        try:
+            ws = wb["Customers"]
+            headers = _require_headers(ws, PARTY_REQUIRED_HEADERS)
+            row_number = _find_party_row(ws, target, headers)
+
+            if row_number is None:
+                raise PartyServiceError("Party was not found.")
+
+            before = dict(zip(
+                headers,
+                [
+                    ws.cell(row=row_number, column=column).value
+                    for column in range(1, len(headers) + 1)
+                ],
+            ))
+
+            parties = _read_parties(wb)
+            if (
+                clean["Party_Type"] == "GST"
+                and _is_duplicate_gstin(
+                    parties,
+                    clean["GSTIN"],
+                    exclude_party_id=target,
+                )
+            ):
+                raise PartyServiceError(
+                    "This GSTIN already belongs to another party."
+                )
+
+            updated = {
+                **before,
+                **clean,
+                "Party_ID": target,
+                "Created_At": before.get("Created_At"),
+                "Updated_At": _now(),
+            }
+
+            for column, header in enumerate(headers, start=1):
+                if header in updated:
+                    ws.cell(
+                        row=row_number,
+                        column=column,
+                    ).value = updated[header]
+
+            _append_audit(
+                wb,
+                "UPDATE",
+                target,
+                reason,
+                before,
+                updated,
+                username,
+            )
+
+            _save_atomic(wb, path)
+        finally:
+            wb.close()
+
+
+def _find_party_references(wb, party_id: str) -> list[str]:
+    """
+    Conservatively check other worksheets for exact Party ID matches.
+    Audit_Log is excluded because it must preserve historical audit entries.
+    """
+    references: list[str] = []
+
+    for ws in wb.worksheets:
+        if ws.title in {"Customers", "Audit_Log"}:
+            continue
+
+        for row in ws.iter_rows(min_row=1):
+            for cell in row:
+                value = _text(cell.value)
+                if value == party_id:
+                    references.append(
+                        f"{ws.title}!{cell.coordinate}"
+                    )
+
+                    # One reference per worksheet is enough to block deletion.
+                    break
+
+            if references and references[-1].startswith(ws.title + "!"):
+                break
+
+    return references
+
+
+def delete_party(
+    party_id: str,
+    username: str = "Administrator",
+) -> None:
+    """
+    Permanently delete a party only when no exact ID reference is found
+    in another worksheet. The deletion is recorded in Audit_Log.
+    """
+    target = _text(party_id)
+
+    if not target:
+        raise PartyServiceError("Party ID is required.")
+
+    path = initialize_workbook()
+
+    with _LOCK:
+        wb = load_workbook(path)
+        try:
+            ws = wb["Customers"]
+            headers = _require_headers(ws, PARTY_REQUIRED_HEADERS)
+            row_number = _find_party_row(ws, target, headers)
+
+            if row_number is None:
+                raise PartyServiceError("Party was not found.")
+
+            before = dict(zip(
+                headers,
+                [
+                    ws.cell(row=row_number, column=column).value
+                    for column in range(1, len(headers) + 1)
+                ],
+            ))
+
+            references = _find_party_references(wb, target)
+            if references:
+                preview = ", ".join(references[:5])
+                extra = (
+                    f" and {len(references) - 5} more reference(s)"
+                    if len(references) > 5
+                    else ""
+                )
+                raise PartyServiceError(
+                    "Party cannot be deleted because its ID is referenced "
+                    f"in other workbook sheets: {preview}{extra}. "
+                    "Remove or review linked records first."
+                )
+
+            _append_audit(
+                wb,
+                "DELETE",
+                target,
+                "Permanent deletion confirmed by user",
+                before,
+                None,
+                username,
+            )
+
+            ws.delete_rows(row_number, 1)
+            _save_atomic(wb, path)
+        finally:
+            wb.close()

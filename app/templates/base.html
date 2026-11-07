@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OM ENTERPRISE ERP{% endblock %}</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/sidebar-redesign.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/dashboard.css') }}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-shell">
+        {% include 'components/sidebar.html' %}
+
+        <div class="main-area">
+            {% include 'components/navbar.html' %}
+
+            <main class="page-content">
+                {% include 'components/flash_messages.html' %}
+                {% block content %}{% endblock %}
+            </main>
+
+            {% include 'components/footer.html' %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

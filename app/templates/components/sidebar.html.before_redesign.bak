@@ -1,0 +1,31 @@
+<aside class="sidebar" id="appSidebar">
+    <div class="sidebar-heading">WORKSPACE</div>
+
+    <nav class="sidebar-nav" aria-label="Main navigation">
+        <a class="nav-link" href="{{ url_for('dashboard.dashboard') }}">
+            <span class="nav-icon">?</span>
+            <span class="nav-label">Dashboard</span>
+        </a>
+
+        <div class="nav-section-label">MASTER MANAGEMENT</div>
+
+        <a class="nav-link" href="{{ url_for('parties.index') }}">
+            <span class="nav-icon">?</span>
+            <span class="nav-label">Party Master</span>
+        </a>
+
+        <a class="nav-link" href="{{ url_for('items.index') }}">
+        <a href="{{ url_for('opening_stock.index') }}">Opening Stock</a>
+            <span class="nav-icon">?</span>
+            <span class="nav-label">Item Master</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+        <div class="sidebar-bottom-mark">OM</div>
+        <div class="sidebar-bottom-text">
+            <strong>OM ENTERPRISE</strong>
+            <small>ERP Workspace</small>
+        </div>
+    </div>
+</aside>

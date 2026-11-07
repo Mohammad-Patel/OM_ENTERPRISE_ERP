@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Item Master | OM ENTERPRISE ERP{% endblock %}
+
+{% block content %}
+<style>
+.item-page { padding: 8px 0 24px; color: #18263b; }
+.item-header { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+.item-header h1 { margin:0 0 6px; font-size:27px; font-weight:750; }
+.item-header p { margin:0; color:#718096; font-size:13px; }
+.im-btn { display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:8px; padding:10px 15px; font-weight:650; font-size:13px; cursor:pointer; text-decoration:none; gap:6px; }
+.im-primary { background:#173b68; color:white !important; }
+.im-secondary { background:#edf1f6; color:#34445b !important; }
+.im-danger { background:#fff0f0; color:#b42318 !important; }
+.im-card { background:#fff; border:1px solid #e4e9f0; border-radius:13px; padding:18px; box-shadow:0 4px 16px rgba(20,40,70,.04); }
+.im-search { display:flex; gap:9px; margin-bottom:17px; flex-wrap:wrap; }
+.im-search input { flex:1; min-width:220px; }
+.im-input, .im-select, .im-textarea, .im-search input {
+  width:100%; box-sizing:border-box; border:1px solid #d8e0ea; border-radius:8px;
+  padding:10px 11px; background:white; color:#1c2b40; font:inherit; font-size:13px;
+}
+.im-input:focus, .im-select:focus, .im-textarea:focus, .im-search input:focus { outline:2px solid #d3e3f7; border-color:#4777ae; }
+.im-table-wrap { overflow-x:auto; }
+.im-table { width:100%; border-collapse:collapse; font-size:13px; }
+.im-table th { text-align:left; background:#f5f7fb; color:#58677b; font-size:11px; text-transform:uppercase; letter-spacing:.04em; padding:12px 10px; white-space:nowrap; }
+.im-table td { padding:13px 10px; border-bottom:1px solid #edf0f5; vertical-align:middle; }
+.im-table tr:last-child td { border-bottom:0; }
+.im-code { font-weight:750; color:#214f81; white-space:nowrap; }
+.im-name { font-weight:650; color:#24364c; min-width:200px; }
+.im-muted { color:#718096; }
+.im-actions { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+.im-text-btn { border:0; background:transparent; color:#245d98; font-weight:650; cursor:pointer; padding:4px; }
+.im-text-btn.danger { color:#b42318; }
+.im-badge { display:inline-block; padding:4px 8px; border-radius:20px; background:#edf4fc; color:#315d8b; font-size:11px; font-weight:650; }
+.im-footer { margin-top:14px; color:#718096; font-size:12px; }
+.im-overlay { display:none; position:fixed; inset:0; z-index:10000; background:rgba(14,26,44,.58); padding:22px; overflow-y:auto; align-items:flex-start; justify-content:center; }
+.im-overlay.open { display:flex; }
+.im-modal { background:white; width:min(760px,100%); margin:auto; border-radius:15px; box-shadow:0 22px 70px rgba(0,0,0,.25); overflow:hidden; }
+.im-modal-head { display:flex; justify-content:space-between; align-items:flex-start; gap:15px; padding:20px 23px; background:#f7f9fc; border-bottom:1px solid #e6ebf2; }
+.im-modal-head h2 { margin:0 0 5px; font-size:20px; color:#1d3452; }
+.im-modal-head p { margin:0; color:#718096; font-size:12px; }
+.im-close { border:0; background:#e9eef5; color:#263c56; border-radius:8px; width:34px; height:34px; font-size:22px; cursor:pointer; flex-shrink:0; }
+.im-modal-body { padding:22px 23px; }
+.im-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.im-field label { display:block; font-size:12px; color:#526176; font-weight:700; margin-bottom:7px; }
+.im-field small { display:block; color:#8994a4; margin-top:5px; font-size:11px; }
+.im-full { grid-column:1/-1; }
+.im-modal-foot { display:flex; justify-content:flex-end; gap:9px; flex-wrap:wrap; padding:16px 23px; background:#f8fafc; border-top:1px solid #e6ebf2; }
+.im-details { width:100%; border-collapse:collapse; }
+.im-details th, .im-details td { padding:13px 14px; border-bottom:1px solid #edf0f5; text-align:left; vertical-align:top; }
+.im-details th { width:40%; color:#66758a; font-size:12px; font-weight:650; background:#f8fafc; }
+.im-details td { color:#1f3047; font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+.im-details tr:last-child th, .im-details tr:last-child td { border-bottom:0; }
+.im-view-code { display:inline-block; padding:5px 9px; border-radius:6px; background:#eaf2fb; color:#214f81; font-weight:750; }
+.im-empty { text-align:center; padding:32px 10px !important; color:#718096; }
+@media(max-width:620px) {
+ .im-overlay { padding:8px; }
+ .im-grid { grid-template-columns:1fr; }
+ .im-full { grid-column:auto; }
+ .im-modal-head, .im-modal-body { padding:16px; }
+ .im-modal-foot { padding:13px 16px; }
+ .im-details th { width:43%; padding:11px 9px; }
+ .im-details td { padding:11px 9px; }
+}
+</style>
+
+<div class="item-page">
+  <div class="item-header">
+    <div>
+      <h1>Item Master</h1>
+      <p>Scaffolding inventory · Standard weights · Daily rental rates</p>
+    </div>
+    <button type="button" class="im-btn im-primary" data-im-open="im-add">＋ Add New Item</button>
+  </div>
+
+  <div class="im-card">
+    <form method="get" action="{{ url_for('items.index') }}" class="im-search">
+      <input name="q" type="search" value="{{ search }}" placeholder="Search Item Code, name, size or category...">
+      <button class="im-btn im-primary" type="submit">Search</button>
+      {% if search %}<a class="im-btn im-secondary" href="{{ url_for('items.index') }}">Clear</a>{% endif %}
+    </form>
+
+    <div class="im-table-wrap">
+      <table class="im-table">
+        <thead>
+          <tr>
+            <th>Item Code</th><th>Item Details</th><th>Weight / Piece</th>
+            <th>Daily Rate</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+          <tr>
+            <td><span class="im-code">{{ item.Item_Code or '-' }}</span></td>
+            <td>
+              <div class="im-name">{{ item.Item_Name or '-' }}</div>
+              <div class="im-muted" style="margin-top:5px;font-size:12px">
+                {{ item.Category or 'Uncategorized' }}{% if item.Size %} · {{ item.Size }}{% endif %} · {{ item.Unit or 'Nos' }}
+              </div>
+            </td>
+            <td style="white-space:nowrap">{{ item.Unit_Weight_KG if item.Unit_Weight_KG is not none else '-' }} kg</td>
+            <td style="white-space:nowrap">
+              {% if item.Daily_Rental_Rate is not none and item.Daily_Rental_Rate != '' %}
+                ₹{{ '%.2f'|format(item.Daily_Rental_Rate|float) }}
+              {% else %}<span class="im-muted">Not set</span>{% endif %}
+            </td>
+            <td>
+              <div class="im-actions">
+                <button type="button" class="im-text-btn" data-im-open="im-view-{{ loop.index }}">View</button>
+                <button type="button" class="im-text-btn" data-im-open="im-edit-{{ loop.index }}">Edit</button>
+                <button type="button" class="im-text-btn danger" data-im-open="im-delete-{{ loop.index }}">Delete</button>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="im-empty">No items found. Click “Add New Item” to get started.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="im-footer">Showing {{ items|length }} item(s)</div>
+  </div>
+</div>
+
+{# Add Item Modal #}
+<div class="im-overlay" id="im-add" aria-hidden="true">
+  <section class="im-modal" role="dialog" aria-modal="true" aria-labelledby="im-add-title">
+    <div class="im-modal-head">
+      <div><h2 id="im-add-title">Add New Item</h2><p>Enter the item's master details below.</p></div>
+      <button type="button" class="im-close" data-im-close aria-label="Close">×</button>
+    </div>
+    <form method="post" action="{{ url_for('items.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="im-modal-body"><div class="im-grid">
+        <div class="im-field im-full"><label>Item Name *</label><input class="im-input" name="Item_Name" required maxlength="150" placeholder="e.g. CUPLOCK/VERTICAL 3 MTR"></div>
+        <div class="im-field"><label>Size</label><input class="im-input" name="Size" placeholder="e.g. 3 MTR"></div>
+        <div class="im-field"><label>Category</label><select class="im-select" name="Category"><option value="">Select category</option>{% for c in ['Vertical','Ledger','Props','S/Plate','Steel Channel','Jack','Accessory','Pipe','Other'] %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></div>
+        <div class="im-field"><label>Unit</label><select class="im-select" name="Unit"><option>Nos</option><option>Set</option><option>Kg</option><option>Mtr</option></select></div>
+        <div class="im-field"><label>Standard Weight per Piece (kg) *</label><input class="im-input" name="Unit_Weight_KG" type="number" min="0" step="0.001" required placeholder="e.g. 13"></div>
+        <div class="im-field"><label>Default Daily Rental Rate (₹)</label><input class="im-input" name="Daily_Rental_Rate" type="number" min="0" step="0.01" placeholder="Optional"></div>
+        <div class="im-field"><label>Goods Value Rate (₹)</label><input class="im-input" name="Goods_Value_Rate" type="number" min="0" step="0.01" placeholder="Optional"></div>
+        <div class="im-field im-full"><label>Description / Notes</label><textarea class="im-textarea" name="Description" rows="3" placeholder="Optional item notes"></textarea></div>
+      </div></div>
+      <div class="im-modal-foot"><button type="button" class="im-btn im-secondary" data-im-close>Cancel</button><button type="submit" class="im-btn im-primary">Save Item</button></div>
+    </form>
+  </section>
+</div>
+
+{% for item in items %}
+{# Edit Item Modal #}
+<div class="im-overlay" id="im-edit-{{ loop.index }}" aria-hidden="true">
+  <section class="im-modal" role="dialog" aria-modal="true" aria-labelledby="im-edit-title-{{ loop.index }}">
+    <div class="im-modal-head">
+      <div><h2 id="im-edit-title-{{ loop.index }}">Edit Item</h2><p>{{ item.Item_Code }} · {{ item.Item_Name }}</p></div>
+      <button type="button" class="im-close" data-im-close aria-label="Close">×</button>
+    </div>
+    <form method="post" action="{{ url_for('items.edit', item_id=item.Item_ID) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="im-modal-body"><div class="im-grid">
+        <div class="im-field"><label>Item Code</label><input class="im-input" value="{{ item.Item_Code }}" readonly></div>
+        <div class="im-field"><label>Item Name *</label><input class="im-input" name="Item_Name" required maxlength="150" value="{{ item.Item_Name or '' }}"></div>
+        <div class="im-field"><label>Size</label><input class="im-input" name="Size" value="{{ item.Size or '' }}"></div>
+        <div class="im-field"><label>Category</label><select class="im-select" name="Category"><option value="">Select category</option>{% for c in ['Vertical','Ledger','Props','S/Plate','Steel Channel','Jack','Accessory','Pipe','Other'] %}<option value="{{ c }}" {% if item.Category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="im-field"><label>Unit</label><select class="im-select" name="Unit">{% for u in ['Nos','Set','Kg','Mtr'] %}<option value="{{ u }}" {% if (item.Unit or 'Nos') == u %}selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+        <div class="im-field"><label>Standard Weight per Piece (kg) *</label><input class="im-input" name="Unit_Weight_KG" type="number" min="0" step="0.001" required value="{{ item.Unit_Weight_KG if item.Unit_Weight_KG is not none else '' }}"></div>
+        <div class="im-field"><label>Default Daily Rental Rate (₹)</label><input class="im-input" name="Daily_Rental_Rate" type="number" min="0" step="0.01" value="{{ item.Daily_Rental_Rate if item.Daily_Rental_Rate is not none else '' }}"></div>
+        <div class="im-field"><label>Goods Value Rate (₹)</label><input class="im-input" name="Goods_Value_Rate" type="number" min="0" step="0.01" value="{{ item.Goods_Value_Rate if item.Goods_Value_Rate is not none else '' }}"></div>
+        <div class="im-field im-full"><label>Description / Notes</label><textarea class="im-textarea" name="Description" rows="3">{{ item.Description or '' }}</textarea></div>
+        <div class="im-field im-full"><label>Reason for Edit</label><input class="im-input" name="Reason" maxlength="250" placeholder="Optional reason for audit log"></div>
+      </div></div>
+      <div class="im-modal-foot"><button type="button" class="im-btn im-secondary" data-im-close>Cancel</button><button type="submit" class="im-btn im-primary">Save Changes</button></div>
+    </form>
+  </section>
+</div>
+
+{# Professional vertical Item Details Modal #}
+<div class="im-overlay" id="im-view-{{ loop.index }}" aria-hidden="true">
+  <section class="im-modal" role="dialog" aria-modal="true" aria-labelledby="im-view-title-{{ loop.index }}">
+    <div class="im-modal-head">
+      <div><h2 id="im-view-title-{{ loop.index }}">Item Details</h2><p>{{ item.Item_Name or 'Item' }} · Master record</p></div>
+      <button type="button" class="im-close" data-im-close aria-label="Close">×</button>
+    </div>
+    <div class="im-modal-body">
+      <div style="margin-bottom:16px"><span class="im-view-code">{{ item.Item_Code or '-' }}</span></div>
+      <table class="im-details">
+        <tbody>
+          <tr><th>Item Code</th><td>{{ item.Item_Code or '-' }}</td></tr>
+          <tr><th>Item Name</th><td>{{ item.Item_Name or '-' }}</td></tr>
+          <tr><th>Size</th><td>{{ item.Size or '-' }}</td></tr>
+          <tr><th>Category</th><td>{{ item.Category or '-' }}</td></tr>
+          <tr><th>Unit</th><td>{{ item.Unit or 'Nos' }}</td></tr>
+          <tr><th>Standard Weight per Piece</th><td>{{ item.Unit_Weight_KG if item.Unit_Weight_KG is not none else '-' }}{% if item.Unit_Weight_KG is not none %} kg{% endif %}</td></tr>
+          <tr><th>Default Daily Rental Rate</th><td>{% if item.Daily_Rental_Rate is not none and item.Daily_Rental_Rate != '' %}₹{{ '%.2f'|format(item.Daily_Rental_Rate|float) }} / day{% else %}<span class="im-muted">Not set</span>{% endif %}</td></tr>
+          <tr><th>Goods Value Rate</th><td>{% if item.Goods_Value_Rate is not none and item.Goods_Value_Rate != '' %}₹{{ '%.2f'|format(item.Goods_Value_Rate|float) }}{% else %}<span class="im-muted">Not set</span>{% endif %}</td></tr>
+          <tr><th>Description / Notes</th><td style="white-space:pre-wrap">{{ item.Description or '-' }}</td></tr>
+          <tr><th>Created At</th><td>{{ item.Created_At or '-' }}</td></tr>
+          <tr><th>Last Updated</th><td>{{ item.Updated_At or '-' }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="im-modal-foot">
+      <button type="button" class="im-btn im-secondary" data-im-close>Close</button>
+      <button type="button" class="im-btn im-primary" data-im-open="im-edit-{{ loop.index }}" data-im-switch> Edit Item </button>
+    </div>
+  </section>
+</div>
+
+{# Delete confirmation modal #}
+<div class="im-overlay" id="im-delete-{{ loop.index }}" aria-hidden="true">
+  <section class="im-modal" role="dialog" aria-modal="true" aria-labelledby="im-delete-title-{{ loop.index }}" style="max-width:470px">
+    <div class="im-modal-head">
+      <div><h2 id="im-delete-title-{{ loop.index }}">Delete Item?</h2><p>Confirm before deleting this master record.</p></div>
+      <button type="button" class="im-close" data-im-close aria-label="Close">×</button>
+    </div>
+    <div class="im-modal-body">
+      <p>Are you sure you want to delete <strong>{{ item.Item_Name }}</strong> ({{ item.Item_Code }})?</p>
+      <p class="im-muted" style="font-size:12px">Items already used in stock or challan records cannot be deleted.</p>
+    </div>
+    <form method="post" action="{{ url_for('items.delete', item_id=item.Item_ID) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="Reason" value="Deleted from Item Master">
+      <div class="im-modal-foot"><button type="button" class="im-btn im-secondary" data-im-close>Cancel</button><button type="submit" class="im-btn im-danger">Confirm Delete</button></div>
+    </form>
+  </section>
+</div>
+{% endfor %}
+
+<script>
+(function () {
+  function closeAll() {
+    document.querySelectorAll('.im-overlay.open').forEach(function (modal) {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var opener = event.target.closest('[data-im-open]');
+    var closer = event.target.closest('[data-im-close]');
+    var overlay = event.target.classList.contains('im-overlay') ? event.target : null;
+
+    if (closer) {
+      closeAll();
+      return;
+    }
+    if (overlay) {
+      closeAll();
+      return;
+    }
+    if (opener) {
+      var targetId = opener.getAttribute('data-im-open');
+      var target = document.getElementById(targetId);
+      if (target) {
+        closeAll();
+        target.classList.add('open');
+        target.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        var first = target.querySelector('input:not([type=hidden]):not([readonly]), select, textarea');
+        if (first) setTimeout(function () { first.focus(); }, 30);
+      }
+    }
+    if (!document.querySelector('.im-overlay.open')) {
+      document.body.style.overflow = '';
+    }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      closeAll();
+      document.body.style.overflow = '';
+    }
+  });
+
+  document.addEventListener('click', function () {
+    if (!document.querySelector('.im-overlay.open')) {
+      document.body.style.overflow = '';
+    }
+  });
+})();
+</script>
+{% endblock %}

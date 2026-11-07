@@ -1,0 +1,500 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue Challan - {{ challan.Challan_No }}</title>
+<style>
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #cbd5e1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: #0f172a;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10px auto;
+  padding: 8mm 10mm;
+  background: #fff;
+  border: 1px solid #94a3b8;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* ERP Header Grid Structure */
+.header {
+  display: grid;
+  grid-template-columns: 88mm 1fr;
+  border-bottom: 3px solid #0f172a;
+  padding-bottom: 4mm;
+  margin-bottom: 3mm;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 68px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-text .brand-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.logo-text .brand-sub {
+  font-size: 6px;
+  font-weight: 800;
+  color: #f97316;
+  letter-spacing: 0.6px;
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+
+.title-area {
+  text-align: right;
+}
+
+.title-area h1 {
+  font-size: 19px;
+  margin: 0 0 2px 0;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.title-area .company-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 1px 0;
+}
+
+.title-area p {
+  font-size: 9px;
+  margin: 1px 0;
+  color: #334155;
+}
+
+.tax-details {
+  font-weight: 800;
+  color: #0f172a !important;
+  margin-top: 3px !important;
+}
+
+/* Equal Height Grid for Receiver and Meta */
+.party-grid {
+  display: grid;
+  grid-template-columns: 55% 45%;
+  border: 1px solid #334155;
+  margin-bottom: 3mm;
+}
+
+.receiver, .meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.receiver {
+  border-right: 1px solid #334155;
+}
+
+.box-title {
+  background: #f1f5f9;
+  padding: 4px 6px;
+  border-bottom: 1px solid #334155;
+  font-weight: 800;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.box-content {
+  padding: 5px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.top-fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.bottom-fields {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 38mm 1fr;
+  margin-bottom: 3px;
+  font-size: 10px;
+}
+
+.field-row b {
+  color: #334155;
+  white-space: nowrap;
+}
+
+.field-row span {
+  color: #000;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.dummy-spacer {
+  visibility: hidden;
+}
+
+/* Material Items Table */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #334155;
+  margin-bottom: 3mm;
+}
+
+.items-table th {
+  background: #f1f5f9;
+  color: #000;
+  border-bottom: 1px solid #334155;
+  border-right: 1px solid #334155;
+  padding: 5px 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.items-table td {
+  border-bottom: 1px solid #94a3b8;
+  border-right: 1px solid #94a3b8;
+  padding: 5px 6px;
+  font-size: 10.5px;
+}
+
+.items-table th:last-child, 
+.items-table td:last-child {
+  border-right: none;
+}
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.total-row td {
+  font-weight: 800;
+  background: #f8fafc;
+  border-top: 1px solid #334155;
+}
+
+/* Transport Grid */
+.transport-grid {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  border: 1px solid #334155;
+  padding: 6px;
+  gap: 10px;
+  margin-bottom: 3mm;
+}
+
+/* Terms and Conditions */
+.terms {
+  font-size: 8px;
+  line-height: 1.25;
+  color: #1e293b;
+}
+
+.terms-heading {
+  font-weight: 800;
+  font-size: 9px;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.note-title {
+  font-weight: 800;
+  margin-top: 2px;
+  text-decoration: underline;
+}
+
+.terms ol {
+  margin: 1px 0 0 14px;
+  padding: 0;
+}
+
+.terms li {
+  margin-bottom: 1.5px;
+}
+
+/* Stamp & Signature Footer */
+.footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: flex-end;
+  margin-top: 4mm;
+  text-align: center;
+}
+
+.sign-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 16mm;
+}
+
+.sign-line {
+  border-top: 1px solid #334155;
+  width: 85%;
+  padding-top: 3px;
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.stamp-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stamp {
+  width: 28mm;
+  height: 28mm;
+  border: 1.5px dashed #f97316;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+  transform: rotate(-8deg);
+}
+
+.stamp b { font-size: 9px; }
+.stamp small { font-size: 5.5px; font-weight: 800; letter-spacing: 0.3px; color: #f97316; }
+
+/* Action Buttons for Screen View (Hidden on Print) */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed #cbd5e1;
+}
+.btn {
+  padding: 8px 18px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-back { background: #64748b; color: #fff; }
+.btn-print { background: #1e293b; color: #fff; }
+.btn-back:hover { background: #475569; }
+.btn-print:hover { background: #0f172a; }
+
+@media print {
+  html, body { background: #fff; }
+  .page { margin: 0; border: none; box-shadow: none; width: 100%; height: 100%; }
+  .action-buttons { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div>
+    <!-- Header Block -->
+    <header class="header">
+      <div class="logo-area">
+        <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="15" width="210" height="170" rx="12" fill="#0F172A" />
+          <circle cx="28" cy="28" r="4" fill="#F97316" />
+          <circle cx="212" cy="28" r="4" fill="#F97316" />
+          <circle cx="28" cy="172" r="4" fill="#F97316" />
+          <circle cx="212" cy="172" r="4" fill="#F97316" />
+          <line x1="15" y1="65" x2="225" y2="65" stroke="#1E293B" stroke-width="2" />
+          <line x1="15" y1="135" x2="225" y2="135" stroke="#1E293B" stroke-width="2" />
+          <line x1="85" y1="15" x2="85" y2="185" stroke="#1E293B" stroke-width="2" />
+          <line x1="155" y1="15" x2="155" y2="185" stroke="#1E293B" stroke-width="2" />
+          <path d="M 40,50 L 105,50 C 115,50 120,55 120,65 L 120,135 C 120,145 115,150 105,150 L 40,150 Z" fill="none" stroke="#F97316" stroke-width="14" stroke-linejoin="round" />
+          <path d="M 120,150 L 120,60 L 148,110 L 176,60 L 176,150" fill="none" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="110" y="96" width="80" height="8" rx="2" fill="#F97316" />
+        </svg>
+
+        <div class="logo-text">
+          <span class="brand-name">OM ENTERPRISE</span>
+          <span class="brand-sub">RCC FORM-WORK & SCAFFOLDING RENTALS</span>
+        </div>
+      </div>
+
+      <div class="title-area">
+        <h1>ISSUE CHALLAN</h1>
+        <p class="company-name">OM ENTERPRISE</p>
+        <p>PLOT NO: 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL</p>
+        <p>TALUKA-KALOL, GANDHINAGAR, GUJARAT - 382715</p>
+        <p>Contact: +91 9998802167, 9824219138 | Email: sbsanghvi.86@gmail.com</p>
+        <p class="tax-details">GSTIN: 24BDU102R1Z8 &nbsp;|&nbsp; SAC: 997313</p>
+      </div>
+    </header>
+
+    <!-- Party & Meta Info Grid -->
+    <section class="party-grid">
+      <div class="receiver">
+        <div class="box-title">Details Of Receiver</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Name:</b><span>{{ party.Party_Name or party.Name or challan.Party_ID }}</span></div>
+            <div class="field-row"><b>Billing Address:</b><span>{{ party.Address or '-' }}</span></div>
+          </div>
+          <div class="field-row"><b>Mobile No.:</b><span>{{ party.Phone or '-' }}</span></div>
+          <div class="bottom-fields">
+            <div class="field-row state-row"><b>State Code:</b><span>{{ party.State_Code or '24' }}</span></div>
+            <div class="field-row"><b>GSTIN No:</b><span>{{ party.GSTIN or '-' }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="box-title">Challan Details</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Challan No.:</b><span>{{ challan.Challan_No }}</span></div>
+            <div class="field-row"><b>Date:</b><span>{{ challan.Challan_Date or challan.Date }}</span></div>
+            <div class="field-row"><b>Site Address:</b><span>{{ site.Site_Name or site.Address or challan.Site_ID }}</span></div>
+          </div>
+          <div class="bottom-fields">
+            <div class="field-row state-row"><b>State Code:</b><span>{{ site.State_Code or '24' }}</span></div>
+            <div class="field-row dummy-spacer"><b>&nbsp;</b><span>&nbsp;</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Items Table -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th style="width: 10%" class="text-center">S.No.</th>
+          <th style="width: 70%" class="text-left">ITEM DESCRIPTION</th>
+          <th style="width: 20%" class="text-right">Qty (Nos)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-center">{{ item.s_no }}</td>
+          <td>{{ item.item_name }}</td>
+          <td class="text-right">{{ item.quantity }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td class="text-center"><b>Total Qty :</b></td>
+          <td>{{ total_qty_words or '' }}</td>
+          <td class="text-right"><b>{{ total_qty }}</b></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Logistics Section -->
+    <section class="transport-grid">
+      <div>
+        <div class="field-row"><b>Vehicle No.:</b><span>{{ challan.Vehicle_No or '-' }}</span></div>
+        <div class="field-row"><b>Transporter:</b><span>{{ challan.Transporter_Name or 'SELF' }}</span></div>
+        <div class="field-row"><b>Driver Name:</b><span>{{ challan.Driver_Name or '-' }}</span></div>
+        <div class="field-row"><b>Mode of Transport:</b><span>BY ROAD</span></div>
+        <div class="field-row"><b>E Way Bill No.:</b><span>{{ challan.EWay_Bill_No or '-' }}</span></div>
+        <div class="field-row"><b>Approx. Goods Value Rs:</b><span>{{ challan.Goods_Value or '-' }}</span></div>
+      </div>
+      <div>
+        <div class="field-row"><b>Weight:</b><span>{{ challan.Weight or '-' }}</span></div>
+        <div class="field-row"><b>Driver Licence:</b><span>{{ challan.Driver_Licence or '-' }}</span></div>
+        <div class="field-row"><b>Driver Mob No:</b><span>{{ challan.Driver_Mob or '-' }}</span></div>
+      </div>
+    </section>
+
+    <br><br>
+    <!-- Terms and Conditions -->
+    <section class="terms">
+      <div class="terms-heading">GOODS ON HIRE NOT FOR SALE</div>
+      <div class="note-title">NOTE:</div>
+      <ol>
+        <li>Goods will not be accepted back after 5 PM on any working day.</li>
+        <li>Client is fully responsible for goods' safety, loss, damage, theft or misuse from delivery until return.</li>
+        <li>Transportation/carriage costs for both sides will be borne by the client.</li>
+        <li>Company not liable for any site accidents, delays, or damages from goods use.</li>
+        <li>All disputes are subject to Gujarat/Gandhinagar jurisdiction only.</li>
+        <li>Full cost price of unreturned/damaged material along with applicable hire charges will be charged.</li>
+        <li>Company deals only with client; third-party defaults/non-returns are client's responsibility.</li>
+        <li>Sunday holiday- no issue or return of goods.</li>
+      </ol>
+    </section>
+  </div>
+
+  <!-- Signatures Footer -->
+  <footer class="footer">
+    <div class="sign-box">
+      <div class="sign-line">Client Stamp, Signature &amp; Date</div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-line">Checked By</div>
+    </div>
+    <div class="stamp-container">
+      <div class="stamp">
+        <b>OM ENTERPRISE</b>
+        <small>EQUIPMENT RENTALS</small>
+        <small>AUTH. SIGNATORY</small>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Navigation & Print Buttons -->
+  <div class="action-buttons">
+    <a href="{{ url_for('issue_challan.index') }}" class="btn btn-back">← Back to List</a>
+    <button onclick="window.print()" class="btn btn-print">🖨 Print / Save PDF</button>
+  </div>
+</div>
+
+</body>
+</html>
