@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Monthly Bill - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; color: #fff; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+.btn-blue { background: #2563eb; }
+.btn-blue:hover { background: #1d4ed8; }
+.btn-light { background: #e2e8f0; color: #1e293b; padding: 6px 12px; font-size: 12px; }
+.btn-light:hover { background: #cbd5e1; color: #1e293b; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+.card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; background: #f8fafc; }
+.card .label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+.card .value { font-size: 15px; font-weight: 800; margin-top: 6px; color: #1e293b; }
+.info-box { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+
+.form-card { background: #f1f5f9; padding: 20px; border-radius: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+.group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 220px; min-width: 180px; }
+.group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; }
+.group input, .group select { width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; box-sizing: border-box; }
+.group input:focus, .group select:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.actions { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+@media (max-width: 800px) { .cards { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h2><i class="fas fa-calculator"></i> Generate Monthly Rental Bill</h2>
+    <a href="{{ url_for('monthly_billing.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Invoices</a>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Quantity Source</div><div class="value" style="color:#16a34a;"><i class="fas fa-check-circle"></i> Issue &amp; Receive Challans + Opening Stock</div></div>
+    <div class="card"><div class="label">Tax</div><div class="value" style="color:#2563eb;"><i class="fas fa-percent"></i> CGST + SGST only for registered parties</div></div>
+    <div class="card"><div class="label">Breakage</div><div class="value" style="color:#c2410c;"><i class="fas fa-screwdriver-wrench"></i> Pending damage charges added automatically</div></div>
+  </div>
+
+  <div class="info-box">
+    <i class="fas fa-circle-info fa-lg" style="margin-top:2px;"></i>
+    <div>Select the party, site and billing period. The system splits every item into date intervals wherever the quantity changed
+    (issue day is billed; the day goods are returned is billed too, the lower quantity starts from the next day).
+    You can edit every row, rate and the balance quantity before saving.</div>
+  </div>
+
+  <!-- Form points directly to monthly_billing.new route using GET parameters -->
+  <form method="GET" action="{{ url_for('monthly_billing.new') }}" class="form-card" id="selectForm">
+    <div class="row">
+      <div class="group" style="flex: 2 1 260px;">
+        <label for="partySelect">Party Name</label>
+        <select id="partySelect" name="party_id" required>
+          <option value="">-- Choose Party --</option>
+          {% for p in parties %}
+          {% set p_id = p.Party_ID or p.ID %}
+          <option value="{{ p_id }}" {% if party_id == p_id|string %}selected{% endif %}>{{ p.Party_Name or p.Name or p_id }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="group" style="flex: 2 1 260px;">
+        <label for="siteSelect">Site Location</label>
+        <select id="siteSelect" name="site_id" required>
+          <option value="">-- Choose Site --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="group">
+        <label for="monthPick">Billing Month</label>
+        <input type="month" id="monthPick" value="{{ month }}">
+        <div class="quick">
+          <button type="button" class="btn btn-light" id="thisMonth">This Month</button>
+          <button type="button" class="btn btn-light" id="lastMonth">Last Month</button>
+        </div>
+      </div>
+      <div class="group">
+        <label for="date_from">Period From</label>
+        <input type="date" id="date_from" name="date_from" value="{{ date_from }}" required>
+      </div>
+      <div class="group">
+        <label for="date_to">Period To</label>
+        <input type="date" id="date_to" name="date_to" value="{{ date_to }}" required>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-blue" id="goBtn"><i class="fas fa-cogs"></i> Calculate &amp; Preview Invoice</button>
+      <a href="{{ url_for('monthly_billing.generate') }}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<div id="page-data" hidden data-sites="{{ sites_json | e }}" data-site-id="{{ site_id }}"></div>
+<script>
+(function () {
+'use strict';
+const data = document.getElementById('page-data').dataset;
+const $ = (id) => document.getElementById(id);
+
+let allSites = [];
+try {
+    allSites = JSON.parse(data.sites || '[]');
+} catch (err) {
+    console.error("Error parsing sites JSON:", err);
+}
+
+function normId(v) { 
+    return String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\.0+$/, ''); 
+}
+
+function sitePartyId(s) {
+    return s.party_id || s.Party_ID || s.PARTY_ID || s.PartyID || s.Customer_ID || s.customer_id || '';
+}
+
+function siteLabel(s) {
+    return s.name || s.Site_Name || s.site_name || s.Site_Location || s.Location || s.Site_Address || s.Address || s.id || s.Site_ID || '';
+}
+
+function fillSites(partyId, selected) {
+    const sel = $('siteSelect');
+    sel.innerHTML = '<option value="">-- Choose Site --</option>';
+    if (!partyId) return;
+
+    allSites.forEach(s => {
+        if (normId(sitePartyId(s)) === normId(partyId)) {
+            const opt = document.createElement('option');
+            opt.value = s.id || s.Site_ID || s.site_id || '';
+            opt.textContent = siteLabel(s);
+            if (selected && normId(opt.value) === normId(selected)) {
+                opt.selected = true;
+            }
+            sel.appendChild(opt);
+        }
+    });
+}
+
+// Party change par site dropdown update karein
+$('partySelect').addEventListener('change', function () {
+    fillSites(this.value, '');
+});
+
+// Initial load par agar party pehle se selected ho (jaise error ke baad wapas aane par)
+if ($('partySelect').value) {
+    fillSites($('partySelect').value, data.siteId);
+}
+
+// Month picker logic
+const pad = (n) => String(n).padStart(2, '0');
+function setMonth(year, month) {
+    const last = new Date(year, month, 0).getDate();
+    $('date_from').value = year + '-' + pad(month) + '-01';
+    $('date_to').value = year + '-' + pad(month) + '-' + pad(last);
+    $('monthPick').value = year + '-' + pad(month);
+}
+
+$('monthPick').addEventListener('change', function () {
+    const m = /^(\d{4})-(\d{2})$/.exec(this.value);
+    if (m) setMonth(parseInt(m[1], 10), parseInt(m[2], 10));
+});
+
+$('thisMonth').addEventListener('click', () => { const d = new Date(); setMonth(d.getFullYear(), d.getMonth() + 1); });
+$('lastMonth').addEventListener('click', () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); setMonth(d.getFullYear(), d.getMonth() + 1); });
+['date_from', 'date_to'].forEach(id => $(id).addEventListener('change', () => { $('monthPick').value = ''; }));
+
+// Form validation before submit
+$('selectForm').addEventListener('submit', function (e) {
+    if (!$('partySelect').value || !$('siteSelect').value) {
+        e.preventDefault();
+        alert('Please select both a party and a site.');
+        return;
+    }
+    if ($('date_from').value && $('date_to').value && $('date_from').value > $('date_to').value) {
+        e.preventDefault();
+        alert('"Period From" cannot be after "Period To".');
+        return;
+    }
+    $('goBtn').disabled = true;
+    $('goBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
+});
+
+window.addEventListener('pageshow', () => { 
+    $('goBtn').disabled = false; 
+    $('goBtn').innerHTML = '<i class="fas fa-cogs"></i> Calculate &amp; Preview Invoice'; 
+});
+})();
+</script>
+{% endblock %}

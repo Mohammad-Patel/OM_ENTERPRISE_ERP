@@ -167,6 +167,7 @@ def view(party_id):
         "parties/view.html",
         party=party,
         sites=sites,
+        party_id=party_id,
     )
 
 

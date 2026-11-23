@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  @page { size: A4 portrait; margin: 10mm; }
+  .print-only { display: none; }
+
+  @media print {
+    /* Navbar, sidebar, filters aur buttons ko poori tarah hide karein */
+    nav, aside, footer, form, .sidebar, .navbar, .no-print, .gs-head, .gs-filter, .btn { 
+      display: none !important; 
+    }
+    .print-only { display: block !important; }
+
+    /* Page ko full width white background par set karein */
+    html, body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
+    .container, .content, main, .main-content {
+      margin: 0 !important; padding: 0 !important;
+      width: 100% !important; max-width: 100% !important;
+      border: none !important; box-shadow: none !important;
+    }
+
+    /* Print card aur table styling */
+    .gs-card { border: none !important; padding: 0 !important; box-shadow: none !important; margin: 0 !important; }
+    table { width: 100% !important; border-collapse: collapse !important; font-size: 11px !important; }
+    th, td { border: 1px solid #333 !important; padding: 5px 6px !important; color: #000 !important; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  .gs-wrap { padding: 8px 0; }
+  .gs-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .gs-head h2 { margin:0; color: #1e293b; font-size: 20px; font-weight: 700; }
+  
+  /* Buttons matching with entries.html style */
+  .btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+  .btn:hover { background: #0f172a; color: #fff; }
+  .btn-secondary { background: #64748b; color: #fff; }
+  .btn-secondary:hover { background: #475569; color: #fff; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; color: #fff; }
+
+  .gs-card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:18px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .gs-filter { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+  .gs-filter label { display:block; font-size:11px; color:#475569; margin-bottom:5px; font-weight:700; text-transform: uppercase; }
+  .gs-filter input, .gs-filter select { padding:9px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; background: #fff; }
+  .gs-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .gs-table th, .gs-table td { border:1px solid #e2e8f0; padding:10px 14px; text-align:left; vertical-align:top; }
+  .gs-table th { background:#f1f5f9; font-weight: 600; color:#334155; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+  .gs-table .num { text-align:right; }
+  .gs-in { color:#15803d; font-weight:700; }
+  .gs-out { color:#b91c1c; font-weight:700; }
+  .gs-neg { color:#b91c1c; font-weight:800; }
+  .gs-total td { font-weight:800; background:#f8fafc; }
+  .gs-title { margin:0 0 4px 0; font-size: 16px; font-weight: 700; color: #1e293b; }
+  .gs-sub { color:#475569; font-size:13px; margin-bottom:12px; }
+  .gs-scroll { overflow-x:auto; }
+</style>
+
+<!-- Print ke waqt dikhne wala official header -->
+<div class="print-only" style="text-align:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:10px;">
+  <h2 style="margin:0; font-size:18px;">OM ENTERPRISE</h2>
+  <div style="font-size:11px;">PLOT NO: 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL, TALUKA-KALOL, GANDHINAGAR, GUJARAT - 382721</div>
+  <div style="font-size:11px;">Contact: +91 9998802167, 9824219138</div>
+  <h3 style="margin:8px 0 0; font-size:14px; text-decoration: underline;">STOCK STATEMENT</h3>
+</div>
+
+<div class="gs-wrap">
+  <div class="gs-head no-print">
+    <h2>Godown Statement</h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <a class="btn btn-secondary" href="{{ url_for('stock.godown_stock') }}"><i class="fas fa-warehouse"></i> Godown Stock</a>
+      <a class="btn" href="{{ url_for('stock.entries') }}"><i class="fas fa-receipt"></i> Purchase / Sale Entries</a>
+    </div>
+  </div>
+
+  <div class="gs-card no-print">
+    <form method="get" class="gs-filter">
+      <div>
+        <label>Item</label>
+        <select name="item_id" required>
+          <option value="">-- Select item --</option>
+          {% for iid, label in items %}
+          <option value="{{ iid }}" {% if iid == item_id %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>From</label>
+        <input type="date" name="from" value="{{ from_raw }}">
+      </div>
+      <div>
+        <label>To</label>
+        <input type="date" name="to" value="{{ to_raw }}">
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Show</button>
+        {% if item_id %}
+        <a href="{{ url_for('stock.statement_print', item_id=item_id, from=from_raw, to=to_raw) }}" target="_blank" class="btn btn-primary"><i class="fas fa-print"></i> Print Statement</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  {% if item_id %}
+  <div class="gs-card" id="printable-statement">
+    <h3 class="gs-title no-print">OM Enterprise &mdash; Godown Stock Statement</h3>
+    <div class="gs-sub">
+      <b>Item:</b> {{ item_name }}
+      &nbsp;|&nbsp; <b>Period:</b> {{ from_raw or 'Beginning' }} to {{ to_raw or 'Today' }}
+      &nbsp;|&nbsp; <b>Printed:</b> {{ printed_on }}
+    </div>
+
+    <div class="gs-scroll">
+    <table class="gs-table">
+      <thead>
+        <tr>
+          <th>Date</th><th>Type</th><th>Reference</th><th>Details</th>
+          <th class="num">In</th><th class="num">Out</th><th class="num">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if from_raw %}
+        <tr>
+          <td colspan="6"><b>Balance brought forward</b></td>
+          <td class="num"><b>{{ totals.bf }}</b></td>
+        </tr>
+        {% endif %}
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.date }}</td>
+          <td>{{ r.type }}</td>
+          <td>{{ r.ref }}</td>
+          <td>{{ r.note }}</td>
+          <td class="num gs-in">{{ r.in_q }}</td>
+          <td class="num gs-out">{{ r.out_q }}</td>
+          <td class="num {% if r.negative %}gs-neg{% endif %}">{{ r.balance }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center; padding:18px; color:#64748b;">No movement found for this item in the selected period.</td></tr>
+        {% endfor %}
+        <tr class="gs-total">
+          <td colspan="4" class="num">Total</td>
+          <td class="num">{{ totals.in }}</td>
+          <td class="num">{{ totals.out }}</td>
+          <td class="num">{{ totals.closing }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="font-size:12px; color:#64748b; margin-top:10px;" class="no-print">
+      Closing balance = quantity available in the godown. Damaged returns are shown in Details but are not added to the balance.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -221,6 +221,29 @@
     flex-shrink: 0;
 }
 
+/* Professional Navbar Logout Button */
+.btn-nav-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-nav-logout:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
 .icon-button {
     display: inline-flex;
     align-items: center;
@@ -357,6 +380,12 @@
 /* ================= FOOTER ================= */
 
 .app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 260px;
+    right: 0;
+    z-index: 100;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -370,6 +399,8 @@
 
     color: var(--text-muted);
     font-size: 11px;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
+    box-sizing: border-box;
 }
 
 .footer-separator {
@@ -444,6 +475,19 @@
 
     .profile-label {
         display: none;
+    }
+}
+
+
+/* Tablet & Mobile Screens ke liye (Jab screen 768px ya usse choti ho) */
+@media (max-width: 768px) {
+    .app-footer {
+        left: 0 !important; /* Mobile par sidebar hatne ke baad footer poori screen lega */
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        min-height: auto;
     }
 }
 
@@ -567,6 +611,7 @@
     }
 
     .app-footer {
+        left: 0 !important;
         align-items: flex-start;
         flex-direction: column;
         gap: 5px;

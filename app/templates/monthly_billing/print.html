@@ -1,0 +1,684 @@
+{#- Indian number grouping: 130078 -> 1,30,078.00 ; accepts '110,235.25' style strings too -#}
+{% macro inr(v) -%}
+{%- set s = (v | string).replace(',', '').strip() -%}
+{%- set sign = s[0] if s and s[0] in '+-' else '' -%}
+{%- set s2 = s.lstrip('+-') -%}
+{%- set parts = s2.split('.') -%}
+{%- set ip = parts[0] -%}
+{%- set dp = parts[1] if parts | length > 1 else '' -%}
+{%- if ip | length > 3 -%}
+  {%- set ns = namespace(groups=[], h=ip[:-3]) -%}
+  {%- for _ in range((ns.h | length + 1) // 2) -%}
+    {%- set ns.groups = [ns.h[-2:]] + ns.groups -%}
+    {%- set ns.h = ns.h[:-2] -%}
+  {%- endfor -%}
+  {{ sign }}{{ ns.groups | join(',') }},{{ ip[-3:] }}
+{%- else -%}
+  {{ sign }}{{ ip }}
+{%- endif -%}
+{%- if dp %}.{{ dp }}{% endif -%}
+{%- endmacro %}
+
+{#- 'dd-mm-yyyy' -> 'dd-mm-yy' -#}
+{% macro short(d) -%}{% if d and d | length == 10 %}{{ d[:6] }}{{ d[8:] }}{% else %}{{ d }}{% endif %}{%- endmacro %}
+
+{#- 800.0 -> 800 ; 7300.5 -> 7300.5 -#}
+{% macro qn(x) -%}{% if x == x | int %}{{ x | int }}{% else %}{{ x | round(2) }}{% endif %}{%- endmacro %}
+
+{#- Format Net Total as integer with '/-' suffix -#}
+{% macro net_inr(v) -%}
+{%- set clean_val = (v | string).replace(',', '').strip().split('.')[0] -%}
+{{- inr(clean_val) -}}/-
+{%- endmacro %}
+
+{#- group consecutive rental rows of the same item, so the item name is printed once -#}
+{% set ns = namespace(groups=[], cur=none) %}
+{% for r in (inv.rows if inv else []) %}
+  {% if r.type == 'rental' and ns.cur and ns.cur.type == 'rental' and ns.cur.desc == r.desc %}
+    {% set _ = ns.cur.rows.append(r) %}
+  {% else %}
+    {% set ns.cur = {'desc': r.desc, 'type': r.type, 'rows': [r]} %}
+    {% set _ = ns.groups.append(ns.cur) %}
+  {% endif %}
+{% endfor %}
+{% set cancelled = inv and (inv.status | lower) in ['cancelled', 'canceled'] %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if inv %}{{ inv.title }} {{ inv.bill_no }}{% else %}Invoice not found{% endif %} - OM Enterprise</title>
+  <script>document.documentElement.classList.add('js');</script>
+  <style>
+@page { size: A4 portrait; margin: 0; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #cbd5e1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #0f172a;
+  font-size: 9.5pt;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---- screen-only toolbar ---- */
+.toolbar { position: sticky; top: 0; z-index: 100; background: #0f172a; padding: 10px 20px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.toolbar .tb-title { color: #f8fafc; font-weight: 700; font-size: 14px; }
+.toolbar .tb-actions { display: flex; gap: 8px; align-items: center; }
+.tb-btn { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; font-family: inherit; transition: opacity 0.2s; }
+.tb-btn.grey { background: #475569; }
+.tb-btn:hover { opacity: 0.9; }
+.notfound { max-width: 520px; margin: 60px auto; background: #fff; padding: 30px; border-radius: 8px; text-align: center; }
+
+/* measuring container (hidden) */
+html.js .doc-src { position: absolute; left: -10000px; top: 0; width: 190mm; visibility: hidden; pointer-events: none; display: flex; flex-direction: column; }
+html.js .doc-src > * { flex: none; }
+html:not(.js) .doc-src { width: 210mm; max-width: 100%; margin: 15px auto; padding: 8mm 10mm; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+/* A4 sheets */
+#sheets { padding: 15px 0 10px; }
+.sheet { width: 210mm; height: 297mm; margin: 0 auto 15px; padding: 8mm 10mm 0; background: #ffffff; outline: 1px solid #94a3b8; box-shadow: 0 6px 18px rgba(15,23,42,0.15); display: flex; flex-direction: column; position: relative; overflow: hidden; box-sizing: border-box; break-after: page; page-break-after: always; border-radius: 2px; }
+.sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0 1px; }
+.sheet-body > * { flex: none; }
+.sheet-body > .footer { margin-top: auto; }
+
+.sheet-foot { flex: none; height: 7mm; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 1mm; font-size: 7.5pt; color: #64748b; font-weight: 500; }
+.sheet-foot .cont { font-style: italic; color: #475569; }
+.sheet-foot b { color: #0f172a; }
+
+.watermark { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 85px; font-weight: 900; letter-spacing: 6px; color: rgba(220, 38, 38, 0.1); border: 8px solid rgba(220, 38, 38, 0.1); padding: 6px 30px; pointer-events: none; z-index: 2; }
+
+/* Corporate Header Design */
+.header { display: grid; grid-template-columns: 88mm 1fr; border-bottom: 2.5px solid #0f172a; padding-bottom: 3.5mm; margin-bottom: 3mm; align-items: center; width: 100%; }
+.logo-area { display: flex; align-items: center; gap: 12px; }
+.brand-logo { width: 65px; height: 54px; flex-shrink: 0; }
+.logo-text { display: flex; flex-direction: column; gap: 2px; }
+.logo-text .brand-name { font-size: 15pt; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; line-height: 1.1; }
+.logo-text .brand-sub { font-size: 5.5pt; font-weight: 800; color: #f97316; letter-spacing: 0.6px; text-transform: uppercase; }
+.title-area { text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.title-area h1 { font-size: 14pt; margin: 0 0 2px 0; font-weight: 900; color: #0f172a; letter-spacing: 0.8px; text-transform: uppercase; }
+.title-area .company-name { font-size: 9.5pt; font-weight: 800; color: #334155; margin: 0; }
+.title-area p { font-size: 8.5pt; margin: 0; color: #475569; line-height: 1.25; }
+.tax-details { font-weight: 800; color: #0f172a !important; margin-top: 2px !important; }
+
+/* Party & Invoice Details Grid */
+.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1.5px solid #0f172a; margin-bottom: 3.5mm; border-radius: 4px; width: 100%; overflow: hidden; background: #fff; }
+.receiver, .meta { display: flex; flex-direction: column; }
+.receiver { border-right: 1.5px solid #0f172a; }
+.box-title { background: #dee1e9; color: #0f172a; padding: 4.5px 8px; font-weight: 800; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #94a3b8; }
+.box-content { padding: 5px 8px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; gap: 3px; }
+.top-fields, .bottom-fields { display: flex; flex-direction: column; gap: 2.5px; }
+.field-row { display: grid; grid-template-columns: 26mm 1fr; font-size: 8.5pt; line-height: 1.3; }
+.field-row b { color: #334155; white-space: nowrap; font-weight: 700; }
+.field-row span { color: #0f172a; font-weight: 600; word-break: break-word; }
+
+/* Professional Items Table Design */
+.items-table { width: 100%; border-collapse: collapse; border: none; margin-bottom: 0; table-layout: fixed; background: #fff; }
+.tbl-wrap { border: 1.5px solid #0f172a; border-radius: 4px; overflow: hidden; background: #fff; margin-bottom: 3.5mm; }
+.tbl-wrap.is-last { border-radius: 4px 4px 0 0; margin-bottom: 0; }
+.tbl-wrap .items-table { margin-bottom: -2px; }
+.items-table thead { display: table-header-group; }
+.items-table th { background: #dee1e9; color: #0f172a; border-right: 1px solid #aab2c0; border-bottom: 2px solid #0f172a; padding: 5.5px 6px; font-size: 8.5pt; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
+.items-table th:last-child { border-right: none; }
+.items-table td { border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; padding: 4.5px 6px; font-size: 8.5pt; line-height: 1.3; vertical-align: middle; white-space: nowrap; overflow: hidden; }
+.items-table td.desc { white-space: normal; overflow-wrap: anywhere; }
+.items-table td:last-child { font-weight: 600; }
+.items-table tr.carry-row td:last-child { font-weight: 700; }
+.sign-for { font-size: 7.5pt; font-weight: 700; color: #334155; margin-bottom: 8mm; }
+.items-table td.sno { font-weight: 700; border-bottom: 1px solid #98a2b3; }
+.contd { font-size: 7pt; font-weight: 600; color: #64748b; margin-left: 4px; }
+.sub-inline { display: block; font-size: 7.5pt; font-weight: 500; font-style: italic; color: #475569; }
+.items-table tr { break-inside: avoid; page-break-inside: avoid; }
+.items-table th:last-child, .items-table td:last-child { border-right: none; }
+.items-table tr.item-group-end td { border-bottom: 1px solid #98a2b3 !important; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.font-bold { font-weight: 700; color: #0f172a; }
+.sub-text { font-size: 8pt; color: #475569; padding-left: 8px; }
+.items-table tr:not(.item-group-end):not(.carry-row) td:not(.sno) { background: #fcfcfd; }
+.items-table td.desc { background: #fff !important; }
+.row-tag { font-size: 7pt; font-weight: 800; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle; background: #ffedd5; color: #c2410c; display: inline-block; }
+.row-tag.custom { background: #ede9fe; color: #6d28d9; }
+
+.carry-row td { font-weight: 700; font-style: italic; background: #eef1f6 !important; font-size: 8.5pt; color: #1e293b; padding: 5px 8px; border-top: 1px solid #94a3b8; border-bottom: 1px solid #98a2b3; }
+
+/* Summary & Tax Section Layout (Fixed right border cut-off issue) */
+.summary-wrapper { display: grid; grid-template-columns: 56% 44%; gap: 0; margin-top: 0; margin-bottom: 3mm; width: 100%; box-sizing: border-box; border: 1.5px solid #0f172a; border-top: none; border-radius: 0 0 4px 4px; overflow: hidden; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+.balance-block { border: none; border-right: 1.5px solid #0f172a; display: flex; flex-direction: column; border-radius: 0; width: 100%; overflow: hidden; background: #fff; }
+.balance-content { padding: 6px 8px; font-size: 8pt; line-height: 1.3; flex: 1; }
+.words-block { padding: 6px 8px; font-size: 8pt; line-height: 1.3; border-top: 1px solid #cbd5e1; background: #f8fafc; }
+.balance-content b, .words-block b { color: #0f172a; display: block; margin-bottom: 2px; letter-spacing: 0.2px; font-size: 8pt; text-transform: uppercase; }
+.balance-content p, .words-block p { margin: 0; color: #334155; font-weight: 600; word-break: break-word; }
+
+.tax-table { width: 100%; height: 100%; border-collapse: collapse; border: none; table-layout: fixed; background: #fff; box-sizing: border-box; }
+.tax-table td { padding: 4.5px 8px; font-size: 8.5pt; border-bottom: 1px solid #e2e8f0; line-height: 1.3; overflow-wrap: anywhere; }
+.tax-table tr:last-child td { border-bottom: none; }
+.net-total-row { background: #dee1e9; color: #000000; font-weight: 800; }
+.net-total-row td { color: #000000; padding: 7px 8px; font-size: 10.5pt !important; letter-spacing: 0.3px; border-top: 1.5px solid #0f172a; }
+
+/* Terms & Conditions & Signatures Footer */
+.terms { font-size: 7.5pt; line-height: 1.3; color: #334155; margin-top: 2mm; margin-bottom: 1.5mm; padding: 5px 8px; background: #f8fafc; border-left: 3.5px solid #0f172a; border-radius: 0 3px 3px 0; width: 100%; break-inside: avoid; page-break-inside: avoid; }
+.terms-heading { font-weight: 800; font-size: 8pt; color: #0f172a; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+.terms ol { margin: 0 0 0 14px; padding: 0; }
+.terms li { margin-bottom: 1px; }
+
+.footer { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: flex-end; margin-top: 3mm; text-align: center; width: 100%; break-inside: avoid; page-break-inside: avoid; }
+.sign-box { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 16mm; }
+.sign-line { border-top: 1px solid #334155; width: 85%; padding-top: 4px; font-size: 7.5pt; font-weight: 700; color: #0f172a; letter-spacing: 0.2px; }
+
+.print-actions { width: 210mm; max-width: 100%; margin: 15px auto 30px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; }
+.pe-info { display: inline-flex; align-items: center; gap: 8px; color: #334155; font-size: 9pt; font-weight: 600; background: #fff; padding: 6px 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; }
+.pe-info select { padding: 4px 6px; border: 1px solid #94a3b8; border-radius: 4px; font-size: 9pt; background: #fff; color: #0f172a; }
+
+@media print {
+  html, body { background: #ffffff !important; }
+  .toolbar { display: none !important; }
+  .print-actions { display: none !important; }
+  #sheets { padding: 0; zoom: 1 !important; }
+  .sheet { margin: 0; outline: none; box-shadow: none; height: 296.4mm; border: none; }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+  </style>
+</head>
+<body>
+
+{% if not inv %}
+  <div class="toolbar"><div class="tb-title">Invoice</div>
+    <div class="tb-actions"><a class="tb-btn grey" href="{{ url_for('monthly_billing.index') }}">&larr; Back to Invoices</a></div></div>
+  <div class="notfound">
+    <h2 style="margin-top:0;">Invoice not found</h2>
+    <p>Invoice <b>{{ bill_no }}</b> could not be loaded. It may not exist, or the data file could not be read.</p>
+    <a class="tb-btn" href="{{ url_for('monthly_billing.index') }}">Go to Invoices</a>
+  </div>
+{% else %}
+
+<div class="toolbar">
+  <div class="tb-title">{{ inv.title }} &mdash; {{ inv.bill_no }}{% if cancelled %} (CANCELLED){% endif %} <small id="tbPages" style="font-weight:500;opacity:.7;margin-left:6px;"></small></div>
+  <div class="tb-actions">
+    <button class="tb-btn" onclick="window.print()">&#128424; Print / Save as PDF</button>
+    {% if not cancelled %}<a class="tb-btn grey" href="{{ url_for('monthly_billing.edit_invoice', bill_no=inv.bill_no) }}">Edit</a>{% endif %}
+    <a class="tb-btn grey" href="{{ url_for('monthly_billing.index') }}">&larr; Back</a>
+  </div>
+</div>
+
+<!-- Source document for print engine: contains reusable invoice head block that repeats on every page -->
+<div id="doc" class="doc-src">
+  
+  <div data-part="invoice-head">
+    {% if cancelled %}<div class="watermark">CANCELLED</div>{% endif %}
+    
+    <header class="header">
+      <div class="logo-area">
+        <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="15" width="210" height="170" rx="12" fill="#0F172A" />
+          <circle cx="28" cy="28" r="4" fill="#F97316" />
+          <circle cx="212" cy="28" r="4" fill="#F97316" />
+          <circle cx="28" cy="172" r="4" fill="#F97316" />
+          <circle cx="212" cy="172" r="4" fill="#F97316" />
+          <line x1="15" y1="65" x2="225" y2="65" stroke="#1E293B" stroke-width="2" />
+          <line x1="15" y1="135" x2="225" y2="135" stroke="#1E293B" stroke-width="2" />
+          <line x1="85" y1="15" x2="85" y2="185" stroke="#1E293B" stroke-width="2" />
+          <line x1="155" y1="15" x2="155" y2="185" stroke="#1E293B" stroke-width="2" />
+          <path d="M 40,50 L 105,50 C 115,50 120,55 120,65 L 120,135 C 120,145 115,150 105,150 L 40,150 Z" fill="none" stroke="#F97316" stroke-width="14" stroke-linejoin="round" />
+          <path d="M 120,150 L 120,60 L 148,110 L 176,60 L 176,150" fill="none" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="110" y="96" width="80" height="8" rx="2" fill="#F97316" />
+        </svg>
+        <div class="logo-text">
+          <span class="brand-name">OM ENTERPRISE</span>
+          <span class="brand-sub">RCC FORM-WORK &amp; SCAFFOLDING RENTALS</span>
+        </div>
+      </div>
+
+      <div class="title-area">
+        <h1>{{ inv.title }}</h1>
+        <p class="company-name">OM ENTERPRISE</p>
+        <p>PLOT NO. 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL</p>
+        <p>TALUKA-KALOL, GANDHINAGAR, GUJARAT - 382721</p>
+        <!-- <p>Contact : +91 9998802167, 9824219138 &nbsp;|&nbsp; E-Mail: sbsanghvi.86@gmail.com</p> -->
+        <p>Contact : +91 9998802167, 9824219138</p>
+        <p>E-Mail: sbsanghvi.86@gmail.com</p>
+        <p class="tax-details">GSTIN: 24AAGFO5616E1ZI &nbsp;|&nbsp; SAC: 99713</p>
+      </div>
+    </header>
+
+    <section class="party-grid">
+      <div class="receiver">
+        <div class="box-title">RECIPIENT DETAILS</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Recipient:</b><span>{{ inv.party.Party_Name or '-' }}</span></div>
+            <div class="field-row"><b>Site Name:</b><span>{{ inv.site_full or inv.site.Site_Name or '-' }}</span></div>
+            <div class="field-row"><b>Address:</b><span>{{ inv.party.Address or '-' }}</span></div>
+            <!-- <div class="field-row"><b>Site:</b><span>{{ inv.site_full or inv.site.Site_Name or '-' }}</span></div> -->
+          </div>
+          <div class="bottom-fields">
+            <div class="field-row"><b>Mobile No.:</b><span>{{ inv.party.Phone or '-' }}</span></div>
+            <div class="field-row"><b>GSTIN No:</b><span>{{ inv.party_gstin if inv.party_gstin else 'Unregistered' }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="box-title">INVOICE DETAILS</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Invoice No.:</b><span>{{ inv.bill_no }}</span></div>
+            <div class="field-row"><b>Invoice Date:</b><span>{{ inv.bill_date }}</span></div>
+          </div>
+          <div class="bottom-fields">
+            <div class="field-row"><b>Billing Period:</b><span>{{ inv.period_start }} to {{ inv.period_end }}</span></div>
+            <div class="field-row"><b>Place of Supply:</b><span>{{ inv.party.State or 'Gujarat' }}{% if inv.state_code %} ({{ inv.state_code }}){% endif %}</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Items Table with multi-page flow and carry calculation -->
+  <table class="items-table" data-flow="table" data-carry data-cols="8" data-amt-col="7">
+    <colgroup>
+      <col style="width: 6%">
+      <col style="width: 23%">
+      <col style="width: 9%">
+      <col style="width: 22%">
+      <col style="width: 7%">
+      <col style="width: 12%">
+      <col style="width: 9%">
+      <col style="width: 12%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="text-center">S.No.</th>
+        <th class="text-left">Description</th>
+        <th class="text-right">NOS.</th>
+        <th class="text-center">Period</th>
+        <th class="text-center">Days</th>
+        <th class="text-right">Number</th>
+        <th class="text-right">Rate</th>
+        <th class="text-right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in ns.groups %}
+        {% set gi = loop.index %}
+        {% set gsize = g.rows | length %}
+        {% for r in g.rows %}
+        <tr class="{% if loop.last %}item-group-end{% endif %}" data-amt="{{ r.amount }}" data-g="{{ gi }}" data-first="{{ 1 if loop.first else 0 }}" data-name="{{ g.desc }}" data-tag="{{ r.type }}">
+          {% if loop.first %}<td class="text-center sno" rowspan="{{ gsize }}" data-sno="{{ gi }}">{{ gi }}</td>{% endif %}
+
+          {% if loop.first %}
+            <td class="font-bold desc">{{ r.desc }}{% if r.type == 'damage' %}<span class="row-tag">DAMAGE</span>{% elif r.type in ['extra', 'custom'] %}<span class="row-tag custom">CHARGE</span>{% endif %}</td>
+          {% else %}
+            {% set prev = g.rows[loop.index0 - 1].qty_num %}
+            {% set cur = r.qty_num %}
+            <td class="sub-text">{% if cur > prev %}({{ qn(prev) }} + {{ qn(cur - prev) }}){% elif cur < prev %}({{ qn(prev) }} &minus; {{ qn(prev - cur) }}){% endif %}</td>
+          {% endif %}
+
+          <td class="text-right">{{ r.qty }}</td>
+          <td class="text-center">{% if r.type == 'rental' %}{{ short(r.from) }} TO {{ short(r.to) }}{% else %}-{% endif %}</td>
+          <td class="text-center">{% if r.type == 'rental' %}{{ r.days }}{% else %}-{% endif %}</td>
+          <td class="text-right">{% if r.type == 'rental' %}{{ r.number }}{% else %}-{% endif %}</td>
+          <td class="text-right">{{ r.rate }}</td>
+          <td class="text-right">{{ inr(r.amount) }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="8" class="text-center" style="padding:18px;color:#64748b;">No items on this invoice.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Calculation & Summary Section (Printed on the LAST page) -->
+  <div class="summary-wrapper" data-flow="block">
+    <div class="balance-block">
+      <div class="box-title">BALANCE QUANTITY DETAILS</div>
+      <div class="balance-content">
+        <b>BALANCE QTY. :-</b>
+        <p>{{ inv.balance_text or '-' }}</p>
+        {% if inv.remarks %}<b style="margin-top:4px;">REMARKS :-</b><p>{{ inv.remarks }}</p>{% endif %}
+        {% if cancelled and inv.cancel_reason %}<b style="margin-top:4px;color:#dc2626;">CANCELLED :-</b><p>{{ inv.cancel_reason }}</p>{% endif %}
+      </div>
+      <div class="words-block">
+        <b>AMOUNT IN WORDS:</b>
+        <p>{{ inv.net_words | replace('Rupees ', '') | upper }}</p>
+      </div>
+    </div>
+
+    <table class="tax-table">
+      <tr><td>Taxable Value:</td><td class="text-right">{{ inr(inv.taxable) }}</td></tr>
+      {% if inv.apply_gst %}
+      <tr><td>CGST ({{ inv.cgst_rate }}%):</td><td class="text-right">{{ inr(inv.cgst) }}</td></tr>
+      <tr><td>SGST ({{ inv.sgst_rate }}%):</td><td class="text-right">{{ inr(inv.sgst) }}</td></tr>
+      {% endif %}
+      <tr><td>Total Amount:</td><td class="text-right">{{ inr(inv.total) }}</td></tr>
+      <tr><td>Round Off:</td><td class="text-right">{{ inv.round_off }}</td></tr>
+      <tr class="net-total-row"><td>NET TOTAL:</td><td class="text-right">&#8377; {{ net_inr(inv.net) }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Terms and Conditions -->
+  <section class="terms" data-flow="block">
+    <div class="terms-heading">TERMS &amp; CONDITIONS</div>
+    <ol>
+      <li>Client will be responsible for breakage or loss of goods.</li>
+      <li>Transportation for both sides will be borne by client.</li>
+      <li>Company/Client who hire the goods will have total responsibility of it.</li>
+      <li>All disputes are subject to Ahmedabad jurisdiction only.</li>
+    </ol>
+  </section>
+
+  <!-- Signatures Footer -->
+  <footer class="footer" data-flow="block">
+    <div class="sign-box"><div class="sign-line">Client Stamp &amp; Signature</div></div>
+    <div class="sign-box"><div class="sign-line">Checked By</div></div>
+    <div class="sign-box"><div class="sign-for">For OM ENTERPRISE</div><div class="sign-line">Auth. Signatory</div></div>
+  </footer>
+</div>
+
+<!-- Rendered A4 sheets container -->
+<div id="sheets" data-label="{{ inv.title }} {{ inv.bill_no }}"></div>
+
+<div class="print-actions">
+  <span class="pe-info"><span id="pageInfo"></span>
+    <select id="densitySel" aria-label="Paper saver">
+      <option value="auto">Paper saver: Auto</option>
+      <option value="normal">Normal spacing</option>
+      <option value="compact">Compact</option>
+      <option value="tight">Extra compact</option>
+    </select>
+  </span>
+</div>
+{% endif %}
+
+<!-- Automatic Print Engine Script (Repeats Header & Party Details on every page) -->
+<script>
+(function () {
+'use strict';
+var MIN_TAIL = 3, MAX_TRIES = 16, DENS = ['normal', 'compact', 'tight'];
+var DENS_NAME = {normal: 'normal spacing', compact: 'compact spacing', tight: 'extra compact spacing'};
+var doc = document.getElementById('doc'), host = document.getElementById('sheets');
+if (!doc || !host) { return; }
+var mode = 'auto', safety = 0;
+
+function sum(a, f) { var s = 0; a.forEach(function (x) { s += f(x); }); return s; }
+function outerH(el) {
+    var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return r.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+}
+function numAttr(el, n) { var v = parseFloat((el.getAttribute(n) || '').replace(/,/g, '')); return isNaN(v) ? 0 : v; }
+function inrFormat(x) { 
+    var parts = Number(x).toFixed(2).split('.');
+    var ip = parts[0], dp = parts[1];
+    if (ip.length > 3) {
+        var h = ip.slice(0, -3), last3 = ip.slice(-3);
+        var groups = [];
+        while (h.length > 0) {
+            groups.unshift(h.slice(-2));
+            h = h.slice(0, -2);
+        }
+        ip = groups.join(',') + ',' + last3;
+    }
+    return ip + '.' + dp;
+}
+function netInrFormat(x) {
+    var ip = Math.round(Number(x)).toString();
+    if (ip.length > 3) {
+        var h = ip.slice(0, -3), last3 = ip.slice(-3);
+        var groups = [];
+        while (h.length > 0) {
+            groups.unshift(h.slice(-2));
+            h = h.slice(0, -2);
+        }
+        ip = groups.join(',') + ',' + last3;
+    }
+    return ip + '/-';
+}
+function mk(tag, cls) { var e = document.createElement(tag); if (cls) { e.className = cls; } return e; }
+
+function carryRow(b, text, amt) {
+    var tr = mk('tr', 'carry-row'), a = mk('td', 'text-right'), c = mk('td', 'text-right');
+    a.colSpan = Math.max(1, b.amtCol); a.textContent = text;
+    c.textContent = typeof amt === 'number' ? inrFormat(amt) : amt;
+    tr.appendChild(a); tr.appendChild(c);
+    return tr;
+}
+
+function measureTable(el) {
+    var th = el.tHead, tf = el.tFoot;
+    var amtColIdx = parseInt(el.getAttribute('data-amt-col') || '7', 10);
+    var b = {type: 'table', el: el, units: [],
+             theadH: th ? th.getBoundingClientRect().height : 0,
+             tfootH: tf ? tf.getBoundingClientRect().height : 0,
+             carry: el.hasAttribute('data-carry'), cols: parseInt(el.getAttribute('data-cols') || '8', 10), amtCol: amtColIdx};
+    Array.prototype.forEach.call(el.tBodies, function (tb) {
+        Array.prototype.forEach.call(tb.rows, function (tr) {
+            b.units.push({el: tr, h: tr.getBoundingClientRect().height, amt: numAttr(tr, 'data-amt')});
+        });
+    });
+    var cs = getComputedStyle(el);
+    var inner = b.theadH + b.tfootH + sum(b.units, function (u) { return u.h; });
+    b.chrome = Math.max(0, el.getBoundingClientRect().height - inner) +
+               (parseFloat(cs.marginBottom) || 0) + (parseFloat(cs.marginTop) || 0);
+    b.cfH = b.bfH = 0;
+    if (b.carry && el.tBodies.length) {
+        var probe = carryRow(b, 'Carried forward to next page', 0);
+        el.tBodies[0].appendChild(probe);
+        b.cfH = b.bfH = probe.getBoundingClientRect().height;
+        el.tBodies[0].removeChild(probe);
+    }
+    return b;
+}
+
+function measure(d) {
+    doc.className = 'doc-src dens-' + d;
+    var m = {blocks: [], headEl: null, headH: 0, d: d};
+    Array.prototype.forEach.call(doc.children, function (el) {
+        var part = el.getAttribute('data-part'), flow = el.getAttribute('data-flow');
+        if (part === 'invoice-head') { m.headEl = el; m.headH = outerH(el); }
+        else if (flow === 'table') { m.blocks.push(measureTable(el)); }
+        else if (flow === 'block') { m.blocks.push({type: 'block', el: el, h: outerH(el)}); }
+    });
+    return m;
+}
+
+function layout(m, P) {
+    var pages = [], cur, rem, cum = 0;
+
+    function newPage() {
+        cur = {items: [], fresh: true};
+        pages.push(cur);
+        cur.items.push({k: 'head'});
+        rem = P - m.headH;
+    }
+    function atomic(b) {
+        if (b.h > rem && !cur.fresh) { newPage(); }
+        cur.items.push({k: 'block', b: b}); cur.fresh = false; rem -= b.h;
+    }
+
+    newPage();
+    var tables = m.blocks.filter(function (b) { return b.type === 'table'; });
+    var lastT = tables.length ? tables[tables.length - 1] : null;
+    var lastIdx = lastT ? m.blocks.indexOf(lastT) : -1;
+    var closing = lastT ? m.blocks.slice(lastIdx + 1) : [];
+    var closingH = sum(closing, function (c) { return c.h; });
+
+    function placeTable(b, isLast) {
+        var portion = null, n = b.units.length;
+        function openCost() { return b.theadH + b.chrome + ((b.carry && cum > 0) ? b.bfH : 0); }
+        function open() {
+            portion = {k: 'table', b: b, units: [], bf: null, cf: null, tfoot: false};
+            cur.items.push(portion); cur.fresh = false;
+            if (b.carry && cum > 0) { portion.bf = cum; }
+            rem -= openCost();
+        }
+        function close() {
+            if (portion && b.carry && portion.units.length) { portion.cf = cum; rem -= b.cfH; }
+            portion = null;
+        }
+        function put(u) { portion.units.push(u); rem -= u.h; cum += u.amt; }
+        function placeUnits(units, finalIsEnd) {
+            units.forEach(function (u, idx) {
+                var isEnd = finalIsEnd && idx === units.length - 1;
+                var reserve = isEnd ? b.tfootH : (b.carry ? b.cfH : 0);
+                var need = u.h + reserve + (portion ? 0 : openCost());
+                if (need > rem && !cur.fresh) { close(); newPage(); need = u.h + reserve + openCost(); }
+                if (!portion) { open(); }
+                put(u);
+                if (isEnd) { portion.tfoot = true; rem -= b.tfootH; }
+            });
+        }
+
+        var K = isLast ? Math.min(MIN_TAIL, n) : 0;
+        placeUnits(b.units.slice(0, n - K), !isLast);
+
+        if (isLast) {
+            var tail = b.units.slice(n - K);
+            var tailH = sum(tail, function (u) { return u.h; }) + b.tfootH + closingH;
+            var need = tailH + (portion ? 0 : openCost());
+            if (need > rem && (!cur.fresh || portion)) { close(); newPage(); need = tailH + openCost(); }
+            if (need <= rem) {
+                if (!portion) { open(); }
+                tail.forEach(put);
+                portion.tfoot = true; rem -= b.tfootH;
+                closing.forEach(function (c) { cur.items.push({k: 'block', b: c}); rem -= c.h; });
+            } else {
+                placeUnits(tail, true);
+                if (closingH > rem && !cur.fresh) { newPage(); }
+                closing.forEach(function (c) { cur.items.push({k: 'block', b: c}); rem -= c.h; });
+            }
+        }
+    }
+
+    m.blocks.forEach(function (b, bi) {
+        if (lastT && bi > lastIdx) { return; }
+        if (b.type === 'block') { atomic(b); } else { placeTable(b, b === lastT); }
+    });
+    return pages;
+}
+
+function buildTable(it) {
+    var b = it.b, t = b.el.cloneNode(false), tb = null;
+    var cg = b.el.querySelector('colgroup');
+    if (cg) { t.appendChild(cg.cloneNode(true)); }
+    if (b.el.tHead) { t.appendChild(b.el.tHead.cloneNode(true)); }
+    function body() { if (!tb) { tb = mk('tbody'); t.appendChild(tb); } return tb; }
+    if (it.bf !== null) { body().appendChild(carryRow(b, 'Previous Page Total', it.bf)); }
+    var rowsOut = it.units.map(function (u) { return u.el.cloneNode(true); });
+    rowsOut.forEach(function (tr, i) {
+        var g = tr.getAttribute('data-g'), prev = i ? rowsOut[i - 1].getAttribute('data-g') : null;
+        if (g === prev) { return; }                      /* same item continues: S.No cell above already spans it */
+        var n = 1;
+        while (i + n < rowsOut.length && rowsOut[i + n].getAttribute('data-g') === g) { n++; }
+        if (tr.getAttribute('data-first') === '1') {
+            var c0 = tr.cells[0]; if (c0 && c0.hasAttribute('rowspan')) { c0.rowSpan = n; }
+        } else {                                         /* item continued from previous page: repeat S.No + name */
+            var sno = mk('td', 'text-center sno'); sno.rowSpan = n; sno.textContent = tr.getAttribute('data-sno') || g;
+            var name = mk('td', 'font-bold desc'), delta = tr.cells[0].textContent;
+            name.appendChild(document.createTextNode(tr.getAttribute('data-name') || ''));
+            var cd = mk('span', 'contd'); cd.textContent = '(contd.)'; name.appendChild(cd);
+            if (delta) { var sb = mk('span', 'sub-inline'); sb.textContent = delta; name.appendChild(sb); }
+            tr.replaceChild(name, tr.cells[0]); tr.insertBefore(sno, tr.cells[0]);
+        }
+    });
+    rowsOut.forEach(function (tr) { body().appendChild(tr); });
+    if (it.cf !== null) { body().appendChild(carryRow(b, 'Carried forward to next page', it.cf)); }
+    if (it.tfoot && b.el.tFoot) { t.appendChild(b.el.tFoot.cloneNode(true)); }
+    var w = mk('div', 'tbl-wrap' + (it.tfoot ? ' is-last' : ''));
+    w.appendChild(t);
+    return w;
+}
+
+function build(pick) {
+    host.className = 'dens-' + pick.m.d;
+    host.innerHTML = '';
+    var total = pick.pages.length;
+    pick.pages.forEach(function (pg, i) {
+        var sheet = mk('div', 'sheet'), body = mk('div', 'sheet-body');
+        sheet.appendChild(body);
+        pg.items.forEach(function (it) {
+            if (it.k === 'head') { body.appendChild(pick.m.headEl.cloneNode(true)); }
+            else if (it.k === 'block') { body.appendChild(it.b.el.cloneNode(true)); }
+            else { body.appendChild(buildTable(it)); }
+        });
+        var foot = mk('div', 'sheet-foot');
+        foot.innerHTML = '<span>OM Enterprise &middot; ' + (host.getAttribute('data-label') || '').replace(/</g, '&lt;') + '</span>' +
+                         '<span class="cont">' + (i < total - 1 ? 'Continued on next page \u2192' : '') + '</span>' +
+                         '<span>Page <b>' + (i + 1) + '</b> of <b>' + total + '</b></span>';
+        sheet.appendChild(foot);
+        host.appendChild(sheet);
+    });
+}
+
+function overflowing() {
+    var bad = false;
+    Array.prototype.forEach.call(host.querySelectorAll('.sheet-body'), function (b) {
+        if (b.scrollHeight - b.clientHeight > 1) { bad = true; }
+    });
+    return bad;
+}
+
+function capacity() {
+    var s = mk('div', 'sheet'), b = mk('div', 'sheet-body');
+    s.appendChild(b); s.appendChild(mk('div', 'sheet-foot'));
+    host.appendChild(s);
+    var h = b.clientHeight;
+    host.removeChild(s);
+    return h;
+}
+
+function fitZoom() {
+    var avail = document.documentElement.clientWidth - 12, w = 793.7;
+    host.style.zoom = avail < w ? String(avail / w) : '';
+}
+
+function run() {
+    host.className = ''; host.innerHTML = '';
+    var base = capacity();
+    var results = DENS.map(function (d) { return {d: d, m: measure(d)}; });
+    var pick = null;
+    for (var t = 0; t <= MAX_TRIES; t++) {
+        var P = base - safety;
+        results.forEach(function (r) { r.pages = layout(r.m, P); });
+        if (mode === 'auto') {
+            var min = Math.min.apply(null, results.map(function (r) { return r.pages.length; }));
+            pick = results.filter(function (r) { return r.pages.length === min; })[0];
+        } else {
+            pick = results.filter(function (r) { return r.d === mode; })[0];
+        }
+        build(pick);
+        if (!overflowing()) { break; }
+        safety += 6;
+    }
+    fitZoom();
+    var tp = document.getElementById('tbPages');
+    if (tp) { tp.textContent = pick.pages.length + (pick.pages.length === 1 ? ' page' : ' pages'); }
+    var info = document.getElementById('pageInfo');
+    if (info) { info.textContent = pick.pages.length + (pick.pages.length === 1 ? ' page' : ' pages') + ' \u00b7 ' + DENS_NAME[pick.m.d]; }
+}
+
+function start() {
+    try { run(); }
+    catch (e) {
+        if (window.console) { console.error('invoice print engine failed', e); }
+        document.documentElement.classList.remove('js');
+        host.innerHTML = '';
+    }
+}
+
+var sel = document.getElementById('densitySel');
+if (sel) { sel.addEventListener('change', function () { mode = sel.value; safety = 0; start(); }); }
+window.addEventListener('resize', fitZoom);
+window.addEventListener('beforeprint', function () { host.style.zoom = ''; });
+window.addEventListener('afterprint', fitZoom);
+
+if (document.fonts && document.fonts.ready) { document.fonts.ready.then(start); } else { start(); }
+})();
+</script>
+
+</body>
+</html>

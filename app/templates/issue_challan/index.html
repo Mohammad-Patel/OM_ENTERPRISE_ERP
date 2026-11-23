@@ -4,189 +4,76 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
-.container {
-    max-width: 100%;
-    background: #fff;
-    padding: 25px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
 h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
 
-.btn {
-    background: #1e293b;
-    color: #fff;
-    padding: 9px 16px;
-    text-decoration: none;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 13px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    border: none;
-    transition: background 0.2s;
-}
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; transition: background 0.2s; }
 .btn:hover { background: #0f172a; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
 .btn-secondary { background: #64748b; }
 .btn-secondary:hover { background: #475569; }
 
-.filter-section {
-    background: #f1f5f9;
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end;
-}
+/* Filters - sab ek hi line me (chhoti screen par hi niche aata hai) */
+.filter-section { background: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: nowrap; gap: 10px; align-items: flex-end; overflow-x: auto; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 0; min-width: 0; }
+.filter-group.wide { flex: 2 1 0; }
+.filter-group.mid { flex: 1.4 1 0; }
+.filter-group.date { flex: 1 1 0; min-width: 118px; }
+.filter-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; white-space: nowrap; }
+.filter-group input, .filter-group select { width: 100%; min-width: 0; padding: 8px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; text-overflow: ellipsis; }
+.filter-group input[type="date"] { padding: 7px 6px; font-size: 12px; }
+.filter-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.filter-actions .btn { white-space: nowrap; padding: 9px 14px; }
+@media (max-width: 900px) { .filter-section { flex-wrap: wrap; overflow-x: visible; } .filter-group, .filter-group.wide, .filter-group.mid, .filter-group.date { flex: 1 1 160px; } }
 
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    flex: 1;
-    min-width: 200px;
-}
+.table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #64748b; }
+.table-controls select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; }
 
-.filter-group label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #475569;
-}
-
-.filter-group input, .filter-group select {
-    padding: 8px 12px;
-    font-size: 13px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: #fff;
-}
-
-.filter-actions { display: flex; gap: 10px; }
-
-.table-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 13px;
-    color: #64748b;
-}
-
-.table-controls select {
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e1;
-}
-
+.table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border: 1px solid #e2e8f0; padding: 11px 14px; font-size: 13px; text-align: left; }
-th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; white-space: nowrap; }
 tbody tr:hover { background-color: #f8fafc; }
 
-/* Action Icon Buttons */
-.action-btns {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-.icon-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    font-size: 13px;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    cursor: pointer;
-}
+.action-btns { display: flex; gap: 8px; align-items: center; }
+.icon-btn { width: 32px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-size: 13px; border: 1px solid transparent; transition: all 0.2s; cursor: pointer; }
 .btn-view { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
 .btn-view:hover { background: #2563eb; color: #fff; }
-
 .btn-edit { background: #fefce8; color: #ca8a04; border-color: #fef08a; }
 .btn-edit:hover { background: #ca8a04; color: #fff; }
-
 .btn-delete { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 .btn-delete:hover { background: #dc2626; color: #fff; }
 
-.pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #e2e8f0;
-    font-size: 13px;
-    color: #475569;
-}
-
-.pagination-links { display: flex; gap: 5px; }
-.pagination-links a, .pagination-links span {
-    padding: 6px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #1e293b;
-    background: #fff;
-    font-weight: 500;
-}
+.pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #475569; flex-wrap: wrap; gap: 10px; }
+.pagination-links { display: flex; gap: 5px; flex-wrap: wrap; }
+.pagination-links a, .pagination-links span { padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px; text-decoration: none; color: #1e293b; background: #fff; font-weight: 500; }
 .pagination-links a:hover { background: #f1f5f9; }
 .pagination-links span.active { background: #1e293b; color: #fff; border-color: #1e293b; }
+.pagination-links span.dots { border: none; background: transparent; padding: 6px 4px; }
 
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto;
-    background-color: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(4px);
-}
-.modal-content {
-    background-color: #fff;
-    margin: 3% auto;
-    padding: 30px;
-    border: 1px solid #e2e8f0;
-    width: 85%;
-    max-width: 900px;
-    border-radius: 10px;
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-.close-btn { color: #64748b; float: right; font-size: 24px; font-weight: bold; cursor: pointer; line-height: 1; }
+/* Modal */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+.modal-content { background-color: #fff; margin: 3% auto; padding: 30px; border: 1px solid #e2e8f0; width: 85%; max-width: 900px; border-radius: 10px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+.close-btn { color: #64748b; float: right; font-size: 24px; font-weight: bold; cursor: pointer; line-height: 1; background: none; border: none; }
 .close-btn:hover { color: #0f172a; }
 .modal-header { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 label { font-weight: 600; font-size: 12px; color: #334155; text-transform: uppercase; }
 input, select { padding: 9px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #fff; color: #1e293b; outline: none; }
+input:focus, select:focus { border-color: #f97316; box-shadow: 0 0 0 2px rgba(249,115,22,.15); }
+.upper { text-transform: uppercase; }
 table.item-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
 table.item-table th, table.item-table td { border: 1px solid #e2e8f0; padding: 8px 10px; }
 table.item-table th { background: #f8fafc; font-size: 12px; }
+table.item-table select, table.item-table input { width: 100%; }
 .btn-sm { background: #f97316; padding: 6px 12px; font-size: 12px; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
 .section-title { font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .modal-content { width: 95%; padding: 18px; } }
 </style>
 {% endblock %}
 
@@ -194,18 +81,28 @@ table.item-table th { background: #f8fafc; font-size: 12px; }
 <div class="container">
   <div class="page-header">
     <h2>Issue Challans Management</h2>
-    <button class="btn" onclick="openCreateModal()">+ Create New Issue Challan</button>
+    <button type="button" class="btn" id="createBtn"><i class="fas fa-plus"></i> Create New Issue Challan</button>
   </div>
 
   <!-- Search & Filters -->
-  <form method="GET" action="{{ url_for('issue_challan.index') }}" class="filter-section">
-    <div class="filter-group">
-      <label>Search Records</label>
-      <input type="text" name="search" value="{{ search_query }}" placeholder="Search Challan No, Party ID, Vehicle...">
+  <form method="GET" action="{{ url_for('issue_challan.index') }}" class="filter-section" id="filterForm">
+    <div class="filter-group wide">
+      <label for="f_search">Search Records</label>
+      <input type="text" id="f_search" name="search" value="{{ search_query }}" placeholder="Challan No, Party, Site, Phone, Vehicle, Driver...">
     </div>
+
     <div class="filter-group">
-      <label>Filter By Party</label>
-      <select name="party_id">
+      <label for="f_gst">GST Type</label>
+      <select name="gst_filter" id="f_gst" onchange="this.form.submit()">
+        <option value="">All Types</option>
+        <option value="gst" {% if gst_filter == 'gst' %}selected{% endif %}>GST Customers</option>
+        <option value="nogst" {% if gst_filter == 'nogst' %}selected{% endif %}>Without GST</option>
+      </select>
+    </div>
+
+    <div class="filter-group mid">
+      <label for="f_party">Party</label>
+      <select name="party_id" id="f_party">
         <option value="">All Parties</option>
         {% for p in parties %}
         {% set p_id = p.Party_ID or p.ID %}
@@ -214,56 +111,71 @@ table.item-table th { background: #f8fafc; font-size: 12px; }
         {% endfor %}
       </select>
     </div>
+    <div class="filter-group mid">
+      <label for="f_site">Site</label>
+      <select name="site_id" id="f_site">
+        <option value="">All Sites</option>
+      </select>
+    </div>
+    <div class="filter-group date">
+      <label for="f_from">Date From</label>
+      <input type="date" id="f_from" name="date_from" value="{{ date_from }}">
+    </div>
+    <div class="filter-group date">
+      <label for="f_to">Date To</label>
+      <input type="date" id="f_to" name="date_to" value="{{ date_to }}">
+    </div>
+    <input type="hidden" name="per_page" value="{{ per_page }}">
     <div class="filter-actions">
-      <button type="submit" class="btn">Search</button>
-      <a href="{{ url_for('issue_challan.index') }}" class="btn btn-secondary" style="text-decoration:none;">Reset</a>
+      <button type="submit" class="btn"><i class="fas fa-search"></i> Search</button>
+      <a href="{{ url_for('issue_challan.index') }}" class="btn btn-secondary">Reset</a>
     </div>
   </form>
 
   <div class="table-controls">
-    <div>Showing <b>{{ total_records }}</b> record(s)</div>
+    <div>Showing <b>{{ challans|length }}</b> of <b>{{ total_records }}</b> record(s){% if filters_active %} <span style="color:#f97316;font-weight:600;">(filtered)</span>{% endif %}</div>
     <div>
       <label>Show </label>
       <select onchange="location = this.value;">
-        <option value="{{ url_for('issue_challan.index', search=search_query, party_id=party_filter, per_page='10') }}" {% if per_page == '10' %}selected{% endif %}>10</option>
-        <option value="{{ url_for('issue_challan.index', search=search_query, party_id=party_filter, per_page='25') }}" {% if per_page == '25' %}selected{% endif %}>25</option>
-        <option value="{{ url_for('issue_challan.index', search=search_query, party_id=party_filter, per_page='50') }}" {% if per_page == '50' %}selected{% endif %}>50</option>
-        <option value="{{ url_for('issue_challan.index', search=search_query, party_id=party_filter, per_page='All') }}" {% if per_page == 'All' %}selected{% endif %}>All</option>
+        {% for n in ['10', '25', '50', 'All'] %}
+        <option value="{{ url_for('issue_challan.index', **dict(qargs, per_page=n)) }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
       </select>
       <label> entries per page</label>
     </div>
   </div>
 
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
         <th>Challan No.</th>
         <th>Date</th>
-        <th>Party ID</th>
-        <th>Site ID</th>
-        <th>Vehicle No.</th>
+        <th>Party Name</th>
+        <th>Site Location</th>
+        <th>Phone Number</th>
         <th style="width: 130px; text-align: center;">Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="challanBody">
       {% for c in challans %}
       <tr>
         <td><b>{{ c.Challan_No }}</b></td>
-        <td>{{ c.Challan_Date or c.Date }}</td>
-        <td>{{ c.Party_ID }}</td>
-        <td>{{ c.Site_ID }}</td>
-        <td>{{ c.Vehicle_No or '-' }}</td>
+        <td>{{ c.Challan_Date or c.Date or '-' }}</td>
+        <td>{{ c.Party_Name or '-' }}</td>
+        <td>{{ c.Site_Name or '-' }}</td>
+        <td>{{ c.Party_Mobile or '-' }}</td>
         <td style="text-align: center;">
           <div class="action-btns" style="justify-content: center;">
-            <a href="{{ url_for('issue_challan.print_challan', challan_no=c.Challan_No) }}" class="icon-btn btn-view" title="View / Print Challan" target="_blank">
+            <a href="{{ url_for('issue_challan.print_challan', challan_no=c.Challan_No) }}" class="icon-btn btn-view" title="View / Print Challan" aria-label="View challan {{ c.Challan_No }}" target="_blank" rel="noopener">
               <i class="fas fa-eye"></i>
             </a>
-            <button type="button" class="icon-btn btn-edit" title="Edit Challan" onclick="openEditModal('{{ c.Challan_No }}', '{{ c.Party_ID }}', '{{ c.Site_ID }}', '{{ c.Vehicle_No }}', '{{ c.Driver_Name }}', '{{ c.Driver_Mob }}', '{{ c.Driver_Licence }}', '{{ c.EWay_Bill_No }}', '{{ c.Weight }}', '{{ c.Goods_Value }}')">
+            <button type="button" class="icon-btn btn-edit edit-btn" title="Edit Challan" aria-label="Edit challan {{ c.Challan_No }}" data-challan="{{ c.Challan_No }}">
               <i class="fas fa-edit"></i>
             </button>
-            <form action="{{ url_for('issue_challan.delete', challan_no=c.Challan_No) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete Challan No. {{ c.Challan_No }}?');">
+            <form action="{{ url_for('issue_challan.delete', challan_no=c.Challan_No) }}" method="POST" class="delete-form" data-challan="{{ c.Challan_No }}" style="display:inline;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="icon-btn btn-delete" title="Delete Challan">
+              <button type="submit" class="icon-btn btn-delete" title="Delete Challan" aria-label="Delete challan {{ c.Challan_No }}">
                 <i class="fas fa-trash-alt"></i>
               </button>
             </form>
@@ -272,63 +184,67 @@ table.item-table th { background: #f8fafc; font-size: 12px; }
       </tr>
       {% else %}
       <tr>
-        <td colspan="6" style="text-align: center; color: #64748b; padding: 25px;">No matching issue challans found.</td>
+        <td colspan="6" style="text-align: center; color: #64748b; padding: 25px;">
+          {% if filters_active %}No challans match your filters. <a href="{{ url_for('issue_challan.index') }}">Clear filters</a>{% else %}No issue challans yet. Click "Create New Issue Challan" to add the first one.{% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   <!-- Pagination Controls -->
   <div class="pagination">
-    <div>Showing page <b>{{ page }}</b> of <b>{{ total_pages if total_pages > 0 else 1 }}</b> (Total: {{ total_records }} records)</div>
+    <div>Page <b>{{ page }}</b> of <b>{{ total_pages }}</b> (Total: {{ total_records }} records)</div>
     <div class="pagination-links">
       {% if page > 1 %}
-      <a href="{{ url_for('issue_challan.index', page=page-1, search=search_query, party_id=party_filter, per_page=per_page) }}">« Prev</a>
+      <a href="{{ url_for('issue_challan.index', **dict(qargs, page=page-1)) }}">« Prev</a>
       {% endif %}
-      
-      {% if total_pages > 0 %}
-        {% for p_num in range(1, total_pages + 1) %}
+
+      {% set ns = namespace(last=0) %}
+      {% for p_num in range(1, total_pages + 1) %}
+        {% if p_num == 1 or p_num == total_pages or (p_num - page)|abs <= 2 %}
+          {% if p_num - ns.last > 1 %}<span class="dots">…</span>{% endif %}
           {% if p_num == page %}
           <span class="active">{{ p_num }}</span>
           {% else %}
-          <a href="{{ url_for('issue_challan.index', page=p_num, search=search_query, party_id=party_filter, per_page=per_page) }}">{{ p_num }}</a>
+          <a href="{{ url_for('issue_challan.index', **dict(qargs, page=p_num)) }}">{{ p_num }}</a>
           {% endif %}
-        {% endfor %}
-      {% else %}
-        <span class="active">1</span>
-      {% endif %}
+          {% set ns.last = p_num %}
+        {% endif %}
+      {% endfor %}
 
       {% if page < total_pages %}
-      <a href="{{ url_for('issue_challan.index', page=page+1, search=search_query, party_id=party_filter, per_page=per_page) }}">Next »</a>
+      <a href="{{ url_for('issue_challan.index', **dict(qargs, page=page+1)) }}">Next »</a>
       {% endif %}
     </div>
   </div>
 </div>
 
 <!-- Modal Form Popup (Create / Edit) -->
-<div id="challanModal" class="modal">
+<div id="challanModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal-content">
-    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <button type="button" class="close-btn" id="closeBtn" aria-label="Close">&times;</button>
     <div class="modal-header" id="modalTitle">Create New Issue Challan</div>
-    
-    <form id="challanForm" method="POST" action="{{ url_for('issue_challan.create') }}">
+
+    <form id="challanForm" method="POST" action="{{ url_for('issue_challan.create') }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      
+
       <div class="grid">
         <div class="form-group">
           <label>Challan No.:</label>
           <input type="text" name="challan_no" id="challan_no" required readonly style="background: #f1f5f9; font-weight: bold;">
         </div>
         <div class="form-group">
-          <label>Date:</label>
-          <input type="text" name="date" required value="{{ current_date }}">
+          <label>Date (DD-MM-YYYY):</label>
+          <input type="text" name="date" id="challan_date" required value="{{ current_date }}" placeholder="DD-MM-YYYY" pattern="\d{2}-\d{2}-\d{4}" maxlength="10">
         </div>
       </div>
 
       <div class="grid">
         <div class="form-group">
           <label>Party:</label>
-          <select name="party_id" id="partySelect" required onchange="filterSites(this.value)">
+          <select name="party_id" id="partySelect" required>
             <option value="">Select Party</option>
             {% for p in parties %}
             {% set p_id = p.Party_ID or p.ID %}
@@ -348,40 +264,40 @@ table.item-table th { background: #f8fafc; font-size: 12px; }
       <div class="grid">
         <div class="form-group">
           <label>Vehicle No.:</label>
-          <input type="text" name="vehicle_no" id="vehicle_no" value="GJ01HT0732">
+          <input type="text" name="vehicle_no" id="vehicle_no" class="upper" value="GJ01HT0732" maxlength="20">
         </div>
         <div class="form-group">
           <label>Driver Name:</label>
-          <input type="text" name="driver_name" id="driver_name" value="SATISH BHAI">
+          <input type="text" name="driver_name" id="driver_name" value="SATISH BHAI" maxlength="60">
         </div>
       </div>
 
       <div class="grid">
         <div class="form-group">
           <label>Driver Mobile No. (Optional):</label>
-          <input type="text" name="driver_mob" id="driver_mob" value="9924899108" placeholder="Optional">
+          <input type="text" name="driver_mob" id="driver_mob" value="9924899108" placeholder="Optional" maxlength="15">
         </div>
         <div class="form-group">
           <label>Driver Licence (Optional):</label>
-          <input type="text" name="driver_licence" id="driver_licence" placeholder="Optional Licence No">
+          <input type="text" name="driver_licence" id="driver_licence" class="upper" placeholder="Optional Licence No" maxlength="30">
         </div>
       </div>
 
       <div class="grid">
         <div class="form-group">
           <label>E-Way Bill No. (Optional):</label>
-          <input type="text" name="eway_bill_no" id="eway_bill_no" placeholder="Optional E-Way Bill No">
+          <input type="text" name="eway_bill_no" id="eway_bill_no" placeholder="Optional E-Way Bill No" maxlength="20">
         </div>
         <div class="form-group">
           <label>Total Weight (Kg):</label>
-          <input type="text" name="weight" id="totalWeight" readonly style="background: #f1f5f9; font-weight: bold;" value="0 Kg">
+          <input type="text" id="totalWeight" readonly style="background: #f1f5f9; font-weight: bold;" value="0 Kg">
         </div>
       </div>
 
       <div class="grid">
         <div class="form-group">
           <label>Approx Goods Value (₹):</label>
-          <input type="text" name="goods_value" id="approxGoodsValue" readonly style="background: #f1f5f9; font-weight: bold;" value="₹ 0">
+          <input type="text" id="approxGoodsValue" readonly style="background: #f1f5f9; font-weight: bold;" value="₹ 0">
         </div>
       </div>
 
@@ -391,35 +307,18 @@ table.item-table th { background: #f8fafc; font-size: 12px; }
           <thead>
             <tr>
               <th>Select Item</th>
-              <th>Quantity (Nos)</th>
+              <th style="width: 160px;">Quantity (Nos)</th>
               <th style="width: 80px; text-align: center;">Action</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>
-                <select name="item_id[]" required onchange="calculateTotals()">
-                  <option value="">Select Item</option>
-                  {% for i in items %}
-                  {% set i_id = i.Item_ID or i.ID %}
-                  {% set i_name = i.Item_Name or i.Name or i_id %}
-                  {% set i_size = i.Size or '' %}
-                  {% set i_weight = i.Unit_Weight_KG or i.Weight or 0 %}
-                  <option value="{{ i_id }}" data-weight="{{ i_weight }}">{{ i_name }} {% if i_size %}({{ i_size }}){% endif %}</option>
-                  {% endfor %}
-                </select>
-              </td>
-              <td><input type="number" name="quantity[]" required placeholder="Qty" min="1" oninput="calculateTotals()"></td>
-              <td style="text-align: center;"><button type="button" class="btn-sm" style="background:#ef4444;" onclick="this.closest('tr').remove(); calculateTotals();">Remove</button></td>
-            </tr>
-          </tbody>
+          <tbody></tbody>
         </table>
-        <button type="button" class="btn-sm" style="background:#1e293b; margin-bottom: 25px;" onclick="addRow()">+ Add Row</button>
+        <button type="button" class="btn-sm" style="background:#1e293b; margin-bottom: 25px;" id="addRowBtn">+ Add Row</button>
       </div>
-      
+
       <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
-        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn" style="background: #f97316;" id="submitBtn">Save & Print Issue Challan</button>
+        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn" style="background: #f97316;" id="submitBtn">Save &amp; Print Issue Challan</button>
       </div>
     </form>
   </div>
@@ -427,127 +326,336 @@ table.item-table th { background: #f8fafc; font-size: 12px; }
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const allSites = [
-  {% for s in sites %}
-  {% set s_id = s.Site_ID or s.ID %}
-  {% set s_party = s.Party_ID %}
-  {% set s_name = s.Site_Name or s.Address or s.Site_Address or s_id %}
-  {
-    site_id: "{{ s_id }}",
-    party_id: "{{ s_party }}",
-    site_name: "{{ s_name }}"
-  },
-  {% endfor %}
-];
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-const itemOptionsHTML = `
-  <option value="">Select Item</option>
-  {% for i in items %}
-  {% set i_id = i.Item_ID or i.ID %}
-  {% set i_name = i.Item_Name or i.Name or i_id %}
-  {% set i_size = i.Size or '' %}
-  {% set i_weight = i.Unit_Weight_KG or i.Weight or 0 %}
-  <option value="{{ i_id }}" data-weight="{{ i_weight }}">{{ i_name }} {% if i_size %}({{ i_size }}){% endif %}</option>
-  {% endfor %}
-`;
+<!-- Flask data (script ke andar Jinja nahi, isliye red underline nahi aati) -->
+<div id="page-data" hidden
+     data-sites="{{ sites_json | e }}"
+     data-items="{{ items_json | e }}"
+     data-challans="{{ challans_json | e }}"
+     data-challan-items="{{ (challan_items_json or '{}') | e }}"
+     data-next-gst-challan-no="{{ next_gst_challan_no }}"
+     data-next-non-gst-challan-no="{{ next_non_gst_challan_no }}"
+     data-gst-party-ids="{{ gst_party_ids_json | e }}"
+     data-current-date="{{ current_date }}"
+     data-site-filter="{{ site_filter }}"
+     data-create-url="{{ url_for('issue_challan.create') }}"
+     data-edit-url="{{ url_for('issue_challan.edit', challan_no='__NO__') }}">
+</div>
+
+<script>
+(function () {
+'use strict';
+
+const pageData = document.getElementById('page-data').dataset;
+
+const allSites = JSON.parse(pageData.sites);
+const rawItems = JSON.parse(pageData.items);
+const challansList = JSON.parse(pageData.challans);
+const challanItemsMap = JSON.parse(pageData.challanItems);
+const NEXT_GST_CHALLAN_NO = pageData.nextGstChallanNo;
+const NEXT_NON_GST_CHALLAN_NO = pageData.nextNonGstChallanNo;
+const GST_PARTY_IDS = JSON.parse(pageData.gstPartyIds || '[]');
+
+/* Preview of the number the server will give: GST party -> OM/26-27/180, other -> 01 */
+function previewChallanNo(partyId) {
+    return GST_PARTY_IDS.indexOf(String(partyId)) !== -1 ? NEXT_GST_CHALLAN_NO : NEXT_NON_GST_CHALLAN_NO;
+}
+const CURRENT_DATE = pageData.currentDate;
+const INITIAL_SITE_FILTER = pageData.siteFilter;
+const CREATE_URL = pageData.createUrl;
+const EDIT_URL_TEMPLATE = pageData.editUrl;
+const DEFAULT_RATE = 59;
+const DEFAULT_WEIGHT = 10;
+
+const $ = (id) => document.getElementById(id);
+
+/* ------------------------------ helpers ------------------------------ */
+function clean(v) {
+    return (v === null || v === undefined || v === 'None' || v === 'nan') ? '' : String(v);
+}
+// ID compare ke liye same format ("1.0" -> "1")
+function normId(v) {
+    return String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\.0+$/, '');
+}
+function setSelectValue(select, value) {
+    const target = normId(value);
+    for (const opt of select.options) {
+        if (normId(opt.value) === target) { select.value = opt.value; return; }
+    }
+    select.value = '';
+}
+function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function getSitePartyValue(site) {
+    const key = Object.keys(site).find(k => {
+        const low = k.toLowerCase().replace(/[^a-z]/g, '');
+        return low === 'partyid' || low === 'customerid' || low === 'custid' || low === 'clientid';
+    });
+    return key ? site[key] : '';
+}
+function siteLabel(site) {
+    return site.Site_Name || site.Site_Location || site.Location || site.Site_Address || site.Address || site.Site_ID || '';
+}
+function sitesOfParty(partyId) {
+    if (!partyId) return [];
+    return allSites.filter(s => normId(getSitePartyValue(s)) === normId(partyId));
+}
+
+/* ----------------------- lookup maps / item options ------------------- */
+const challansMap = {};
+challansList.forEach(c => {
+    const no = clean(c.Challan_No);
+    challansMap[no] = {
+        challan_no: no,
+        date: clean(c.Challan_Date || c.Date),
+        party_id: clean(c.Party_ID),
+        site_id: clean(c.Site_ID),
+        vehicle_no: clean(c.Vehicle_No),
+        driver_name: clean(c.Driver_Name),
+        driver_mob: clean(c.Driver_Mob),
+        driver_licence: clean(c.Driver_Licence),
+        eway_bill: clean(c.EWay_Bill_No)
+    };
+});
+
+let itemOptionsHTML = '<option value="">Select Item</option>';
+rawItems.forEach(i => {
+    const id = i.Item_ID || i.id || '';
+    const name = i.Item_Name || i.Name || id;
+    const size = i.Size ? ' (' + i.Size + ')' : '';
+    const weight = (i.Unit_Weight_KG !== null && i.Unit_Weight_KG !== '' && i.Unit_Weight_KG !== undefined) ? i.Unit_Weight_KG : DEFAULT_WEIGHT;
+    const rate = (i.Goods_Value_Rate !== null && i.Goods_Value_Rate !== '' && i.Goods_Value_Rate !== undefined) ? i.Goods_Value_Rate : DEFAULT_RATE;
+    itemOptionsHTML += '<option value="' + escapeHtml(id) + '" data-weight="' + escapeHtml(weight) +
+        '" data-rate="' + escapeHtml(rate) + '">' + escapeHtml(name + size) + '</option>';
+});
+
+/* ------------------------------ filters ------------------------------- */
+function buildFilterSites(keepValue) {
+    const sel = $('f_site');
+    const partyId = $('f_party').value;
+    sel.innerHTML = '<option value="">All Sites</option>';
+    const list = partyId ? sitesOfParty(partyId) : allSites;
+    list.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.Site_ID || '';
+        opt.textContent = siteLabel(s);
+        sel.appendChild(opt);
+    });
+    if (keepValue) setSelectValue(sel, keepValue);
+}
+$('f_party').addEventListener('change', () => buildFilterSites(''));
+$('filterForm').addEventListener('submit', function () {
+    // khali filters URL me nahi jaate (clean URL)
+    this.querySelectorAll('input[name], select[name]').forEach(el => {
+        if (el.type !== 'hidden' && el.value === '') el.disabled = true;
+    });
+});
+const dateFrom = $('f_from'), dateTo = $('f_to');
+dateFrom.addEventListener('change', () => { dateTo.min = dateFrom.value; });
+dateTo.addEventListener('change', () => { dateFrom.max = dateTo.value; });
+buildFilterSites(INITIAL_SITE_FILTER);
+
+/* ------------------------------ modal --------------------------------- */
+function setItemsEnabled(enabled) {
+    const section = $('itemsSection');
+    section.style.display = enabled ? 'block' : 'none';
+    section.querySelectorAll('select, input').forEach(el => { el.disabled = !enabled; });
+}
+function resetSubmitButton() {
+    const b = $('submitBtn');
+    b.disabled = false;
+    b.textContent = b.dataset.label || b.textContent;
+}
+function setSubmitLabel(text) {
+    const b = $('submitBtn');
+    b.dataset.label = text;
+    b.disabled = false;
+    b.textContent = text;
+}
+function showModal() { $('challanModal').style.display = 'block'; }
+function closeModal() { $('challanModal').style.display = 'none'; }
+
+function fillSites(partyId, selectedSite) {
+    const sel = $('siteSelect');
+    sel.innerHTML = '<option value="">Select Site</option>';
+    sitesOfParty(partyId).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.Site_ID || '';
+        opt.textContent = siteLabel(s);
+        sel.appendChild(opt);
+    });
+    if (selectedSite) setSelectValue(sel, selectedSite);
+}
 
 function openCreateModal() {
-    document.getElementById('modalTitle').textContent = "Create New Issue Challan";
-    document.getElementById('challanForm').action = "{{ url_for('issue_challan.create') }}";
-    const autoNo = 'OM/IC/' + Math.floor(1000 + Math.random() * 9000);
-    document.getElementById('challan_no').value = autoNo;
-    document.getElementById('partySelect').value = "";
-    document.getElementById('siteSelect').innerHTML = '<option value="">Select Site</option>';
-    document.getElementById('vehicle_no').value = "GJ01HT0732";
-    document.getElementById('driver_name').value = "SATISH BHAI";
-    document.getElementById('driver_mob').value = "9924899108";
-    document.getElementById('driver_licence').value = "";
-    document.getElementById('eway_bill_no').value = "";
-    document.getElementById('itemsSection').style.display = 'block';
-    document.getElementById('submitBtn').textContent = "Save & Print Issue Challan";
-    document.getElementById('challanModal').style.display = 'block';
+    $('modalTitle').textContent = 'Create New Issue Challan';
+    $('challanForm').action = CREATE_URL;
+
+    $('challan_no').value = NEXT_NON_GST_CHALLAN_NO;
+    $('challan_date').value = CURRENT_DATE;
+    $('partySelect').value = '';
+    fillSites('', '');
+    $('vehicle_no').value = 'GJ01HT0732';
+    $('driver_name').value = 'SATISH BHAI';
+    $('driver_mob').value = '9924899108';
+    $('driver_licence').value = '';
+    $('eway_bill_no').value = '';
+
+    $('itemsTable').querySelector('tbody').innerHTML = '';
+    addRow();
+    setItemsEnabled(true);
+    setSubmitLabel('Save & Print Issue Challan');
+    showModal();
     calculateTotals();
 }
 
-function openEditModal(challanNo, partyId, siteId, vehicleNo, driverName, driverMob, driverLicence, ewayBill, weight, goodsVal) {
-    document.getElementById('modalTitle').textContent = "Edit Issue Challan: " + challanNo;
-    document.getElementById('challanForm').action = "/issue-challan/edit/" + challanNo;
-    document.getElementById('challan_no').value = challanNo;
-    document.getElementById('partySelect').value = partyId;
-    filterSites(partyId);
-    document.getElementById('siteSelect').value = siteId;
-    document.getElementById('vehicle_no').value = vehicleNo !== 'None' ? vehicleNo : '';
-    document.getElementById('driver_name').value = driverName !== 'None' ? driverName : '';
-    document.getElementById('driver_mob').value = driverMob !== 'None' ? driverMob : '';
-    document.getElementById('driver_licence').value = (driverLicence && driverLicence !== 'None') ? driverLicence : '';
-    document.getElementById('eway_bill_no').value = (ewayBill && ewayBill !== 'None') ? ewayBill : '';
-    document.getElementById('totalWeight').value = weight !== 'None' ? weight : '0 Kg';
-    document.getElementById('approxGoodsValue').value = goodsVal !== 'None' ? goodsVal : '₹ 0';
-    
-    // Hide items section on edit since header details are updated
-    document.getElementById('itemsSection').style.display = 'none';
-    document.getElementById('submitBtn').textContent = "Update Challan Details";
-    document.getElementById('challanModal').style.display = 'block';
-}
-
-function closeModal() {
-    document.getElementById('challanModal').style.display = 'none';
-}
-
-window.onclick = function(event) {
-    const modal = document.getElementById('challanModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
+function openEditModal(challanNo) {
+    const c = challansMap[challanNo];
+    if (!c) {
+        Swal.fire('Not found', 'Challan data not found. Please refresh the page.', 'error');
+        return;
     }
+    $('modalTitle').textContent = 'Edit Issue Challan: ' + c.challan_no;
+    $('challanForm').action = EDIT_URL_TEMPLATE.replace('__NO__', c.challan_no);
+
+    $('challan_no').value = c.challan_no;
+    $('challan_date').value = c.date || CURRENT_DATE;
+
+    setSelectValue($('partySelect'), c.party_id);
+    fillSites($('partySelect').value, c.site_id);
+
+    $('vehicle_no').value = c.vehicle_no;
+    $('driver_name').value = c.driver_name;
+    $('driver_mob').value = c.driver_mob;
+    $('driver_licence').value = c.driver_licence;
+    $('eway_bill_no').value = c.eway_bill;
+
+    const tbody = $('itemsTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    const saved = challanItemsMap[c.challan_no] || [];
+    if (saved.length) saved.forEach(it => addRow(it.item_id, it.qty)); else addRow();
+    setItemsEnabled(true);
+    calculateTotals();
+
+    setSubmitLabel('Update Challan Details');
+    showModal();
 }
 
-function filterSites(partyId) {
-    const siteSelect = document.getElementById('siteSelect');
-    siteSelect.innerHTML = '<option value="">Select Site</option>';
-    
-    if (!partyId) return;
-
-    const filteredSites = allSites.filter(s => String(s.party_id) === String(partyId));
-    
-    filteredSites.forEach(site => {
-        const opt = document.createElement('option');
-        opt.value = site.site_id;
-        opt.textContent = site.site_name;
-        siteSelect.appendChild(opt);
-    });
-}
-
-function addRow() {
-    const tbody = document.querySelector("#itemsTable tbody");
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td><select name="item_id[]" required onchange="calculateTotals()">${itemOptionsHTML}</select></td>
-      <td><input type="number" name="quantity[]" required placeholder="Qty" min="1" oninput="calculateTotals()"></td>
-      <td style="text-align: center;"><button type="button" class="btn-sm" style="background:#ef4444;" onclick="this.closest('tr').remove(); calculateTotals();">Remove</button></td>
-    `;
+/* ------------------------------ item rows ----------------------------- */
+function addRow(itemId, qty) {
+    const tbody = $('itemsTable').querySelector('tbody');
+    const row = document.createElement('tr');
+    row.innerHTML =
+        '<td><select name="item_id[]" required>' + itemOptionsHTML + '</select></td>' +
+        '<td><input type="number" name="quantity[]" required placeholder="Qty" min="1" step="1"></td>' +
+        '<td style="text-align:center;"><button type="button" class="btn-sm remove-row" style="background:#ef4444;">Remove</button></td>';
     tbody.appendChild(row);
+    if (itemId) setSelectValue(row.querySelector('select'), itemId);
+    if (qty) row.querySelector('input').value = qty;
 }
 
 function calculateTotals() {
-    let totalWeight = 0;
-    const rows = document.querySelectorAll("#itemsTable tbody tr");
-    
-    rows.forEach(row => {
+    let totalWeight = 0, totalValue = 0;
+    $('itemsTable').querySelectorAll('tbody tr').forEach(row => {
         const select = row.querySelector("select[name='item_id[]']");
         const qtyInput = row.querySelector("input[name='quantity[]']");
-        
         if (select && qtyInput && select.selectedIndex > 0) {
-            const selectedOption = select.options[select.selectedIndex];
-            const unitWeight = parseFloat(selectedOption.getAttribute("data-weight")) || 0;
-            const qty = parseFloat(qtyInput.value) || 0;
-            totalWeight += unitWeight * qty;
+            const opt = select.options[select.selectedIndex];
+            const w = parseFloat(opt.getAttribute('data-weight')) || DEFAULT_WEIGHT;
+            const r = parseFloat(opt.getAttribute('data-rate')) || DEFAULT_RATE;
+            const q = parseFloat(qtyInput.value) || 0;
+            totalWeight += w * q;
+            totalValue += w * q * r;
         }
     });
-
-    document.getElementById('totalWeight').value = totalWeight.toFixed(2) + " Kg";
-    const goodsValue = totalWeight * 59;
-    document.getElementById('approxGoodsValue').value = "₹ " + goodsValue.toFixed(2);
+    $('totalWeight').value = totalWeight.toFixed(2) + ' Kg';
+    $('approxGoodsValue').value = '₹ ' + totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/* ------------------------------ events -------------------------------- */
+$('createBtn').addEventListener('click', openCreateModal);
+$('closeBtn').addEventListener('click', closeModal);
+$('cancelBtn').addEventListener('click', closeModal);
+$('addRowBtn').addEventListener('click', () => addRow());
+$('partySelect').addEventListener('change', function () {
+    fillSites(this.value, '');
+    // number follows the party type, but only while CREATING (edit keeps its number)
+    if ($('challanForm').action === CREATE_URL) { $('challan_no').value = previewChallanNo(this.value); }
+});
+
+const itemsBody = $('itemsTable').querySelector('tbody');
+itemsBody.addEventListener('change', e => { if (e.target.matches("select[name='item_id[]']")) calculateTotals(); });
+itemsBody.addEventListener('input', e => { if (e.target.matches("input[name='quantity[]']")) calculateTotals(); });
+itemsBody.addEventListener('click', e => {
+    const btn = e.target.closest('.remove-row');
+    if (!btn) return;
+    if (itemsBody.rows.length <= 1) {
+        Swal.fire('Cannot remove', 'At least one item row is required.', 'info');
+        return;
+    }
+    btn.closest('tr').remove();
+    calculateTotals();
+});
+
+// Edit buttons (event delegation)
+$('challanBody').addEventListener('click', e => {
+    const btn = e.target.closest('.edit-btn');
+    if (btn) openEditModal(btn.dataset.challan);
+});
+
+// click outside / Esc closes the popup
+$('challanModal').addEventListener('click', e => { if (e.target === $('challanModal')) closeModal(); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $('challanModal').style.display === 'block') closeModal();
+});
+
+// Form validation + double-submit protection
+$('challanForm').addEventListener('submit', function (e) {
+    if (!/^\d{2}-\d{2}-\d{4}$/.test($('challan_date').value.trim())) {
+        e.preventDefault();
+        Swal.fire('Invalid date', 'Please enter the date as DD-MM-YYYY.', 'warning');
+        return;
+    }
+    const seen = new Set();
+    let duplicate = false;
+    itemsBody.querySelectorAll("select[name='item_id[]']").forEach(sel => {
+        if (!sel.value) return;
+        if (seen.has(sel.value)) duplicate = true;
+        seen.add(sel.value);
+    });
+    if (duplicate) {
+        e.preventDefault();
+        Swal.fire('Duplicate item', 'The same item is selected more than once. Please combine it into one row.', 'warning');
+        return;
+    }
+    const b = $('submitBtn');
+    b.dataset.label = b.dataset.label || b.textContent;
+    b.disabled = true;
+    b.textContent = 'Saving...';
+});
+// browser "back" se aane par button phir se active ho
+window.addEventListener('pageshow', resetSubmitButton);
+
+// Delete confirmation (SweetAlert2)
+document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Delete Challan ' + form.dataset.challan + '?',
+            text: 'This will also remove its item lines. This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete it!'
+        }).then(result => {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+});
+
+})();
 </script>
 {% endblock %}

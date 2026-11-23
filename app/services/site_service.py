@@ -1,7 +1,7 @@
-
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
@@ -33,6 +33,17 @@ SITE_FIELDS = (
 
 INACTIVE_VALUES = {"NO", "N", "0", "FALSE", "INACTIVE"}
 
+# Sheets whose rows point to a site. A site that is used in any of them is never deleted
+# (its history must stay readable) - it can only be made inactive.
+SITE_REFERENCE_SHEETS = {
+    "Issue_Challan": "Issue Challan",
+    "Receive_Challan": "Receive Challan",
+    "OpeningStock": "Opening Stock",
+    "StockLedger": "Stock Ledger",
+    "Monthly_Bills": "Monthly Bills",
+    "Damage_Charges": "Damage Charges",
+}
+
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
@@ -42,6 +53,13 @@ def _normalise(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _same_id(a: Any, b: Any) -> bool:
+    """1, '1' and 1.0 are the same ID."""
+    def clean(v: Any) -> str:
+        return re.sub(r"\.0+$", "", _normalise(v))
+    return clean(a) == clean(b)
 
 
 def _is_active(value: Any) -> bool:
@@ -472,6 +490,30 @@ def deactivate_site(
                 wb.close()
 
 
+def _site_references(wb, party_id: str, site_id: str) -> dict[str, int]:
+    """{'Issue Challan': 3, 'Monthly Bills': 1} - records that use this site."""
+    found: dict[str, int] = {}
+    for sheet_name, label in SITE_REFERENCE_SHEETS.items():
+        if sheet_name not in wb.sheetnames:
+            continue
+        ws = wb[sheet_name]
+        columns = _find_columns(ws)
+        if "Site_ID" not in columns:
+            continue
+        count = 0
+        for row_number in range(2, ws.max_row + 1):
+            if not _same_id(ws.cell(row_number, columns["Site_ID"]).value, site_id):
+                continue
+            if "Party_ID" in columns:
+                owner = ws.cell(row_number, columns["Party_ID"]).value
+                if _normalise(owner) and not _same_id(owner, party_id):
+                    continue
+            count += 1
+        if count:
+            found[label] = count
+    return found
+
+
 def delete_site(
     party_id: str,
     site_id: str,
@@ -479,12 +521,84 @@ def delete_site(
     username: str = "Administrator",
 ) -> None:
     """
-    Purane Delete route ke saath compatibility.
-    Record permanently delete nahi hota; site deactivate hoti hai.
+    Permanently delete an INACTIVE site (only its own row in SiteLocations).
+
+    Safety rules
+      * the site must be inactive
+      * a site that is used by challans, bills, stock or damage records is NOT deleted
+        (history stays readable) - keep it inactive instead
+      * only the SiteLocations row is removed; every other sheet is saved untouched
+      * the deletion is written to Audit_Log
     """
-    deactivate_site(
-        party_id=party_id,
-        site_id=site_id,
-        reason=reason or "Deactivated using Delete action",
-        username=username,
-    )
+    party_id = _normalise(party_id)
+    site_id = _normalise(site_id)
+
+    if not party_id or not site_id:
+        raise SiteServiceError("Party ID aur Site ID required hain.")
+
+    path = initialize_workbook(WORKBOOK_PATH)
+
+    with _WORKBOOK_LOCK:
+        wb = None
+        try:
+            wb = load_workbook(path)
+
+            if "SiteLocations" not in wb.sheetnames:
+                raise SiteServiceError("SiteLocations sheet nahi mili.")
+
+            if "Audit_Log" not in wb.sheetnames:
+                raise SiteServiceError("Audit_Log sheet nahi mili.")
+
+            ws = wb["SiteLocations"]
+            audit_ws = wb["Audit_Log"]
+            columns = _find_columns(ws)
+
+            found_row = _find_site_row(ws, columns, party_id, site_id)
+
+            if found_row is None:
+                raise SiteServiceError("Site record nahi mila.")
+
+            if (
+                "Is_Active" in columns
+                and _is_active(ws.cell(found_row, columns["Is_Active"]).value)
+            ):
+                raise SiteServiceError(
+                    "Active Site delete nahi ho sakti. Pehle use deactivate karein."
+                )
+
+            used = _site_references(wb, party_id, site_id)
+            if used:
+                details = ", ".join(f"{label}: {count}" for label, count in used.items())
+                raise SiteServiceError(
+                    "Is Site ke records maujood hain (" + details + "), isliye ise delete "
+                    "nahi kiya ja sakta. History ke liye Site ko inactive hi rehne dein."
+                )
+
+            before = {
+                header: ws.cell(found_row, col).value
+                for header, col in columns.items()
+            }
+
+            ws.delete_rows(found_row)
+
+            _audit(
+                audit_ws,
+                username,
+                "DELETE",
+                site_id,
+                reason=reason or "Permanently deleted inactive site",
+                before=before,
+            )
+
+            _save_atomic(wb, path)
+
+        except (SiteServiceError, ExcelServiceError):
+            raise
+        except Exception as exc:
+            raise SiteServiceError(
+                "Site delete nahi hui. Workbook Excel mein khula ho "
+                "to use band karke dobara try karein."
+            ) from exc
+        finally:
+            if wb is not None:
+                wb.close()

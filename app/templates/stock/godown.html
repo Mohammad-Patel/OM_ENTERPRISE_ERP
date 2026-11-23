@@ -1,47 +1,221 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Godown Stock Summary - OM Enterprise</title>
+{% extends "base.html" %}
+
+{% block title %}Godown Stock - OM Enterprise{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-body { font-family: sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }
-.container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border: 1px solid #cbd5e1; border-radius: 6px; }
-h2 { margin-top: 0; border-bottom: 2px solid #0f172a; padding-bottom: 8px; }
-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-th, td { border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 13px; text-align: left; }
-th { background: #f1f5f9; font-weight: 700; }
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+.btn-print { background: #2563eb; }
+.btn-print:hover { background: #1d4ed8; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+.card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; background: #f8fafc; }
+.card .label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+.card .value { font-size: 26px; font-weight: 800; margin-top: 4px; }
+.card.green .value { color: #15803d; }
+.card.blue .value { color: #1d4ed8; }
+.card.orange .value { color: #c2410c; }
+
+.warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 11px 16px; border-radius: 6px; margin-bottom: 18px; font-size: 13px; }
+
+.filter-section { background: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 160px; min-width: 140px; }
+.filter-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; }
+.filter-group input, .filter-group select { width: 100%; padding: 9px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; box-sizing: border-box; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #334155; white-space: nowrap; padding-bottom: 9px; }
+.filter-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.table-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569; }
+.table-top form { display: flex; align-items: center; gap: 6px; margin: 0; }
+.table-top select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 13px; text-align: left; }
+th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+tbody tr:hover { background-color: #f8fafc; }
+tfoot td { background: #f8fafc; font-weight: 800; }
+.text-center { text-align: center; }
 .text-right { text-align: right; }
+.neg { color: #b91c1c; font-weight: 800; }
+.avail { font-weight: 700; }
+.pos { color: #15803d; }
+.item-link { color: inherit; text-decoration: none; }
+.item-link:hover { text-decoration: underline; color: #1d4ed8; }
+
+.pager { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #475569; }
+.pages { display: flex; gap: 4px; flex-wrap: wrap; }
+.pages a, .pages span { min-width: 34px; padding: 6px 10px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; color: #1e293b; background: #fff; font-size: 13px; box-sizing: border-box; }
+.pages a:hover { background: #f1f5f9; }
+.pages .current { background: #1e293b; color: #fff; border-color: #1e293b; font-weight: 700; }
+.pages .disabled { color: #94a3b8; background: #f8fafc; }
+.pages .dots { border: none; background: none; }
+
+@media (max-width: 800px) { .cards { grid-template-columns: 1fr; } }
 </style>
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
 <div class="container">
-  <h2>Godown Stock Summary</h2>
+  <div class="page-header">
+    <h2><i class="fas fa-warehouse"></i> Godown Stock</h2>
+    <div class="header-actions">
+      <a href="{{ url_for('stock.entries') }}" class="btn"><i class="fas fa-plus"></i> Purchase / Sale Entry</a>
+      <a href="{{ url_for('stock.statement') }}" class="btn"><i class="fas fa-file-lines"></i> Godown Statement</a>
+      <a href="{{ url_for('stock_ledger.index') }}" class="btn"><i class="fas fa-people-arrows"></i> Party-wise Stock</a>
+      <a href="{{ url_for('stock.godown_print', **qargs) }}" target="_blank" class="btn btn-print"><i class="fas fa-print"></i> Print Godown Stock</a>
+    </div>
+  </div>
+
+  {% if pagination.total %}
+  <div class="cards">
+    <div class="card green"><div class="label">Available In Godown</div><div class="value">{{ totals.available }}</div></div>
+    <div class="card blue"><div class="label">Out With Parties</div><div class="value">{{ totals.with_parties }}</div></div>
+    <div class="card orange"><div class="label">Damaged (Returned)</div><div class="value">{{ totals.damaged }}</div></div>
+  </div>
+  {% endif %}
+
+  {% if negative %}
+  <div class="warn">
+    <i class="fas fa-triangle-exclamation"></i>
+    Some items show a <b>negative</b> godown balance. This means the <b>opening godown stock</b> for them is missing or too low.
+    Add it in the <b>OpeningStock</b> sheet with Location_Type = <b>Godown</b>, or add a <b>Purchase</b> /
+    <b>Adjustment (+)</b> entry from the Purchase / Sale Entry page &mdash; the balance is
+    <i>Opening + Purchase &minus; Sale &minus; Issued + Returned (good)</i>.
+  </div>
+  {% endif %}
+
+  <form method="GET" action="{{ url_for('stock.godown_stock') }}" class="filter-section">
+    <div class="filter-group" style="flex: 2 1 220px;">
+      <label for="search">Search Item / Category</label>
+      <input type="text" id="search" name="search" value="{{ search }}" placeholder="e.g. PLATE, PROPS...">
+    </div>
+    <div class="filter-group">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if c == f_category %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="stock">Stock Status</label>
+      <select id="stock" name="stock">
+        <option value="">All</option>
+        <option value="available" {% if f_stock == 'available' %}selected{% endif %}>Available in godown</option>
+        <option value="zero" {% if f_stock == 'zero' %}selected{% endif %}>Zero stock</option>
+        <option value="negative" {% if f_stock == 'negative' %}selected{% endif %}>Negative stock</option>
+        <option value="with_parties" {% if f_stock == 'with_parties' %}selected{% endif %}>Out with parties</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" name="show" value="all" {% if show_all %}checked{% endif %}> Include items without movement</label>
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <div class="filter-actions">
+      <button type="submit" class="btn"><i class="fas fa-search"></i> Search</button>
+      <a href="{{ url_for('stock.godown_stock') }}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+
+  <div class="table-top">
+    <form method="GET" action="{{ url_for('stock.godown_stock') }}">
+      {% for k, v in qargs.items() if k != 'per_page' %}
+      <input type="hidden" name="{{ k }}" value="{{ v }}">
+      {% endfor %}
+      <span>Show</span>
+      <select name="per_page" onchange="this.form.submit()">
+        {% for opt in per_page_options %}
+        <option value="{{ opt }}" {% if opt == per_page %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+      <span>items per page</span>
+    </form>
+    <div>Showing <b>{{ pagination.first }}</b> to <b>{{ pagination.last }}</b> of <b>{{ pagination.total }}</b> items</div>
+  </div>
+
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
-        <th>Item ID</th>
+        <th style="width: 6%" class="text-center">S.No.</th>
         <th>Item Description</th>
-        <th class="text-right">Usable Qty</th>
-        <th class="text-right">Damaged Qty</th>
-        <th class="text-right">Total Qty</th>
+        <th>Category</th>
+        <th class="text-right">Opening + Purchase &minus; Sale</th>
+        <th class="text-right">Issued Out</th>
+        <th class="text-right">Returned (Good)</th>
+        <th class="text-right">Available In Godown</th>
+        <th class="text-right">With Parties</th>
+        <th class="text-right">Damaged</th>
       </tr>
     </thead>
     <tbody>
-      {% for item in stock_items %}
+      {% for r in rows %}
       <tr>
-        <td><b>{{ item.Item_ID }}</b></td>
-        <td>{{ item.Item_Name }}</td>
-        <td class="text-right">{{ item.Usable_Qty }}</td>
-        <td class="text-right" style="color: #dc2626;">{{ item.Damaged_Qty }}</td>
-        <td class="text-right"><b>{{ item.Total_Qty }}</b></td>
+        <td class="text-center">{{ r.s_no }}</td>
+        <td><a class="item-link" href="{{ url_for('stock.statement', item_id=r.item_id) }}" title="View statement"><b>{{ r.item_description }}</b></a></td>
+        <td>{{ r.category }}</td>
+        <td class="text-right">{{ r.opening }}</td>
+        <td class="text-right" style="color:#2563eb;">{{ r.issued }}</td>
+        <td class="text-right" style="color:#16a34a;">{{ r.returned_good }}</td>
+        <td class="text-right avail {% if r.available_raw < 0 %}neg{% else %}pos{% endif %}">{{ r.available }}</td>
+        <td class="text-right" style="color:#dc2626;">{{ r.with_parties }}</td>
+        <td class="text-right" style="color:#c2410c;">{{ r.damaged }}</td>
       </tr>
       {% else %}
-      <tr>
-        <td colspan="5" style="text-align: center; color: #64748b;">No stock summary available.</td>
-      </tr>
+      <tr><td colspan="9" style="text-align:center;color:#64748b;padding:30px;">No stock movement found{% if search %} for &ldquo;{{ search }}&rdquo;{% endif %}.</td></tr>
       {% endfor %}
     </tbody>
+    {% if pagination.total %}
+    <tfoot>
+      <tr>
+        <td colspan="3" class="text-right">Total (all {{ pagination.total }} filtered items)</td>
+        <td class="text-right">{{ totals.opening }}</td>
+        <td class="text-right">{{ totals.issued }}</td>
+        <td class="text-right">{{ totals.returned_good }}</td>
+        <td class="text-right">{{ totals.available }}</td>
+        <td class="text-right">{{ totals.with_parties }}</td>
+        <td class="text-right">{{ totals.damaged }}</td>
+      </tr>
+    </tfoot>
+    {% endif %}
   </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <div class="pager">
+    <div>Page <b>{{ pagination.page }}</b> of <b>{{ pagination.pages }}</b></div>
+    <div class="pages">
+      {% if pagination.prev %}
+      <a href="{{ url_for('stock.godown_stock', page=pagination.prev, **qargs) }}">&laquo; Prev</a>
+      {% else %}
+      <span class="disabled">&laquo; Prev</span>
+      {% endif %}
+
+      {% for n in pagination.numbers %}
+        {% if n is none %}
+          <span class="dots">&hellip;</span>
+        {% elif n == pagination.page %}
+          <span class="current">{{ n }}</span>
+        {% else %}
+          <a href="{{ url_for('stock.godown_stock', page=n, **qargs) }}">{{ n }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.next %}
+      <a href="{{ url_for('stock.godown_stock', page=pagination.next, **qargs) }}">Next &raquo;</a>
+      {% else %}
+      <span class="disabled">Next &raquo;</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
-</body>
-</html>
+{% endblock %}

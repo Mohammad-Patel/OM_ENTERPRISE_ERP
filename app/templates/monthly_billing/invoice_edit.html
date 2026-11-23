@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% macro dmy(v) %}{% if v and v|length == 10 %}{{ v[8:10] }}-{{ v[5:7] }}-{{ v[0:4] }}{% else %}{{ v }}{% endif %}{% endmacro %}
+
+{% block title %}{{ 'Edit Invoice ' ~ draft.bill_no if draft.mode == 'edit' else 'New Invoice' }} - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; color: #fff; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+.btn-green { background: #16a34a; }
+.btn-green:hover { background: #15803d; }
+.btn-blue { background: #2563eb; }
+.btn-blue:hover { background: #1d4ed8; }
+.btn-red { background: #dc2626; }
+.btn-red:hover { background: #b91c1c; }
+.btn-outline { background: #fff; color: #1e293b; border: 1px solid #94a3b8; padding: 7px 13px; font-size: 12px; }
+.btn-outline:hover { background: #f1f5f9; color: #1e293b; }
+
+.alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; line-height: 1.5; }
+.alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.alert-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.alert ul { margin: 4px 0 0 18px; padding: 0; }
+
+/* slate invoice header */
+.inv-head { background: #1e293b; color: #fff; border-radius: 8px 8px 0 0; padding: 16px 20px; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.inv-head h3 { margin: 0 0 3px; font-size: 20px; letter-spacing: .5px; }
+.inv-head .sub { font-size: 12px; color: #cbd5e1; }
+.inv-head .right { text-align: right; font-size: 12px; color: #cbd5e1; }
+.badge-title { display: inline-block; background: #f97316; color: #fff; font-weight: 800; padding: 4px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 4px; }
+.meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; border: 1px solid #cbd5e1; border-top: none; padding: 14px 20px; background: #f8fafc; border-radius: 0 0 8px 8px; margin-bottom: 18px; }
+.meta .k { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+.meta .v { font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 3px; word-break: break-word; }
+.meta input[type="date"] { padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 3px; }
+
+.table-wrap { overflow-x: auto; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; background: #fff; min-width: 980px; }
+th, td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 13px; vertical-align: middle; }
+th { background: #1e293b; color: #fff; font-weight: 600; text-transform: uppercase; font-size: 11px; white-space: nowrap; text-align: center; }
+td.sr { text-align: center; color: #64748b; width: 38px; }
+td.number, td.amount { text-align: right; font-weight: 700; white-space: nowrap; }
+td.amount { color: #0f172a; }
+td.na { text-align: center; color: #94a3b8; }
+table input, table select { width: 100%; box-sizing: border-box; padding: 6px 7px; font-size: 13px; border: 1px dashed #94a3b8; border-radius: 4px; background: #fff; color: #1e293b; }
+table input:focus, table select:focus { border: 1px solid #2563eb; outline: none; background: #f8fafc; }
+table input.qty, table input.days, table input.rate { text-align: right; }
+table input.warn { border-color: #f97316; background: #fff7ed; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.tag-rental { background: #dbeafe; color: #1d4ed8; }
+.tag-damage { background: #ffedd5; color: #c2410c; }
+.tag-custom { background: #ede9fe; color: #6d28d9; }
+.rm { background: transparent; border: none; color: #dc2626; cursor: pointer; font-size: 14px; padding: 4px 8px; }
+.rm:hover { color: #7f1d1d; }
+.add-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.empty-row td { text-align: center; color: #64748b; padding: 22px; }
+
+.bottom { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+.box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; background: #f8fafc; }
+.box label.title { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; margin-bottom: 6px; }
+.box textarea { width: 100%; box-sizing: border-box; padding: 9px 11px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; resize: vertical; }
+.box input[type="text"] { width: 100%; box-sizing: border-box; padding: 9px 11px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; }
+.trow { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 5px 0; }
+.trow .lbl { color: #475569; }
+.trow b { font-variant-numeric: tabular-nums; }
+.trow.net { border-top: 2px solid #1e293b; margin-top: 6px; padding-top: 10px; font-size: 17px; }
+.trow.net b { color: #1d4ed8; }
+.rate-in { width: 60px; padding: 4px 6px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
+.gst-toggle { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.gst-hint { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+.save-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; flex-wrap: wrap; }
+@media (max-width: 800px) { .meta { grid-template-columns: 1fr 1fr; } .bottom { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set is_edit = draft.mode == 'edit' %}
+<div class="container">
+  <div class="page-header">
+    <h2><i class="fas fa-file-invoice"></i> {% if is_edit %}Edit Invoice &mdash; {{ draft.bill_no }}{% else %}New Monthly Invoice (Auto-Calculated){% endif %}</h2>
+    <div class="header-actions">
+      {% if is_edit %}
+      <a href="{{ url_for('monthly_billing.print_invoice', bill_no=draft.bill_no) }}" class="btn btn-blue" target="_blank" rel="noopener"><i class="fas fa-print"></i> View Saved Invoice</a>
+      <button type="button" class="btn btn-red" id="cancelInvoiceBtn"><i class="fas fa-ban"></i> Cancel Invoice</button>
+      <a href="{{ url_for('monthly_billing.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+      {% else %}
+      <a href="{{ url_for('monthly_billing.new', party_id=draft.party_id, site_id=draft.site_id, date_from=draft.period_start, date_to=draft.period_end) }}" class="btn btn-outline" id="recalcLink" title="Discard edits and calculate again from the challans"><i class="fas fa-rotate"></i> Recalculate from challans</a>
+      <a href="{{ url_for('monthly_billing.generate', party_id=draft.party_id, site_id=draft.site_id, date_from=draft.period_start, date_to=draft.period_end) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Change Selection</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if error %}<div class="alert alert-error" id="serverError"><i class="fas fa-circle-exclamation"></i> <b>Could not save:</b> {{ error }}</div>{% endif %}
+  {% if draft.overlaps %}
+  <div class="alert alert-error"><i class="fas fa-triangle-exclamation"></i> <b>An invoice already exists for this period</b> &mdash; saving will be refused until it is cancelled:
+    <ul>{% for o in draft.overlaps %}<li>{{ o.bill_no }} ({{ o.from }} to {{ o.to }})</li>{% endfor %}</ul></div>
+  {% endif %}
+  {% if draft.warnings %}
+  <div class="alert alert-warn"><i class="fas fa-circle-info"></i> <b>Please check:</b>
+    <ul>{% for w in draft.warnings %}<li>{{ w }}</li>{% endfor %}</ul></div>
+  {% endif %}
+
+  <form method="POST" id="invoiceForm" autocomplete="off"
+        action="{% if is_edit %}{{ url_for('monthly_billing.update_invoice', bill_no=draft.bill_no) }}{% else %}{{ url_for('monthly_billing.save_invoice') }}{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="party_id" value="{{ draft.party_id }}">
+    <input type="hidden" name="site_id" value="{{ draft.site_id }}">
+    <input type="hidden" name="period_start" value="{{ draft.period_start }}">
+    <input type="hidden" name="period_end" value="{{ draft.period_end }}">
+    <input type="hidden" name="after" id="afterField" value="">
+
+    <div class="inv-head">
+      <div>
+        <h3 style="color: #fff;">OM ENTERPRISE</h3>
+        <div class="sub">RCC Form-work &amp; Scaffolding Rentals &nbsp;|&nbsp; Plot No: 1046, KIRC Road, Near Sindbad Hotel, Kalol</div>
+      </div>
+      <div class="right">
+        <span class="badge-title" id="invTitle">{{ 'TAX INVOICE' if draft.apply_gst else 'INVOICE' }}</span><br>
+        GSTIN: 24BDU102R1Z8 &nbsp;|&nbsp; SAC: 997313
+      </div>
+    </div>
+    <div class="meta">
+      <div><div class="k">Billed To</div><div class="v">{{ draft.party.Party_Name or draft.party_id }}</div>
+        <div style="font-size:12px;color:#475569;margin-top:2px;">GSTIN: <b>{{ draft.party.GSTIN if draft.party.GSTIN else 'Unregistered' }}</b></div></div>
+      <div><div class="k">Site</div><div class="v">{{ draft.site.Site_Name or draft.site_id }}</div></div>
+      <div><div class="k">Billing Period</div><div class="v">{{ dmy(draft.period_start) }} to {{ dmy(draft.period_end) }}</div></div>
+      <div><div class="k">Invoice No. / Date</div>
+        <div class="v">{% if is_edit %}{{ draft.bill_no }}{% else %}<span style="color:#64748b;font-weight:600;">Auto on save</span>{% endif %}</div>
+        <input type="date" name="bill_date" value="{{ draft.bill_date }}" aria-label="Invoice date"></div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="itemsTable">
+        <thead>
+          <tr>
+            <th style="width:38px;">Sr</th>
+            <th style="width:72px;">Type</th>
+            <th>Description / Item</th>
+            <th style="width:128px;">From</th>
+            <th style="width:128px;">To</th>
+            <th style="width:68px;">Days</th>
+            <th style="width:84px;">NOS</th>
+            <th style="width:96px;">Number</th>
+            <th style="width:92px;">Rate (&#8377;)</th>
+            <th style="width:112px;">Amount (&#8377;)</th>
+            <th style="width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="add-bar">
+      <button type="button" class="btn btn-outline" id="addInterval"><i class="fas fa-calendar-plus"></i> Add Date Interval Row</button>
+      <button type="button" class="btn btn-outline" id="addDamage"><i class="fas fa-screwdriver-wrench"></i> Add Damage Row</button>
+      <button type="button" class="btn btn-outline" id="addCustom"><i class="fas fa-plus"></i> Add Custom Charge Row</button>
+    </div>
+
+    <div class="bottom">
+      <div>
+        <div class="box" style="margin-bottom:14px;">
+          <label class="title" for="balanceText">Balance Quantity Details (editable)</label>
+          <textarea id="balanceText" name="balance_text" rows="4" maxlength="2000" placeholder="e.g. PROPS 2 X 3 = 2643, PLATE 3 X 2 = 43">{{ draft.balance_text }}</textarea>
+        </div>
+        <div class="box">
+          <label class="title" for="remarks">Remarks (optional, printed on the invoice)</label>
+          <input type="text" id="remarks" name="remarks" maxlength="300" value="{{ draft.remarks }}">
+        </div>
+      </div>
+
+      <div class="box">
+        <label class="gst-toggle"><input type="checkbox" id="applyGst" name="apply_gst" value="1" {% if draft.apply_gst %}checked{% endif %}> Charge GST (CGST + SGST)</label>
+        <div class="gst-hint">{% if draft.gst_registered %}Party has a GSTIN.{% else %}Party has no valid GSTIN - GST is off by default.{% endif %} You can change it here.</div>
+        <div class="trow"><span class="lbl">Taxable Value</span><b id="tTaxable">0.00</b></div>
+        <div class="trow"><span class="lbl">CGST @ <input type="number" class="rate-in" id="cgstRate" name="cgst_rate" min="0" max="100" step="any" value="{{ draft.cgst_rate }}"> %</span><b id="tCgst">0.00</b></div>
+        <div class="trow"><span class="lbl">SGST @ <input type="number" class="rate-in" id="sgstRate" name="sgst_rate" min="0" max="100" step="any" value="{{ draft.sgst_rate }}"> %</span><b id="tSgst">0.00</b></div>
+        <div class="trow"><span class="lbl">Total</span><b id="tTotal">0.00</b></div>
+        <div class="trow"><span class="lbl">Round Off</span><b id="tRound">0.00</b></div>
+        <div class="trow net"><span><b>Net Total (&#8377;)</b></span><b id="tNet">0.00</b></div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <a href="{{ url_for('monthly_billing.index') }}" class="btn btn-secondary" id="discardLink">Discard</a>
+      <button type="submit" class="btn btn-green" id="saveBtn" data-after=""><i class="fas fa-save"></i> Save Invoice</button>
+      <button type="submit" class="btn btn-blue" id="savePrintBtn" data-after="print"><i class="fas fa-print"></i> Save &amp; Print</button>
+    </div>
+  </form>
+
+  {% if is_edit %}
+  <form id="cancelForm" method="POST" action="{{ url_for('monthly_billing.cancel_invoice', bill_no=draft.bill_no) }}" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="reason" id="cancelReason" value="">
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<div id="page-data" hidden
+     data-items="{{ items_json | e }}"
+     data-rows="{{ rows_json | e }}"
+     data-start="{{ draft.period_start }}"
+     data-end="{{ draft.period_end }}"
+     data-edit="{{ 'true' if is_edit else 'false' }}"></div>
+
+<script>
+(function () {
+'use strict';
+const pd = document.getElementById('page-data').dataset;
+const ITEMS = JSON.parse(pd.items);
+const INITIAL_ROWS = JSON.parse(pd.rows);
+const PERIOD_START = pd.start, PERIOD_END = pd.end;
+const $ = (id) => document.getElementById(id);
+const rowsEl = $('rows');
+let dirty = false, submitting = false;
+
+/* ------------------------------ helpers ------------------------------- */
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function normId(v) { return String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\.0+$/, ''); }
+function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function notify(title, text) { if (window.Swal) Swal.fire(title, text, 'warning'); else alert(title + '\n' + text); }
+function fmt(paise) { return (paise / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtQty(n) { return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2))); }
+function dayMs(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null; }
+function daysBetween(a, b) { const x = dayMs(a), y = dayMs(b); return (x === null || y === null || y < x) ? null : Math.round((y - x) / 86400000) + 1; }
+const itemById = (id) => ITEMS.find(i => normId(i.id) === normId(id));
+
+function itemOptions(selected) {
+    let h = '<option value="">-- Select item --</option>';
+    ITEMS.forEach(i => {
+        if (!i.active && normId(i.id) !== normId(selected)) return;
+        h += '<option value="' + esc(i.id) + '"' + (normId(i.id) === normId(selected) ? ' selected' : '') + '>' + esc(i.name) + '</option>';
+    });
+    return h;
+}
+
+/* ------------------------------ row builder --------------------------- */
+const TAG = { rental: 'Rental', damage: 'Damage', custom: 'Custom' };
+
+function buildRow(r) {
+    const type = r.type || 'custom', rental = type === 'rental';
+    const tr = document.createElement('tr');
+    tr.dataset.type = type;
+    const desc = rental
+        ? '<td><select name="row_item_id[]" class="it" required>' + itemOptions(r.item_id) + '</select>' +
+          '<input type="hidden" name="row_desc[]" class="desc-h" value="' + esc(r.desc) + '"></td>'
+        : '<td><input type="text" name="row_desc[]" class="desc" maxlength="150" required placeholder="Description" value="' + esc(r.desc) + '">' +
+          '<input type="hidden" name="row_item_id[]" value="' + esc(r.item_id) + '"></td>';
+    const from = rental ? '<td><input type="date" name="row_from[]" class="d-from" required value="' + esc(r.from) + '"></td>'
+                        : '<td class="na">&mdash;<input type="hidden" name="row_from[]" value=""></td>';
+    const to = rental ? '<td><input type="date" name="row_to[]" class="d-to" required value="' + esc(r.to) + '"></td>'
+                      : '<td class="na">&mdash;<input type="hidden" name="row_to[]" value=""></td>';
+    const days = rental ? '<td><input type="number" name="row_days[]" class="days" min="1" step="1" required value="' + esc(r.days) + '"></td>'
+                        : '<td class="na">&mdash;<input type="hidden" name="row_days[]" value=""></td>';
+    tr.innerHTML =
+        '<td class="sr"></td>' +
+        '<td><span class="tag tag-' + type + '">' + TAG[type] + '</span>' +
+        '<input type="hidden" name="row_type[]" value="' + type + '"><input type="hidden" name="row_charge_id[]" value="' + esc(r.charge_id) + '"></td>' +
+        desc + from + to + days +
+        '<td><input type="number" name="row_qty[]" class="qty" min="0.01" step="any" required value="' + esc(r.qty) + '"></td>' +
+        '<td class="number"></td>' +
+        '<td><input type="number" name="row_rate[]" class="rate" min="0" step="any" required value="' + esc(r.rate) + '"></td>' +
+        '<td class="amount">0.00</td>' +
+        '<td style="text-align:center;"><button type="button" class="rm" title="Delete row" aria-label="Delete row"><i class="fas fa-trash"></i></button></td>';
+    return tr;
+}
+
+function addRow(r) {
+    const tr = buildRow(r);
+    rowsEl.appendChild(tr);
+    renumber();
+    recalcAll();
+    return tr;
+}
+function renumber() {
+    const trs = rowsEl.querySelectorAll('tr:not(.empty-row)');
+    trs.forEach((tr, i) => { tr.querySelector('.sr').textContent = i + 1; });
+    const empty = rowsEl.querySelector('.empty-row');
+    if (!trs.length && !empty) rowsEl.innerHTML = '<tr class="empty-row"><td colspan="11">No rows. Use the buttons below to add a date interval, damage or custom charge row.</td></tr>';
+    if (trs.length && empty) empty.remove();
+}
+
+/* ------------------------------ calculation --------------------------- */
+function rowPaise(tr) {
+    const qty = num(tr.querySelector('.qty').value), rate = num(tr.querySelector('.rate').value);
+    if (tr.dataset.type === 'rental') {
+        const days = num(tr.querySelector('.days').value);
+        return { number: qty * days, paise: Math.round(qty * days * rate * 100 + 1e-7) };
+    }
+    return { number: null, paise: Math.round(qty * rate * 100 + 1e-7) };
+}
+function recalcAll() {
+    let taxable = 0;
+    rowsEl.querySelectorAll('tr:not(.empty-row)').forEach(tr => {
+        const c = rowPaise(tr);
+        tr.querySelector('.number').textContent = c.number === null ? '' : fmtQty(c.number);
+        tr.querySelector('.amount').textContent = fmt(c.paise);
+        const rate = tr.querySelector('.rate');
+        rate.classList.toggle('warn', num(rate.value) === 0);
+        taxable += c.paise;
+    });
+    const gst = $('applyGst').checked;
+    $('cgstRate').disabled = $('sgstRate').disabled = !gst;
+    const cgst = gst ? Math.round(taxable * num($('cgstRate').value) / 100 + 1e-7) : 0;
+    const sgst = gst ? Math.round(taxable * num($('sgstRate').value) / 100 + 1e-7) : 0;
+    const total = taxable + cgst + sgst;
+    const net = Math.floor((total + 50) / 100) * 100;            // nearest rupee, half up
+    $('tTaxable').textContent = fmt(taxable);
+    $('tCgst').textContent = fmt(cgst);
+    $('tSgst').textContent = fmt(sgst);
+    $('tTotal').textContent = fmt(total);
+    $('tRound').textContent = (net - total >= 0 ? '+' : '-') + fmt(Math.abs(net - total));
+    $('tNet').textContent = fmt(net);
+    $('invTitle').textContent = gst ? 'TAX INVOICE' : 'INVOICE';
+}
+
+/* ------------------------------ events -------------------------------- */
+rowsEl.addEventListener('input', e => {
+    dirty = true;
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    if (e.target.classList.contains('days')) tr.dataset.manual = '1';       // days typed by hand
+    recalcAll();
+});
+rowsEl.addEventListener('change', e => {
+    dirty = true;
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    if (e.target.classList.contains('d-from') || e.target.classList.contains('d-to')) {
+        const d = daysBetween(tr.querySelector('.d-from').value, tr.querySelector('.d-to').value);
+        if (d !== null) { tr.querySelector('.days').value = d; delete tr.dataset.manual; }
+    }
+    if (e.target.classList.contains('it')) {
+        const it = itemById(e.target.value);
+        tr.querySelector('.desc-h').value = it ? it.name : '';
+        const rate = tr.querySelector('.rate');
+        if (it && num(rate.value) === 0) rate.value = it.rate || 0;
+    }
+    recalcAll();
+});
+rowsEl.addEventListener('click', e => {
+    const btn = e.target.closest('.rm');
+    if (!btn) return;
+    btn.closest('tr').remove();
+    dirty = true;
+    renumber();
+    recalcAll();
+});
+
+$('addInterval').addEventListener('click', () => {
+    dirty = true;
+    addRow({ type: 'rental', item_id: '', desc: '', from: PERIOD_START, to: PERIOD_END, days: daysBetween(PERIOD_START, PERIOD_END) || 1, qty: 1, rate: 0, charge_id: '' });
+});
+$('addDamage').addEventListener('click', () => { dirty = true; addRow({ type: 'damage', item_id: '', desc: 'Damage ', qty: 1, rate: 0, charge_id: '' }); });
+$('addCustom').addEventListener('click', () => { dirty = true; addRow({ type: 'custom', item_id: '', desc: '', qty: 1, rate: 0, charge_id: '' }); });
+['applyGst', 'cgstRate', 'sgstRate'].forEach(id => $(id).addEventListener('input', () => { dirty = true; recalcAll(); }));
+$('balanceText').addEventListener('input', () => { dirty = true; });
+$('remarks').addEventListener('input', () => { dirty = true; });
+
+/* ------------------------------ submit -------------------------------- */
+function validate() {
+    const trs = [...rowsEl.querySelectorAll('tr:not(.empty-row)')];
+    if (!trs.length) return 'The invoice has no rows. Please add at least one row.';
+    for (let i = 0; i < trs.length; i++) {
+        const tr = trs[i], n = 'Row ' + (i + 1) + ': ';
+        if (tr.dataset.type === 'rental') {
+            if (!tr.querySelector('.it').value) return n + 'please select an item.';
+            const f = tr.querySelector('.d-from').value, t = tr.querySelector('.d-to').value;
+            if (!dayMs(f) || !dayMs(t)) return n + 'please enter both dates.';
+            if (dayMs(f) > dayMs(t)) return n + '"From" date cannot be after the "To" date.';
+            const d = num(tr.querySelector('.days').value);
+            if (d < 1 || !Number.isInteger(d)) return n + 'days must be a whole number (1 or more).';
+        } else if (!tr.querySelector('.desc').value.trim()) {
+            return n + 'please enter the description.';
+        }
+        if (!(num(tr.querySelector('.qty').value) > 0)) return n + 'quantity must be greater than zero.';
+        if (tr.querySelector('.rate').value === '' || num(tr.querySelector('.rate').value) < 0) return n + 'please enter a valid rate.';
+    }
+    return '';
+}
+document.querySelectorAll('#saveBtn, #savePrintBtn').forEach(b => b.addEventListener('click', () => { $('afterField').value = b.dataset.after; }));
+$('invoiceForm').addEventListener('submit', function (e) {
+    const err = validate();
+    if (err) { e.preventDefault(); notify('Please correct the invoice', err); return; }
+    submitting = true;
+    document.querySelectorAll('#saveBtn, #savePrintBtn').forEach(b => { b.disabled = true; });
+});
+window.addEventListener('pageshow', () => {
+    submitting = false;
+    document.querySelectorAll('#saveBtn, #savePrintBtn').forEach(b => { b.disabled = false; });
+});
+window.addEventListener('beforeunload', e => { if (dirty && !submitting) { e.preventDefault(); e.returnValue = ''; } });
+
+/* cancel invoice (edit mode) */
+const cancelBtn = $('cancelInvoiceBtn');
+if (cancelBtn) cancelBtn.addEventListener('click', () => {
+    const go = (reason) => { dirty = false; $('cancelReason').value = reason; $('cancelForm').submit(); };
+    if (window.Swal) {
+        Swal.fire({
+            title: 'Cancel this invoice?', text: 'Its damage charges will become billable again. Enter a reason:',
+            input: 'text', inputValidator: v => (!v || v.trim().length < 3) ? 'Please enter a reason (min 3 characters)' : null,
+            icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, cancel invoice'
+        }).then(r => { if (r.isConfirmed) go(r.value.trim()); });
+    } else {
+        const reason = window.prompt('Enter a reason for cancelling this invoice:');
+        if (reason && reason.trim().length >= 3) go(reason.trim());
+    }
+});
+['recalcLink', 'discardLink'].forEach(id => { const a = $(id); if (a) a.addEventListener('click', () => { dirty = false; }); });
+
+/* ------------------------------ start --------------------------------- */
+INITIAL_ROWS.forEach(r => rowsEl.appendChild(buildRow(r)));
+renumber();
+recalcAll();
+dirty = false;
+})();
+</script>
+{% endblock %}

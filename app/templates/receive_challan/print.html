@@ -1,0 +1,323 @@
+{#- Indian rupee format for amounts: 1000.00 / "1,000.00" -> 1,000/-   (paise shown only if not .00) -#}
+{%- macro amt(v) -%}
+{%- set t = (v | string).replace(',', '').strip() -%}
+{%- if not t or t in ['-', 'None'] -%}-
+{%- elif not (t.replace('.', '', 1).isdigit()) -%}{{- v -}}
+{%- else -%}
+  {%- set parts = t.split('.') -%}
+  {%- set ip = parts[0] -%}
+  {%- if ip | length > 3 -%}
+    {%- set g = namespace(groups=[], h=ip[:-3]) -%}
+    {%- for _ in range((g.h | length + 1) // 2) -%}
+      {%- set g.groups = [g.h[-2:]] + g.groups -%}
+      {%- set g.h = g.h[:-2] -%}
+    {%- endfor -%}
+    {{- g.groups | join(',') }},{{ ip[-3:] -}}
+  {%- else -%}{{- ip -}}{%- endif -%}
+  {%- set dp0 = parts[1] if parts | length > 1 else '' -%}
+  {%- if dp0.strip('0') %}.{{ dp0 }}{% endif %}/-
+{%- endif -%}
+{%- endmacro -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+<title>Receive Challan - {{ challan.Receive_Challan_No if challan else challan_no }} - OM Enterprise</title>
+<script>document.documentElement.classList.add('js');</script>
+<style>
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #cbd5e1;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  color: #0f172a;
+  font-size: 9.5pt;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Header */
+.header { display: grid; grid-template-columns: 88mm 1fr; gap: 6mm; border-bottom: 3px solid #0f172a; padding-bottom: 4mm; margin-bottom: 4mm; }
+.logo-area { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-logo { width: 68px; height: 56px; flex-shrink: 0; }
+.logo-text { display: flex; flex-direction: column; min-width: 0; }
+.logo-text .brand-name { font-size: 15pt; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; line-height: 1.05; white-space: nowrap; }
+.logo-text .brand-sub { font-size: 6pt; font-weight: 800; color: #f97316; letter-spacing: 0.6px; margin-top: 5px; text-transform: uppercase; }
+.title-area { text-align: right; }
+.title-area h1 { font-size: 15pt; margin: 0 0 3px 0; font-weight: 900; color: #0f172a; letter-spacing: 0.6px; }
+.title-area .company-name { font-size: 10.5pt; font-weight: 800; color: #1e293b; margin: 1px 0; }
+.title-area p { font-size: 8pt; margin: 1px 0; color: #334155; line-height: 1.35; }
+.tax-details { font-weight: 800; color: #0f172a !important; margin-top: 3px !important; }
+
+/* Receiver + Meta */
+.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1px solid #334155; margin-bottom: 4mm; break-inside: avoid; }
+.receiver, .meta { display: flex; flex-direction: column; min-width: 0; }
+.receiver { border-right: 1px solid #334155; }
+.box-title { background: #f1f5f9; padding: 5px 8px; border-bottom: 1px solid #334155; font-weight: 800; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .3px; color: #0f172a; }
+.box-content { padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+.top-fields { display: flex; flex-direction: column; }
+.bottom-fields { display: flex; flex-direction: column; margin-top: auto; padding-top: 4px; }
+.field-row { display: grid; grid-template-columns: 34mm 1fr; gap: 4mm; margin-bottom: 3px; font-size: 9pt; }
+.field-row b { color: #334155; font-weight: 700; }
+.field-row span { color: #000; font-weight: 600; word-break: break-word; overflow-wrap: anywhere; }
+.dummy-spacer { visibility: hidden; }
+
+/* Items */
+.items-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #334155; margin-bottom: 4mm; }
+.items-table thead { display: table-header-group; }
+.items-table th { background: #e8edf5; color: #000; border-bottom: 1.5px solid #334155; border-right: 1px solid #334155; padding: calc(6px * var(--pad, 1)) 7px; font-size: calc(8.5pt * var(--fs, 1)); font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+.items-table td { border-bottom: 1px solid #94a3b8; border-right: 1px solid #94a3b8; padding: calc(6px * var(--pad, 1)) 7px; font-size: calc(9.5pt * var(--fs, 1)); overflow-wrap: anywhere; }
+.items-table th:last-child, .items-table td:last-child { border-right: none; }
+.items-table tr { break-inside: avoid; page-break-inside: avoid; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.total-row td { font-weight: 800; background: #f1f5f9; border-top: 1.5px solid #334155; border-bottom: none; }
+
+/* Breakage table */
+.breakage-table th.table-title { font-size: calc(9pt * var(--fs, 1)); font-weight: 800; background: #e2e8f0; color: #0f172a; padding: calc(6px * var(--pad, 1)); letter-spacing: .6px; text-align: center; }
+.breakage-table td { word-break: break-word; overflow-wrap: anywhere; }
+.num { white-space: nowrap; }
+
+/* Transport */
+.transport-grid { display: grid; grid-template-columns: 60% 40%; border: 1px solid #334155; padding: 7px 8px; gap: 10px; margin-bottom: 4mm; break-inside: avoid; }
+.transport-grid .field-row { grid-template-columns: 30mm 1fr; margin-bottom: 3px; }
+.transport-grid > div + div .field-row { grid-template-columns: 28mm 1fr; }
+
+/* Terms */
+.terms { font-size: 7.5pt; line-height: 1.35; color: #1e293b; margin-top: 5mm; break-inside: avoid; }
+.terms-heading { font-weight: 800; font-size: 8.5pt; color: #0f172a; margin-bottom: 2px; }
+.note-title { font-weight: 800; margin-top: 2px; text-decoration: underline; }
+.terms ol { margin: 2px 0 0 15px; padding: 0; }
+.terms li { margin-bottom: 1.5px; }
+
+/* Footer */
+.footer { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; align-items: flex-end; margin-top: 5mm; text-align: center; break-inside: avoid; }
+.sign-box { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 16mm; }
+.sign-line { border-top: 1px solid #334155; width: 90%; padding-top: 3px; font-size: 8pt; font-weight: 700; }
+
+.print-actions { width: 210mm; max-width: 100%; margin: 0 auto 25px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; }
+.btn-action { background: #f97316; color: #fff; border: none; padding: 11px 26px; border-radius: 6px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 10pt; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
+.btn-action:hover { background: #ea580c; }
+.btn-secondary { background: #1e293b; }
+.btn-secondary:hover { background: #0f172a; }
+
+.not-found { width: 210mm; max-width: calc(100% - 24px); margin: 40px auto; background: #fff; border: 1px solid #94a3b8; padding: 40px; text-align: center; font-size: 11pt; }
+</style>
+</head>
+<body>
+
+{% if not challan %}
+<div class="not-found">
+  <h3>Receive challan not found</h3>
+  <p>Receive Challan No. <b>{{ challan_no }}</b> ka data nahi mila.</p>
+</div>
+<div class="print-actions">
+  <a href="{{ url_for('receive_challan.index') }}" class="btn-action btn-secondary">Back to Dashboard</a>
+</div>
+{% else %}
+
+{% set p = party or {} %}
+{% set s = site or {} %}
+{% set party_state_code = p.State_Code or 24 %}
+{% set site_state_code = s.State_Code or party_state_code %}
+{% set site_full = [s.Site_Name, s.Site_Address] | select | join(', ') %}
+
+<div id="doc" class="doc-src dens-normal" data-label="Receive Challan No. {{ challan.Receive_Challan_No }}">
+
+  <div data-part="head">
+    <header class="header">
+      <div class="logo-area">
+        <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="15" width="210" height="170" rx="12" fill="#0F172A" />
+          <circle cx="28" cy="28" r="4" fill="#F97316" />
+          <circle cx="212" cy="28" r="4" fill="#F97316" />
+          <circle cx="28" cy="172" r="4" fill="#F97316" />
+          <circle cx="212" cy="172" r="4" fill="#F97316" />
+          <line x1="15" y1="65" x2="225" y2="65" stroke="#1E293B" stroke-width="2" />
+          <line x1="15" y1="135" x2="225" y2="135" stroke="#1E293B" stroke-width="2" />
+          <line x1="85" y1="15" x2="85" y2="185" stroke="#1E293B" stroke-width="2" />
+          <line x1="155" y1="15" x2="155" y2="185" stroke="#1E293B" stroke-width="2" />
+          <path d="M 40,50 L 105,50 C 115,50 120,55 120,65 L 120,135 C 120,145 115,150 105,150 L 40,150 Z" fill="none" stroke="#F97316" stroke-width="14" stroke-linejoin="round" />
+          <path d="M 120,150 L 120,60 L 148,110 L 176,60 L 176,150" fill="none" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="110" y="96" width="80" height="8" rx="2" fill="#F97316" />
+        </svg>
+        <div class="logo-text">
+          <span class="brand-name">OM ENTERPRISE</span>
+          <span class="brand-sub">RCC FORM-WORK &amp; SCAFFOLDING RENTALS</span>
+        </div>
+      </div>
+
+      <div class="title-area">
+        <h1>RECEIVE CHALLAN</h1>
+        <p class="company-name">OM ENTERPRISE</p>
+        <p>PLOT NO: 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL</p>
+        <p>TALUKA-KALOL, GANDHINAGAR, GUJARAT - 382721</p>
+        <p>Contact: +91 9998802167, 9824219138 | Email: sbsanghvi.86@gmail.com</p>
+        <p class="tax-details">GSTIN: 24BDU102R1Z8 &nbsp;|&nbsp; SAC: 997313</p>
+      </div>
+    </header>
+
+    <section class="party-grid">
+      <div class="receiver">
+        <div class="box-title">Details Of Issuer</div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Name:</b><span>{{ p.Party_Name or challan.Party_ID or '-' }}</span></div>
+            <div class="field-row"><b>Billing Address:</b><span>{{ p.Address or '-' }}</span></div>
+          </div>
+          <div class="field-row"><b>Mobile No.:</b><span>{{ p.Phone or '-' }}</span></div>
+          <div class="bottom-fields">
+            <div class="field-row state-row"><b>State Code:</b><span>{{ party_state_code }}</span></div>
+            <div class="field-row"><b>GSTIN No:</b><span>{{ p.GSTIN or '-' }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="box-title"><b>Challan No.:- </b><span>{{ challan.Receive_Challan_No }}</span></div>
+        <div class="box-content">
+          <div class="top-fields">
+            <div class="field-row"><b>Date:</b><span>{{ challan.Receive_Date or '-' }}</span></div>
+            <div class="field-row"><b>Site Address:</b><span>{{ site_full or challan.Site_ID or '-' }}</span></div>
+          </div>
+          <div class="bottom-fields">
+            <div class="field-row state-row"><b>State Code:</b><span>{{ site_state_code }}</span></div>
+            <div class="field-row dummy-spacer"><b>&nbsp;</b><span>&nbsp;</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div data-part="run" class="run-head">
+    <div class="rh-left"><b>OM ENTERPRISE</b> &nbsp;|&nbsp; RECEIVE CHALLAN</div>
+    <div class="rh-mid">No. <b>{{ challan.Receive_Challan_No }}</b> &nbsp;&middot;&nbsp; Date <b>{{ challan.Receive_Date or '-' }}</b> &nbsp;&middot;&nbsp; {{ p.Party_Name or challan.Party_ID or '-' }}</div>
+    <div class="rh-right">Page <i data-fill="page"></i> of <i data-fill="pages"></i></div>
+  </div>
+
+  <table class="items-table" data-flow="table" data-cols="3">
+    <colgroup><col style="width:14%"><col style="width:66%"><col style="width:20%"></colgroup>
+    <thead>
+      <tr>
+        <th class="text-center">S.No.</th>
+        <th class="text-left">ITEM DESCRIPTION</th>
+        <th class="text-right">Qty (Nos)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for itm in items %}
+      <tr>
+        <td class="text-center">{{ loop.index }}</td>
+        <td>{{ itm.Description }}</td>
+        <td class="text-right">{{ itm.Qty_Display }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td class="text-center">-</td>
+        <td>No items received (breakage only)</td>
+        <td class="text-right">-</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="last-only">
+      <tr class="total-row">
+        <td class="text-center" style="white-space: nowrap;"><b>Total Qty :</b></td>
+        <td>{{ total_qty_words }}</td>
+        <td class="text-right"><b>{{ total_qty }}</b></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  {% if breakage %}
+  <table class="items-table breakage-table" data-flow="table" data-cols="5">
+    <colgroup><col style="width:34%"><col style="width:11%"><col style="width:14%"><col style="width:16%"><col style="width:25%"></colgroup>
+    <thead>
+      <tr><th colspan="5" class="text-center table-title">BREAKAGE DETAILS</th></tr>
+      <tr>
+        <th class="text-left">Item Name</th>
+        <th class="text-right">Qty</th>
+        <th class="text-right">Rate</th>
+        <th class="text-right">Amt</th>
+        <th class="text-left">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in breakage %}
+      <tr>
+        <td class="text-left">{{ b.Name }}</td>
+        <td class="text-right num">{{ b.Qty }}</td>
+        <td class="text-right num">{{ amt(b.Rate) }}</td>
+        <td class="text-right num">{{ amt(b.Amount) }}</td>
+        <td class="text-left">{{ b.Description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="last-only">
+      <tr class="total-row">
+        <td class="text-left">Total Breakage:</td>
+        <td class="text-right">{{ breakage_qty }}</td>
+        <td class="text-right num" colspan="2">{{ amt(breakage_amount) }}</td>
+        <td>&nbsp;</td>
+      </tr>
+    </tfoot>
+  </table>
+  {% endif %}
+
+  <section class="transport-grid" data-flow="block">
+    <div>
+      <div class="field-row"><b>Vehicle No.:</b><span>{{ challan.Vehicle_No or '-' }}</span></div>
+      <div class="field-row"><b>Driver Name:</b><span>{{ challan.Driver_Name or '-' }}</span></div>
+      {% if challan.Remarks %}<div class="field-row"><b>Remarks:</b><span>{{ challan.Remarks }}</span></div>{% endif %}
+    </div>
+    <div>
+      <div class="field-row"><b>Weight:</b><span>{{ weight_display }}</span></div>
+      <div class="field-row"><b>Driver Mob No:</b><span>{{ challan.Driver_Mob or '-' }}</span></div>
+    </div>
+  </section>
+
+  <section class="terms" data-flow="block">
+    <div class="terms-heading">GOODS ON HIRE NOT FOR SALE</div>
+    <div class="note-title">NOTE:</div>
+    <ol>
+      <li>Goods will not be accepted back after 5 PM on any working day.</li>
+      <li>Client is fully responsible for goods' safety, loss, damage, theft or misuse from delivery until return.</li>
+      <li>Transportation/carriage costs for both sides will be borne by the client.</li>
+      <li>Company not liable for any site accidents, delays, or damages from goods use.</li>
+      <li>All disputes are subject to Gujarat/Gandhinagar jurisdiction only.</li>
+      <li>Full cost price of unreturned/damaged material along with applicable hire charges will be charged.</li>
+      <li>Company deals only with client; third-party defaults/non-returns are client's responsibility.</li>
+      <li>Sunday holiday- no issue or return of goods.</li>
+    </ol>
+  </section>
+
+  <footer class="footer" data-flow="block">
+    <div class="sign-box"><div class="sign-line">Client Stamp, Signature &amp; Date</div></div>
+    <div class="sign-box"><div class="sign-line">Checked By</div></div>
+    <div class="sign-box"><div class="sign-line">Auth. Signatory</div></div>
+  </footer>
+</div>
+
+<div id="sheets"></div>
+
+<div class="print-actions">
+  <a href="{{ url_for('receive_challan.index') }}" class="btn-action btn-secondary">Back to Dashboard</a>
+  <span class="pe-info"><span id="pageInfo"></span>
+    <select id="densitySel" aria-label="Paper saver">
+      <option value="auto">Paper saver: Auto</option>
+      <option value="normal">Normal spacing</option>
+      <option value="compact">Compact</option>
+      <option value="tight">Extra compact</option>
+    </select></span>
+  <button type="button" class="btn-action" onclick="window.print()">Print Challan</button>
+</div>
+
+{% include 'components/print_engine.html' %}
+{% endif %}
+</body>
+</html>

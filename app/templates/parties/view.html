@@ -1,193 +1,205 @@
-
 {% extends "base.html" %}
 
-{% block title %}Party Details - OM ENTERPRISE ERP{% endblock %}
+{% block title %}Party Details - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; color: #fff; }
+.btn-secondary { background: #64748b; color: #fff; }
+.btn-secondary:hover { background: #475569; }
+.btn-blue { background: #2563eb; color: #fff; }
+.btn-blue:hover { background: #1d4ed8; color: #fff; }
+
+.party-hero-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+.party-hero-info { display: flex; align-items: center; gap: 15px; min-width: 0; flex: 1; }
+.party-hero-icon { width: 48px; height: 48px; border-radius: 8px; background: #dbeafe; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0; }
+.party-hero-title { margin: 0 0 4px; font-size: 18px; color: #1e293b; font-weight: 700; }
+.party-breadcrumb { margin: 0; color: #64748b; font-size: 12px; }
+.party-hero-badge { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+.card { border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.card-header { padding: 15px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.card-header h3 { margin: 0; font-size: 15px; color: #1e293b; font-weight: 700; }
+.card-header p { margin: 2px 0 0; color: #64748b; font-size: 12px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 13px; text-align: left; vertical-align: middle; }
+th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; white-space: nowrap; width: 220px; }
+tbody tr:hover { background-color: #f8fafc; }
+
+.badge { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; display: inline-block; }
+.b-gst { background: #dbeafe; color: #1d4ed8; }
+.b-without { background: #f1f5f9; color: #475467; border: 1px solid #cbd5e1; }
+.b-active { background: #dcfce7; color: #166534; }
+.b-inactive { background: #fee2e2; color: #b91c1c; }
+
+.action-btns { display: flex; gap: 6px; align-items: center; }
+.icon-btn { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none; border: 1px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all .2s; }
+.icon-btn:hover { background: #f1f5f9; }
+.btn-edit-sm { background: #fefce8; color: #ca8a04; border-color: #fef08a; }
+.btn-edit-sm:hover { background: #ca8a04; color: #fff; }
+.btn-view-sm { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.btn-view-sm:hover { background: #2563eb; color: #fff; }
+.btn-del-sm { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.btn-del-sm:hover { background: #dc2626; color: #fff; }
+
+/* Modals matching ERP theme */
+.pm-modal { width: min(650px, calc(100% - 28px)); max-width: 650px; max-height: 90vh; padding: 0; border: 0; border-radius: 8px; background: #fff; color: #1e293b; overflow: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+.pm-modal::backdrop { background: rgba(15,23,42,0.5); }
+.pm-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.pm-modal-header h2 { margin: 2px 0 0; font-size: 18px; color: #1e293b; }
+.pm-modal-subtitle { margin: 4px 0 0; color: #64748b; font-size: 12px; }
+.pm-close { width: 30px; height: 30px; flex-shrink: 0; border: 0; border-radius: 6px; background: #e2e8f0; color: #334155; font-size: 20px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pm-close:hover { background: #cbd5e1; }
+.pm-modal-body { padding: 20px; }
+.pm-modal-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; padding: 15px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+
+.pm-form-section { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin: 0 0 15px; background: #f8fafc; }
+.pm-form-section legend { padding: 0 6px; font-size: 13px; font-weight: 750; color: #1e293b; text-transform: uppercase; }
+.pm-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.pm-form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.pm-form-group label { font-size: 11px; font-weight: 700; color: #475467; text-transform: uppercase; }
+.pm-form-group small { color: #64748b; font-size: 11px; }
+.pm-form-group input:not([type=radio]), .pm-form-group textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 13px; background: #fff; }
+.pm-form-group input:focus, .pm-form-group textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.pm-form-group textarea { resize: vertical; }
+.pm-form-full { grid-column: 1/-1; }
+.pm-required { color: #dc2626; }
+.pm-radio-options { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 5px; }
+.pm-radio-card { display: flex; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #fff; }
+.pm-radio-card:has(input:checked) { border-color: #2563eb; background: #eff6ff; }
+.pm-radio-card input { margin-top: 2px; accent-color: #2563eb; }
+.pm-radio-card span { display: flex; flex-direction: column; gap: 2px; }
+.pm-radio-card strong { font-size: 12px; color: #1e293b; }
+.pm-radio-card small { color: #64748b; font-size: 11px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<style>
-.party-page{max-width:1150px;margin:auto;padding:20px;color:#182433}
-.party-hero-card,.party-card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;box-shadow:0 3px 10px rgba(16,24,40,.05);margin-bottom:20px;overflow:hidden}
-.party-hero-card{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding:22px 24px}
-.party-hero-info{display:flex;align-items:center;gap:15px;min-width:0;flex:1}
-.party-hero-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:52px;height:52px;border-radius:12px;background:#eaf2ff;color:#175cd3;font-size:23px;font-weight:700}
-.party-hero-title{margin:0 0 6px;font-size:23px;line-height:1.4;overflow-wrap:anywhere}
-.party-breadcrumb{color:#667085;font-size:13px;margin:0}
-.party-hero-badge{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.party-hero-actions,.site-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.party-card-heading{padding:17px 20px;border-bottom:1px solid #eaecf0;background:#f8fafc}
-.party-card-heading h2{margin:0 0 4px;font-size:17px}
-.party-card-heading p{margin:0;color:#667085;font-size:13px}
-.party-table{width:100%;border-collapse:collapse}
-.party-table th,.party-table td{padding:14px 20px;border-bottom:1px solid #eaecf0;text-align:left;vertical-align:top;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
-.party-table tr:last-child th,.party-table tr:last-child td{border-bottom:none}
-.party-table th{width:235px;background:#fbfcfe;color:#475467;font-weight:600}
-.party-badge,.sites-count{display:inline-block;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
-.party-badge{background:#e8f2ff;color:#175cd3}
-.party-badge.without-gst{background:#ecfdf3;color:#027a48}
-.party-badge.inactive{background:#f2f4f7;color:#475467}
-.party-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 13px;border:1px solid #d0d5dd;border-radius:7px;background:#fff;color:#344054;text-decoration:none;font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap;cursor:pointer;font-family:inherit}
-.party-btn:hover{background:#f8fafc}
-.party-btn-edit{background:#175cd3;border-color:#175cd3;color:#fff}
-.party-btn-edit:hover{background:#1849a9;color:#fff}
-.party-btn-danger{color:#b42318;border-color:#fecdca;background:#fff}
-.party-btn-danger:hover{background:#fff1f0}
-.sites-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
-.sites-count{padding:3px 8px;background:#eaf2ff;color:#175cd3}
-.sites-table-wrap{width:100%;overflow-x:auto}
-.sites-table{width:100%;min-width:850px;border-collapse:collapse}
-.sites-table th,.sites-table td{padding:13px 14px;border-bottom:1px solid #eaecf0;text-align:left;vertical-align:top;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
-.sites-table th{background:#fbfcfe;color:#475467;font-weight:700;white-space:nowrap}
-.sites-table tbody tr:last-child td{border-bottom:none}
-.site-name{font-weight:700}
-.site-id{display:block;margin-top:4px;color:#667085;font-size:11px}
-.site-status{display:inline-block;margin-top:5px;padding:3px 7px;border-radius:12px;font-size:11px;font-weight:700}
-.site-status.active{background:#ecfdf3;color:#027a48}
-.site-status.inactive{background:#f2f4f7;color:#475467}
-.sites-footer{padding:13px 18px;border-top:1px solid #eaecf0;background:#fcfcfd;color:#667085;font-size:12px}
-.sites-empty{padding:35px 20px;text-align:center;color:#667085}
-.sites-empty h3{margin:0 0 8px;color:#344054;font-size:16px}
-.sites-empty p{margin:0 0 16px;font-size:13px}
-.site-actions form{margin:0}
-body.site-modal-open,body.sweet-popup-open{overflow:hidden}
+<div class="container">
+    {% set party_type = party.get('Party_Type', '') %}
+    {% set gstin = party.get('GSTIN', '') %}
+    {% set party_id = party.get('Party_ID', '') %}
+    {% set site_count = sites|length if sites is defined else 0 %}
 
-.site-modal{display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
-.site-modal.is-open{display:flex}
-.site-modal-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.58)}
-.site-modal-dialog{position:relative;z-index:1;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(16,24,40,.25)}
-.site-modal-header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 22px;border-bottom:1px solid #eaecf0;background:#f8fafc}
-.site-modal-header h2{margin:0;font-size:19px}
-.site-modal-close{border:0;background:transparent;color:#667085;font-size:27px;cursor:pointer}
-.site-modal-body{padding:22px}
-.site-form-field{margin-bottom:16px}
-.site-form-field label{display:block;margin-bottom:7px;color:#344054;font-size:13px;font-weight:600}
-.site-form-field .required{color:#d92d20}
-.site-form-field input,.site-form-field textarea,.site-form-field select{display:block;width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #d0d5dd;border-radius:7px;background:#fff;color:#182433;font-family:inherit;font-size:14px;outline:none}
-.site-form-field input:focus,.site-form-field textarea:focus,.site-form-field select:focus{border-color:#84adff;box-shadow:0 0 0 3px rgba(23,92,211,.12)}
-.site-form-field textarea{min-height:85px;resize:vertical}
-.site-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.site-modal-footer{display:flex;justify-content:flex-end;gap:10px;padding-top:8px}
-.party-type-options{display:flex;gap:18px;flex-wrap:wrap}
-.party-type-options label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer}
-.party-type-options input[type=radio]{width:auto;margin:0;accent-color:#175cd3}
-.field-hint{margin:6px 0 0;color:#667085;font-size:12px;line-height:1.5}
-
-.sweet-overlay{display:none;position:fixed;inset:0;z-index:10010;background:rgba(16,24,40,.66);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
-.sweet-overlay.is-open{display:flex}
-.sweet-box{position:relative;width:100%;max-width:460px;box-sizing:border-box;padding:30px 28px 26px;background:#fff;border:1px solid #eaecf0;border-radius:18px;text-align:center;box-shadow:0 28px 80px rgba(16,24,40,.28);animation:sweetIn .18s ease-out}
-@keyframes sweetIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-.sweet-close{position:absolute;top:12px;right:13px;width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:#667085;font-size:25px;cursor:pointer}
-.sweet-permanent-label{display:none;width:max-content;max-width:100%;box-sizing:border-box;margin:0 auto 19px;padding:7px 11px;border:1px solid #fecdca;border-radius:6px;background:#fef3f2;color:#b42318;font-size:10px;font-weight:800;letter-spacing:1.2px}
-.sweet-icon{width:66px;height:66px;border:3px solid #fecdca;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;background:#fff5f4;color:#d92d20;font-size:34px;font-weight:700;box-sizing:border-box}
-.sweet-icon.success{border-color:#abefc6;background:#ecfdf3;color:#079455}
-.sweet-icon.warning{border-color:#fedf89;background:#fffaeb;color:#dc6803}
-.sweet-title{margin:0 0 12px;color:#101828;font-size:24px;font-weight:750;line-height:1.3}
-.sweet-message{margin:0 auto 25px;max-width:370px;color:#475467;font-size:14px;line-height:1.75;overflow-wrap:anywhere}
-.sweet-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
-.sweet-btn{min-height:43px;padding:11px 17px;border:1px solid transparent;border-radius:8px;background:#175cd3;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-.sweet-btn:hover{background:#1849a9}
-.sweet-btn.cancel{border-color:#d0d5dd;background:#fff;color:#344054}
-.sweet-btn.danger{background:#d92d20;color:#fff}
-.sweet-btn.danger:hover{background:#b42318}
-.sweet-btn:focus-visible,.sweet-close:focus-visible{outline:3px solid #84adff;outline-offset:3px}
-
-@media(max-width:600px){
-.party-page{padding:12px}
-.party-hero-card{padding:16px;align-items:flex-start}
-.party-hero-info{align-items:flex-start;width:100%}
-.party-hero-icon{width:44px;height:44px;font-size:20px}
-.party-hero-title{font-size:19px}
-.party-hero-actions{width:100%}
-.party-hero-actions .party-btn{flex:1}
-.party-card-heading{padding:15px}
-.party-table th,.party-table td{display:block;width:100%;box-sizing:border-box;padding:9px 14px}
-.party-table th{border-bottom:none;padding-bottom:2px}
-.party-table td{padding-top:4px}
-.party-table tr{display:block;border-bottom:1px solid #eaecf0;padding:5px 0}
-.sites-heading{align-items:flex-start}
-.sites-heading>button{width:100%}
-.site-form-grid{grid-template-columns:1fr;gap:0}
-.site-modal{padding:10px}
-.site-modal-dialog{max-height:94vh}
-.site-modal-header,.site-modal-body{padding:16px}
-.site-actions{align-items:flex-start}
-.sweet-box{padding:30px 19px 22px}
-.sweet-actions{flex-direction:column-reverse}
-.sweet-btn{width:100%}
-}
-@media print{
-.party-hero-actions,.site-actions,.sites-heading>button,.site-modal,.sweet-overlay{display:none!important}
-.party-card,.party-hero-card{box-shadow:none}
-.party-page{max-width:none;padding:0}
-}
-</style>
-
-{% set party_type = party.get('Party_Type', '') %}
-{% set gstin = party.get('GSTIN', '') %}
-{% set party_id = party.get('Party_ID', '') %}
-{% set site_count = sites|length if sites is defined else 0 %}
-{% set page_alerts = get_flashed_messages(with_categories=true) %}
-
-<div class="party-page">
-    <section class="party-hero-card">
+    <!-- HERO HEADER -->
+    <div class="party-hero-card">
         <div class="party-hero-info">
-            <div class="party-hero-icon">P</div>
+            <div class="party-hero-icon"><i class="fas fa-building"></i></div>
             <div>
                 <h1 class="party-hero-title">{{ party.get('Party_Name', 'Party Details') }}</h1>
-                <p class="party-breadcrumb">Master Management / Party Details</p>
+                <p class="party-breadcrumb">Party ID: <b>{{ party_id }}</b> &nbsp;|&nbsp; Master Management / Party Details</p>
                 <div class="party-hero-badge">
-                    <span class="party-badge {% if 'WITHOUT' in party_type|upper %}without-gst{% endif %}">{{ party_type or 'Not specified' }}</span>
+                    <span class="badge {% if 'WITHOUT' in party_type|upper %}b-without{% else %}b-gst{% endif %}">{{ party_type or 'Not specified' }}</span>
                     {% if party.get('Is_Active') is not none %}
                         {% set party_active = party.get('Is_Active')|string|upper not in ['', '0', 'FALSE', 'NO', 'N', 'INACTIVE'] %}
-                        <span class="party-badge {% if not party_active %}inactive{% endif %}">{{ 'Active' if party_active else 'Inactive' }}</span>
+                        <span class="badge {% if party_active %}b-active{% else %}b-inactive{% endif %}">{{ 'Active' if party_active else 'Inactive' }}</span>
                     {% endif %}
                 </div>
             </div>
         </div>
-        <div class="party-hero-actions">
-            <a href="{{ url_for('parties.index') }}" class="party-btn">← Back to Parties</a>
-            <button type="button" class="party-btn party-btn-edit" id="openEditPartyButton">✎ Edit Party</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="{{ url_for('parties.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Parties</a>
+            <button type="button" class="btn btn-blue" id="openEditPartyButton"><i class="fas fa-edit"></i> Edit Party</button>
         </div>
-    </section>
+    </div>
 
-    <section class="party-card">
-        <div class="party-card-heading">
-            <h2>Party Classification</h2>
-            <p>Party type and applicable tax registration</p>
-        </div>
-        <table class="party-table"><tbody>
-            <tr><th>Party Type</th><td>{{ party_type or '—' }}</td></tr>
-            {% if 'GST' in party_type|upper and 'WITHOUT' not in party_type|upper %}
-            <tr><th>GSTIN</th><td>{{ gstin or '—' }}</td></tr>
-            {% endif %}
-        </tbody></table>
-    </section>
-
-    <section class="party-card">
-        <div class="party-card-heading">
-            <h2>Party Details</h2>
-            <p>Business name and contact information</p>
-        </div>
-        <table class="party-table"><tbody>
-            <tr><th>Party Name</th><td>{{ party.get('Party_Name') or '—' }}</td></tr>
-            <tr><th>Mobile / Phone</th><td>{{ party.get('Phone') or party.get('Mobile') or '—' }}</td></tr>
-            <tr><th>State</th><td>{{ party.get('State') or '—' }}</td></tr>
-            <tr><th>State Code</th><td>{{ party.get('State_Code') or '—' }}</td></tr>
-            <tr><th>Address</th><td>{{ party.get('Address') or '—' }}</td></tr>
-        </tbody></table>
-    </section>
-
-    <section class="party-card">
-        <div class="party-card-heading sites-heading">
+    <!-- CLASSIFICATION SECTION -->
+    <div class="card">
+        <div class="card-header">
             <div>
-                <h2>Site Locations <span class="sites-count">{{ site_count }}</span></h2>
-                <p>Project and delivery locations for this party</p>
+                <h3>Party Classification</h3>
+                <p>Party type and applicable tax registration details</p>
             </div>
-            <button type="button" class="party-btn party-btn-edit" id="addSiteButton">+ Add Site</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <tbody>
+                    <tr>
+                        <th>Party Type</th>
+                        <td>{{ party_type or '—' }}</td>
+                    </tr>
+                    {% if 'GST' in party_type|upper and 'WITHOUT' not in party_type|upper %}
+                    <tr>
+                        <th>GSTIN</th>
+                        <td><b>{{ gstin or '—' }}</b></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PARTY DETAILS SECTION -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3>Party Information</h3>
+                <p>Business name, contact number, and address particulars</p>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <tbody>
+                    <tr>
+                        <th>Party Name</th>
+                        <td><b>{{ party.get('Party_Name') or '—' }}</b></td>
+                    </tr>
+                    <tr>
+                        <th>Mobile / Phone</th>
+                        <td>{{ party.get('Phone') or party.get('Mobile') or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th>State</th>
+                        <td>{{ party.get('State') or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th>State Code</th>
+                        <td>{{ party.get('State_Code') or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Address</th>
+                        <td>{{ party.get('Address') or '—' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SITE LOCATIONS SECTION -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3>Site Locations <span class="badge b-gst" style="margin-left: 6px;" id="siteTotalBadge">{{ site_count }}</span></h3>
+                <p>Project sites and delivery destinations associated with this party</p>
+            </div>
+            <button type="button" class="btn btn-blue" id="addSiteButton"><i class="fas fa-plus"></i> Add Site</button>
         </div>
 
         {% if sites is defined and sites %}
-        <div class="sites-table-wrap">
-            <table class="sites-table">
+        <!-- SEARCH & FILTER BAR FOR SITES -->
+        <div style="padding: 12px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px;">
+                <input type="search" id="siteTableSearch" placeholder="Search sites by name, ID, address or phone..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" autocomplete="off">
+            </div>
+            <div>
+                <select id="siteStatusFilter" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table id="siteLocationsTable">
                 <thead>
                     <tr>
                         <th>Site Name / ID</th>
@@ -196,17 +208,19 @@ body.site-modal-open,body.sweet-popup-open{overflow:hidden}
                         <th>State Code</th>
                         <th>Phone</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th style="width: 150px; text-align: center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for site in sites %}
-                    {% set site_status = site.get('Is_Active', '') | string | upper %}
-                    {% set is_active = site_status not in ['NO', 'N', '0', 'FALSE', 'INACTIVE'] %}
-                    <tr>
+                    {% set site_status = (site.get('Is_Active') or site.get('Status') or '') | string | upper %}
+                    {% set is_inactive_flag = ('INACTIVE' in site_status) or ('NO' in site_status) or ('FALSE' in site_status) or (site_status == '0') %}
+                    {% set is_active = not is_inactive_flag %}
+
+                    <tr data-site-row>
                         <td>
-                            <span class="site-name">{{ site.get('Site_Name') or '—' }}</span>
-                            <span class="site-id">{{ site.get('Site_ID') or '' }}</span>
+                            <b>{{ site.get('Site_Name') or '—' }}</b><br>
+                            <span style="color: #64748b; font-size: 11px;">{{ site.get('Site_ID') or '' }}</span>
                         </td>
                         <td>{{ site.get('Site_Address') or '—' }}</td>
                         <td>{{ site.get('State') or '—' }}</td>
@@ -214,40 +228,50 @@ body.site-modal-open,body.sweet-popup-open{overflow:hidden}
                         <td>{{ site.get('Phone') or '—' }}</td>
                         <td>
                             {% if is_active %}
-                                <span class="site-status active">Active</span>
+                                <span class="badge b-active">Active</span>
                             {% else %}
-                                <span class="site-status inactive">Inactive</span>
+                                <span class="badge b-inactive">Inactive</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <div class="site-actions">
-                                {% if is_active %}
-                                    <button type="button" class="party-btn edit-site-button"
-                                        data-url="{{ url_for('sites.edit', party_id=party_id, site_id=site.get('Site_ID')) }}"
-                                        data-name="{{ site.get('Site_Name') or '' }}"
-                                        data-address="{{ site.get('Site_Address') or '' }}"
-                                        data-state="{{ site.get('State') or '' }}"
-                                        data-state-code="{{ site.get('State_Code') or '' }}"
-                                        data-phone="{{ site.get('Phone') or '' }}">Edit</button>
-                                {% endif %}
-
-                                <button type="button" class="party-btn view-site-button"
+                        <td style="text-align: center;">
+                            <div class="action-btns" style="justify-content: center;">
+                                <!-- View Button (Sabhi sites ke liye) -->
+                                <button type="button" class="icon-btn btn-view-sm view-site-button"
                                     data-id="{{ site.get('Site_ID') or '' }}"
                                     data-name="{{ site.get('Site_Name') or '' }}"
                                     data-address="{{ site.get('Site_Address') or '' }}"
                                     data-state="{{ site.get('State') or '' }}"
                                     data-state-code="{{ site.get('State_Code') or '' }}"
-                                    data-phone="{{ site.get('Phone') or '' }}">View</button>
+                                    data-phone="{{ site.get('Phone') or '' }}"
+                                    title="View Site">
+                                    <i class="fas fa-eye"></i>
+                                </button>
 
                                 {% if is_active %}
-                                    <form method="POST"
-                                          action="{{ url_for('sites.delete', party_id=party_id, site_id=site.get('Site_ID')) }}"
-                                          class="delete-site-form">
+                                    <!-- Active Site ke liye Edit aur Deactivate -->
+                                    <button type="button" class="icon-btn btn-edit-sm edit-site-button"
+                                        data-url="{{ url_for('sites.edit', party_id=party_id, site_id=site.get('Site_ID')) }}"
+                                        data-name="{{ site.get('Site_Name') or '' }}"
+                                        data-address="{{ site.get('Site_Address') or '' }}"
+                                        data-state="{{ site.get('State') or '' }}"
+                                        data-state-code="{{ site.get('State_Code') or '' }}"
+                                        data-phone="{{ site.get('Phone') or '' }}"
+                                        title="Edit Site">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    <form method="POST" action="{{ url_for('sites.deactivate', party_id=party_id, site_id=site.get('Site_ID')) }}" class="deactivate-site-form" style="display: inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="button"
-                                                class="party-btn party-btn-danger delete-site-button"
-                                                data-site-name="{{ site.get('Site_Name') or 'this site' }}">
-                                            Deactivate
+                                        <button type="button" class="icon-btn btn-del-sm delete-site-button" data-site-name="{{ site.get('Site_Name') or 'this site' }}" title="Deactivate Site">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <!-- Inactive Site ke liye View ke baaju mein Delete Button -->
+                                    <form method="POST" action="{{ url_for('sites.delete', party_id=party_id, site_id=site.get('Site_ID')) }}" class="delete-site-form" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="button" class="icon-btn btn-del-sm delete-site-button" data-site-name="{{ site.get('Site_Name') or 'this site' }}" title="Delete Site">
+                                            <i class="fas fa-trash"></i> Delete
                                         </button>
                                     </form>
                                 {% endif %}
@@ -258,196 +282,289 @@ body.site-modal-open,body.sweet-popup-open{overflow:hidden}
                 </tbody>
             </table>
         </div>
-        <div class="sites-footer">Total Sites: {{ site_count }}</div>
+        <div style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
+            Showing <span id="siteShowingCount">{{ site_count }}</span> of {{ site_count }} site(s)
+        </div>
         {% else %}
-        <div class="sites-empty">
-            <h3>No Site Locations Added</h3>
-            <p>There are currently no sites associated with this party.</p>
-            <button type="button" class="party-btn party-btn-edit" id="addFirstSiteButton">+ Add First Site</button>
+        <div style="padding: 40px 20px; text-align: center; color: #64748b;">
+            <p style="margin: 0 0 10px; font-size: 14px;">No site locations added yet for this party.</p>
+            <button type="button" class="btn btn-blue" id="addFirstSiteButton"><i class="fas fa-plus"></i> Add First Site</button>
         </div>
         {% endif %}
-    </section>
+    </div>
 </div>
 
-<!-- Edit Party Modal -->
-<div id="partyEditModal" class="site-modal" aria-hidden="true">
-    <div class="site-modal-backdrop" data-close-party-edit></div>
-    <div class="site-modal-dialog" role="dialog" aria-modal="true"
-         aria-labelledby="partyEditModalTitle" aria-describedby="partyEditHelp">
-        <div class="site-modal-header">
-            <h2 id="partyEditModalTitle">Edit Party</h2>
-            <button type="button" class="site-modal-close" aria-label="Close" data-close-party-edit>&times;</button>
+<!-- EDIT PARTY MODAL -->
+<dialog id="partyEditModal" class="pm-modal">
+    <div class="pm-modal-header">
+        <div>
+            <h2>Edit Party</h2>
+            <p class="pm-modal-subtitle">Update existing party information.</p>
         </div>
-        <div class="site-modal-body">
-            <p id="partyEditHelp" class="field-hint" style="margin:0 0 18px">
-                Update the party details below. Fields marked * are required.
-            </p>
+        <button type="button" class="pm-close" id="closePartyEditModal" aria-label="Close">&times;</button>
+    </div>
 
-            <form id="partyEditForm" method="POST"
-                  action="{{ url_for('parties.edit', party_id=party_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="site-form-field">
-                    <label>Party Type <span class="required">*</span></label>
-                    <div class="party-type-options">
-                        <label>
+    <form id="partyEditForm" method="POST" action="{{ url_for('parties.edit', party_id=party_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="pm-modal-body">
+            <fieldset class="pm-form-section">
+                <legend>Party Classification</legend>
+                <div class="pm-form-group">
+                    <label>Party Type <span class="pm-required">*</span></label>
+                    <div class="pm-radio-options">
+                        <label class="pm-radio-card">
                             <input type="radio" name="Party_Type" value="GST" required>
-                            GST Registered
+                            <span><strong>GST Registered</strong><small>GST billing workflow</small></span>
                         </label>
-                        <label>
+                        <label class="pm-radio-card">
                             <input type="radio" name="Party_Type" value="WITHOUT_GST" required>
-                            Without GST
+                            <span><strong>Without GST</strong><small>Without GST workflow</small></span>
                         </label>
                     </div>
                 </div>
 
-                <div class="site-form-field" id="partyEditGstinGroup">
-                    <label for="partyEditGSTIN">GSTIN <span class="required">*</span></label>
-                    <input type="text" id="partyEditGSTIN" name="GSTIN"
-                           maxlength="15" minlength="15" autocomplete="off"
-                           autocapitalize="characters" spellcheck="false">
-                    <p class="field-hint">GSTIN should contain 15 characters.</p>
+                <div class="pm-form-group" id="partyEditGstinGroup">
+                    <label for="partyEditGSTIN">GSTIN <span class="pm-required">*</span></label>
+                    <input type="text" id="partyEditGSTIN" name="GSTIN" maxlength="15" minlength="15"
+                           pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]"
+                           placeholder="Enter 15-character GSTIN" autocomplete="off" autocapitalize="characters" spellcheck="false">
+                    <small>15-character GSTIN is required for GST parties.</small>
                 </div>
+            </fieldset>
 
-                <div class="site-form-field">
-                    <label for="partyEditName">Party Name <span class="required">*</span></label>
-                    <input type="text" id="partyEditName" name="Party_Name"
-                           maxlength="200" autocomplete="organization" required>
-                </div>
-
-                <div class="site-form-grid">
-                    <div class="site-form-field">
-                        <label for="partyEditPhone">Mobile / Phone</label>
-                        <input type="text" id="partyEditPhone" name="Phone" maxlength="30" autocomplete="tel">
+            <fieldset class="pm-form-section">
+                <legend>Party Details</legend>
+                <div class="pm-form-grid">
+                    <div class="pm-form-group">
+                        <label for="partyEditName">Party Name <span class="pm-required">*</span></label>
+                        <input type="text" id="partyEditName" name="Party_Name" maxlength="200" required>
                     </div>
-                    <div class="site-form-field">
+                    <div class="pm-form-group">
+                        <label for="partyEditPhone">Mobile / Phone</label>
+                        <input type="tel" id="partyEditPhone" name="Phone" maxlength="30">
+                    </div>
+                    <div class="pm-form-group">
                         <label for="partyEditState">State</label>
                         <input type="text" id="partyEditState" name="State" maxlength="100">
                     </div>
-                </div>
-
-                <div class="site-form-grid">
-                    <div class="site-form-field">
+                    <div class="pm-form-group">
                         <label for="partyEditStateCode">State Code</label>
                         <input type="text" id="partyEditStateCode" name="State_Code" maxlength="20">
                     </div>
-                    <div class="site-form-field">
-                        <label for="partyEditReason">Reason for Change</label>
-                        <input type="text" id="partyEditReason" name="Reason"
-                               maxlength="500" placeholder="Optional reason">
+                    <div class="pm-form-group pm-form-full">
+                        <label for="partyEditAddress">Address</label>
+                        <textarea id="partyEditAddress" name="Address" rows="3" maxlength="1000"></textarea>
                     </div>
                 </div>
+            </fieldset>
 
-                <div class="site-form-field">
-                    <label for="partyEditAddress">Address</label>
-                    <textarea id="partyEditAddress" name="Address" rows="3" maxlength="1000"></textarea>
-                </div>
-
-                <div class="site-modal-footer">
-                    <button type="button" class="party-btn" data-close-party-edit>Cancel</button>
-                    <button type="submit" class="party-btn party-btn-edit" id="partyEditSaveButton">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add/Edit Site Modal -->
-<div id="siteModal" class="site-modal" aria-hidden="true">
-    <div class="site-modal-backdrop" data-close-site-modal></div>
-    <div class="site-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="siteModalTitle">
-        <div class="site-modal-header">
-            <h2 id="siteModalTitle">Add Site</h2>
-            <button type="button" class="site-modal-close" aria-label="Close" data-close-site-modal>&times;</button>
-        </div>
-        <div class="site-modal-body">
-            <form id="siteModalForm" method="POST" action="{{ url_for('sites.create', party_id=party_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="site-form-field">
-                    <label for="modalSiteName">Site Name <span class="required">*</span></label>
-                    <input type="text" id="modalSiteName" name="Site_Name" maxlength="150" required>
-                </div>
-                <div class="site-form-field">
-                    <label for="modalSiteAddress">Site Address</label>
-                    <textarea id="modalSiteAddress" name="Site_Address" rows="3"></textarea>
-                </div>
-                <div class="site-form-grid">
-                    <div class="site-form-field">
-                        <label for="modalSiteState">State</label>
-                        <input type="text" id="modalSiteState" name="State" maxlength="100">
-                    </div>
-                    <div class="site-form-field">
-                        <label for="modalSiteStateCode">State Code</label>
-                        <input type="text" id="modalSiteStateCode" name="State_Code" maxlength="20">
-                    </div>
-                </div>
-                <div class="site-form-field">
-                    <label for="modalSitePhone">Phone</label>
-                    <input type="text" id="modalSitePhone" name="Phone" autocomplete="off">
-                </div>
-                <div class="site-modal-footer">
-                    <button type="button" class="party-btn" data-close-site-modal>Cancel</button>
-                    <button type="submit" class="party-btn party-btn-edit" id="siteModalSaveButton">Save Site</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- View Site Modal -->
-<div id="siteViewModal" class="site-modal" aria-hidden="true">
-    <div class="site-modal-backdrop" data-close-view-modal></div>
-    <div class="site-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="siteViewModalTitle">
-        <div class="site-modal-header">
-            <h2 id="siteViewModalTitle">Site Details</h2>
-            <button type="button" class="site-modal-close" aria-label="Close" data-close-view-modal>&times;</button>
-        </div>
-        <div class="site-modal-body">
-            <table class="party-table"><tbody>
-                <tr><th>Site ID</th><td id="viewSiteId">—</td></tr>
-                <tr><th>Site Name</th><td id="viewSiteName">—</td></tr>
-                <tr><th>Site Address</th><td id="viewSiteAddress">—</td></tr>
-                <tr><th>State</th><td id="viewSiteState">—</td></tr>
-                <tr><th>State Code</th><td id="viewSiteStateCode">—</td></tr>
-                <tr><th>Phone</th><td id="viewSitePhone">—</td></tr>
-            </tbody></table>
-            <div class="site-modal-footer">
-                <button type="button" class="party-btn" data-close-view-modal>Close</button>
+            <div class="pm-form-group">
+                <label for="partyEditReason">Reason for Change</label>
+                <input type="text" id="partyEditReason" name="Reason" maxlength="500" placeholder="Optional reason">
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Custom confirmation / flash alert -->
-<div id="sweetOverlay" class="sweet-overlay" aria-hidden="true">
-    <div class="sweet-box" role="dialog" aria-modal="true"
-         aria-labelledby="sweetTitle" aria-describedby="sweetMessage">
-        <button type="button" id="sweetClose" class="sweet-close" aria-label="Close popup">&times;</button>
-        <div id="sweetPermanentLabel" class="sweet-permanent-label">PERMANENT ACTION</div>
-        <div id="sweetIcon" class="sweet-icon">!</div>
-        <h2 id="sweetTitle" class="sweet-title">Confirmation</h2>
-        <p id="sweetMessage" class="sweet-message"></p>
-        <div id="sweetActions" class="sweet-actions"></div>
-    </div>
-</div>
+        <div class="pm-modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelPartyEditModal">Cancel</button>
+            <button type="submit" class="btn btn-blue" id="partyEditSaveButton"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </form>
+</dialog>
 
+<!-- ADD / EDIT SITE MODAL -->
+<dialog id="siteModal" class="pm-modal">
+    <div class="pm-modal-header">
+        <div>
+            <h2 id="siteModalTitle">Add Site</h2>
+            <p class="pm-modal-subtitle">Provide project site details.</p>
+        </div>
+        <button type="button" class="pm-close" id="closeSiteModal" aria-label="Close">&times;</button>
+    </div>
+
+    <form id="siteModalForm" method="POST" action="{{ url_for('sites.create', party_id=party_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="pm-modal-body">
+            <fieldset class="pm-form-section">
+                <legend>Site Information</legend>
+                <div class="pm-form-group">
+                    <label for="modalSiteName">Site Name <span class="pm-required">*</span></label>
+                    <input type="text" id="modalSiteName" name="Site_Name" maxlength="150" required placeholder="Site / Project Name">
+                </div>
+                <div class="pm-form-group">
+                    <label for="modalSiteAddress">Site Address</label>
+                    <textarea id="modalSiteAddress" name="Site_Address" rows="3" placeholder="Complete site address"></textarea>
+                </div>
+                <div class="pm-form-grid">
+                    <div class="pm-form-group">
+                        <label for="modalSiteState">State</label>
+                        <input type="text" id="modalSiteState" name="State" maxlength="100" placeholder="e.g. Gujarat">
+                    </div>
+                    <div class="pm-form-group">
+                        <label for="modalSiteStateCode">State Code</label>
+                        <input type="text" id="modalSiteStateCode" name="State_Code" maxlength="20" placeholder="e.g. 24">
+                    </div>
+                </div>
+                <div class="pm-form-group">
+                    <label for="modalSitePhone">Phone</label>
+                    <input type="text" id="modalSitePhone" name="Phone" placeholder="Site contact number">
+                </div>
+            </fieldset>
+        </div>
+        <div class="pm-modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelSiteModal">Cancel</button>
+            <button type="submit" class="btn btn-blue" id="siteModalSaveButton"><i class="fas fa-save"></i> Save Site</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- VIEW SITE MODAL -->
+<dialog id="siteViewModal" class="pm-modal">
+    <div class="pm-modal-header">
+        <div>
+            <h2>Site Details</h2>
+            <p class="pm-modal-subtitle">Viewing site particulars.</p>
+        </div>
+        <button type="button" class="pm-close" id="closeViewModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="pm-modal-body">
+        <div class="table-wrap">
+            <table>
+                <tbody>
+                    <tr><th>Site ID</th><td id="viewSiteId">—</td></tr>
+                    <tr><th>Site Name</th><td id="viewSiteName">—</td></tr>
+                    <tr><th>Site Address</th><td id="viewSiteAddress">—</td></tr>
+                    <tr><th>State</th><td id="viewSiteState">—</td></tr>
+                    <tr><th>State Code</th><td id="viewSiteStateCode">—</td></tr>
+                    <tr><th>Phone</th><td id="viewSitePhone">—</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="pm-modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelViewModal">Close</button>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 (function () {
     "use strict";
 
-    const modal = document.getElementById("siteModal");
-    const form = document.getElementById("siteModalForm");
-    const modalTitle = document.getElementById("siteModalTitle");
-    const saveButton = document.getElementById("siteModalSaveButton");
-    const viewModal = document.getElementById("siteViewModal");
+    const createUrl = "{{ url_for('sites.create', party_id=party_id) }}";
+    const currentParty = {
+        "Party_Type": "{{ party.get('Party_Type', '') }}",
+        "Party_Name": "{{ party.get('Party_Name', '') }}",
+        "GSTIN": "{{ party.get('GSTIN', '') }}",
+        "Phone": "{{ party.get('Phone') or party.get('Mobile', '') }}",
+        "State": "{{ party.get('State', '') }}",
+        "State_Code": "{{ party.get('State_Code', '') }}",
+        "Address": "{{ party.get('Address', '') }}"
+    };
 
+    /* ===== EDIT PARTY MODAL ===== */
     const partyEditModal = document.getElementById("partyEditModal");
     const openPartyEditButton = document.getElementById("openEditPartyButton");
+    const closePartyEditModal = document.getElementById("closePartyEditModal");
+    const cancelPartyEditModal = document.getElementById("cancelPartyEditModal");
     const partyEditForm = document.getElementById("partyEditForm");
     const partyEditGSTIN = document.getElementById("partyEditGSTIN");
     const partyEditGstinGroup = document.getElementById("partyEditGstinGroup");
     const partyEditSaveButton = document.getElementById("partyEditSaveButton");
+
+    function normalizedPartyType(value) {
+        const type = String(value || "").trim().toUpperCase();
+        if (type.includes("WITHOUT") || type.includes("NON GST") || type === "NON-GST") {
+            return "WITHOUT_GST";
+        }
+        if (type.includes("GST")) {
+            return "GST";
+        }
+        return "";
+    }
+
+    function updatePartyEditGSTIN() {
+        const selected = partyEditForm.querySelector('input[name="Party_Type"]:checked');
+        const isGST = Boolean(selected && selected.value === "GST");
+        if (partyEditGstinGroup) partyEditGstinGroup.hidden = !isGST;
+        if (partyEditGSTIN) {
+            partyEditGSTIN.required = isGST;
+            partyEditGSTIN.disabled = !isGST;
+            if (!isGST) {
+                partyEditGSTIN.value = "";
+                partyEditGSTIN.setCustomValidity("");
+            }
+        }
+    }
+
+    if (openPartyEditButton && partyEditModal) {
+        openPartyEditButton.addEventListener("click", function () {
+            partyEditForm.reset();
+            const selectedType = normalizedPartyType(currentParty.Party_Type);
+            partyEditForm.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+                radio.checked = radio.value === selectedType;
+            });
+            document.getElementById("partyEditName").value = currentParty.Party_Name || "";
+            if (partyEditGSTIN) partyEditGSTIN.value = currentParty.GSTIN || "";
+            document.getElementById("partyEditPhone").value = currentParty.Phone || "";
+            document.getElementById("partyEditState").value = currentParty.State || "";
+            document.getElementById("partyEditStateCode").value = currentParty.State_Code || "";
+            document.getElementById("partyEditAddress").value = currentParty.Address || "";
+            document.getElementById("partyEditReason").value = "";
+
+            if (partyEditSaveButton) {
+                partyEditSaveButton.disabled = false;
+                partyEditSaveButton.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+            updatePartyEditGSTIN();
+            partyEditModal.showModal();
+        });
+    }
+
+    if (closePartyEditModal) closePartyEditModal.addEventListener("click", () => partyEditModal.close());
+    if (cancelPartyEditModal) cancelPartyEditModal.addEventListener("click", () => partyEditModal.close());
+
+    partyEditForm.querySelectorAll('input[name="Party_Type"]').forEach(function (radio) {
+        radio.addEventListener("change", updatePartyEditGSTIN);
+    });
+
+    if (partyEditGSTIN) {
+        partyEditGSTIN.addEventListener("input", function () {
+            partyEditGSTIN.value = partyEditGSTIN.value.toUpperCase();
+            partyEditGSTIN.setCustomValidity("");
+        });
+    }
+
+    if (partyEditForm) {
+        partyEditForm.addEventListener("submit", function (event) {
+            const selected = partyEditForm.querySelector('input[name="Party_Type"]:checked');
+            if (selected && selected.value === "GST" && partyEditGSTIN) {
+                const value = partyEditGSTIN.value.trim().toUpperCase();
+                const pattern = /^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]$/;
+                partyEditGSTIN.value = value;
+                if (!pattern.test(value)) {
+                    event.preventDefault();
+                    partyEditGSTIN.setCustomValidity("Valid 15-character GSTIN enter karein.");
+                    partyEditGSTIN.reportValidity();
+                    return;
+                }
+                partyEditGSTIN.setCustomValidity("");
+            }
+        });
+    }
+
+    /* ===== SITE MODALS ===== */
+    const siteModal = document.getElementById("siteModal");
+    const siteModalForm = document.getElementById("siteModalForm");
+    const siteModalTitle = document.getElementById("siteModalTitle");
+    const siteModalSaveButton = document.getElementById("siteModalSaveButton");
+    const closeSiteModal = document.getElementById("closeSiteModal");
+    const cancelSiteModal = document.getElementById("cancelSiteModal");
+
+    const siteViewModal = document.getElementById("siteViewModal");
+    const closeViewModal = document.getElementById("closeViewModal");
+    const cancelViewModal = document.getElementById("cancelViewModal");
 
     const fields = {
         name: document.getElementById("modalSiteName"),
@@ -457,435 +574,122 @@ body.site-modal-open,body.sweet-popup-open{overflow:hidden}
         phone: document.getElementById("modalSitePhone")
     };
 
-    const createUrl = {{ url_for('sites.create', party_id=party_id)|tojson }};
-
-    const currentParty = {{ {
-        "Party_Type": party.get("Party_Type", ""),
-        "Party_Name": party.get("Party_Name", ""),
-        "GSTIN": party.get("GSTIN", ""),
-        "Phone": party.get("Phone") or party.get("Mobile", ""),
-        "State": party.get("State", ""),
-        "State_Code": party.get("State_Code", ""),
-        "Address": party.get("Address", "")
-    } | tojson }};
-
-    const sweetOverlay = document.getElementById("sweetOverlay");
-    const sweetIcon = document.getElementById("sweetIcon");
-    const sweetTitle = document.getElementById("sweetTitle");
-    const sweetMessage = document.getElementById("sweetMessage");
-    const sweetActions = document.getElementById("sweetActions");
-    const sweetPermanentLabel = document.getElementById("sweetPermanentLabel");
-    const sweetClose = document.getElementById("sweetClose");
-
-    let lastFocusedElement = null;
-
-    function openModal(element) {
-        if (!element) return;
-        element.classList.add("is-open");
-        element.setAttribute("aria-hidden", "false");
-        document.body.classList.add("site-modal-open");
-    }
-
-    function closeModal(element) {
-        if (!element) return;
-
-        element.classList.remove("is-open");
-        element.setAttribute("aria-hidden", "true");
-
-        if (!document.querySelector(".site-modal.is-open")) {
-            document.body.classList.remove("site-modal-open");
-        }
-    }
-
-    function closeSweetAlert() {
-        sweetOverlay.classList.remove("is-open");
-        sweetOverlay.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("sweet-popup-open");
-
-        if (lastFocusedElement && document.contains(lastFocusedElement)) {
-            lastFocusedElement.focus();
-        }
-    }
-
-    function showSweetAlert(options) {
-        lastFocusedElement = document.activeElement;
-
-        sweetIcon.className = "sweet-icon" +
-            (options.type ? " " + options.type : "");
-        sweetIcon.textContent = options.icon || "!";
-        sweetTitle.textContent = options.title || "Message";
-        sweetMessage.textContent = options.message || "";
-        sweetPermanentLabel.style.display =
-            options.permanent ? "block" : "none";
-
-        sweetActions.replaceChildren();
-
-        const buttons = options.buttons || [
-            {
-                text: "OK",
-                className: "sweet-btn",
-                action: closeSweetAlert
-            }
-        ];
-
-        buttons.forEach(function (item) {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = item.className || "sweet-btn";
-            button.textContent = item.text;
-
-            button.addEventListener("click", function () {
-                if (typeof item.action === "function") {
-                    item.action();
-                }
-            });
-
-            sweetActions.appendChild(button);
-        });
-
-        sweetOverlay.classList.add("is-open");
-        sweetOverlay.setAttribute("aria-hidden", "false");
-        document.body.classList.add("sweet-popup-open");
-
-        const firstButton = sweetActions.querySelector("button");
-        if (firstButton) firstButton.focus();
-    }
-
-    // ===== EDIT PARTY MODAL =====
-    function normalizedPartyType(value) {
-        const type = String(value || "").trim().toUpperCase();
-
-        if (
-            type.includes("WITHOUT") ||
-            type.includes("NON GST") ||
-            type === "NON-GST"
-        ) {
-            return "WITHOUT_GST";
-        }
-
-        if (type.includes("GST")) {
-            return "GST";
-        }
-
-        return "";
-    }
-
-    function updatePartyEditGSTIN() {
-        const selected = partyEditForm.querySelector(
-            'input[name="Party_Type"]:checked'
-        );
-
-        const isGST = Boolean(selected && selected.value === "GST");
-
-        partyEditGstinGroup.hidden = !isGST;
-        partyEditGSTIN.required = isGST;
-        partyEditGSTIN.disabled = !isGST;
-
-        if (!isGST) {
-            partyEditGSTIN.value = "";
-            partyEditGSTIN.setCustomValidity("");
-        }
-    }
-
-    openPartyEditButton.addEventListener("click", function () {
-        partyEditForm.reset();
-
-        const selectedType = normalizedPartyType(currentParty.Party_Type);
-
-        partyEditForm.querySelectorAll(
-            'input[name="Party_Type"]'
-        ).forEach(function (radio) {
-            radio.checked = radio.value === selectedType;
-        });
-
-        document.getElementById("partyEditName").value =
-            currentParty.Party_Name || "";
-        partyEditGSTIN.value = currentParty.GSTIN || "";
-        document.getElementById("partyEditPhone").value =
-            currentParty.Phone || "";
-        document.getElementById("partyEditState").value =
-            currentParty.State || "";
-        document.getElementById("partyEditStateCode").value =
-            currentParty.State_Code || "";
-        document.getElementById("partyEditAddress").value =
-            currentParty.Address || "";
-        document.getElementById("partyEditReason").value = "";
-
-        partyEditSaveButton.disabled = false;
-        partyEditSaveButton.textContent = "Save Changes";
-
-        updatePartyEditGSTIN();
-        openModal(partyEditModal);
-
-        window.setTimeout(function () {
-            document.getElementById("partyEditName").focus();
-        }, 50);
-    });
-
-    partyEditForm.querySelectorAll(
-        'input[name="Party_Type"]'
-    ).forEach(function (radio) {
-        radio.addEventListener("change", updatePartyEditGSTIN);
-    });
-
-    partyEditGSTIN.addEventListener("input", function () {
-        partyEditGSTIN.value = partyEditGSTIN.value.toUpperCase();
-        partyEditGSTIN.setCustomValidity("");
-    });
-
-    partyEditForm.addEventListener("submit", function (event) {
-        const selected = partyEditForm.querySelector(
-            'input[name="Party_Type"]:checked'
-        );
-
-        if (!selected) {
-            event.preventDefault();
-
-            showSweetAlert({
-                title: "Party Type Required",
-                message: "Please GST Registered ya Without GST select karein.",
-                icon: "!",
-                type: "warning"
-            });
-
-            return;
-        }
-
-        const partyName = document.getElementById("partyEditName").value.trim();
-
-        if (!partyName) {
-            event.preventDefault();
-            document.getElementById("partyEditName").focus();
-            return;
-        }
-
-        if (selected.value === "GST") {
-            const value = partyEditGSTIN.value.trim().toUpperCase();
-            const pattern =
-                /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-
-            partyEditGSTIN.value = value;
-
-            if (!pattern.test(value)) {
-                event.preventDefault();
-                partyEditGSTIN.setCustomValidity(
-                    "Valid 15-character GSTIN enter karein."
-                );
-                partyEditGSTIN.reportValidity();
-                return;
-            }
-
-            partyEditGSTIN.setCustomValidity("");
-        }
-
-        partyEditSaveButton.disabled = true;
-        partyEditSaveButton.textContent = "Saving...";
-    });
-
-    // ===== SITE DEACTIVATION CONFIRMATION =====
-    function confirmSiteDelete(deleteForm, siteName) {
-        if (!deleteForm || !(deleteForm instanceof HTMLFormElement)) {
-            console.error("Deactivation blocked: invalid form.");
-            return;
-        }
-
-        showSweetAlert({
-            permanent: false,
-            type: "warning",
-            icon: "!",
-            title: "Deactivate Site?",
-            message:
-                'Are you sure you want to deactivate "' +
-                String(siteName || "this site") +
-                '"? The site record and its ID will be preserved for historical reference.',
-            buttons: [
-                {
-                    text: "Cancel",
-                    className: "sweet-btn cancel",
-                    action: closeSweetAlert
-                },
-                {
-                    text: "Yes, Deactivate Site",
-                    className: "sweet-btn danger",
-                    action: function () {
-                        closeSweetAlert();
-
-                        // Native form submit retains the existing CSRF field.
-                        HTMLFormElement.prototype.submit.call(deleteForm);
-                    }
-                }
-            ]
-        });
-    }
-
-    // ===== ADD / EDIT SITE MODAL =====
     function openSiteModal(button) {
-        form.reset();
-        saveButton.disabled = false;
+        if (!siteModal) return;
+        siteModalForm.reset();
+        if (siteModalSaveButton) siteModalSaveButton.disabled = false;
 
         if (button && button.dataset.url) {
-            modalTitle.textContent = "Edit Site";
-            saveButton.textContent = "Update Site";
-            form.action = button.dataset.url;
-
-            fields.name.value = button.dataset.name || "";
-            fields.address.value = button.dataset.address || "";
-            fields.state.value = button.dataset.state || "";
-            fields.stateCode.value = button.dataset.stateCode || "";
-            fields.phone.value = button.dataset.phone || "";
+            if (siteModalTitle) siteModalTitle.textContent = "Edit Site";
+            if (siteModalSaveButton) siteModalSaveButton.innerHTML = '<i class="fas fa-save"></i> Update Site';
+            siteModalForm.action = button.dataset.url;
+            if (fields.name) fields.name.value = button.dataset.name || "";
+            if (fields.address) fields.address.value = button.dataset.address || "";
+            if (fields.state) fields.state.value = button.dataset.state || "";
+            if (fields.stateCode) fields.stateCode.value = button.dataset.stateCode || "";
+            if (fields.phone) fields.phone.value = button.dataset.phone || "";
         } else {
-            modalTitle.textContent = "Add Site";
-            saveButton.textContent = "Save Site";
-            form.action = createUrl;
+            if (siteModalTitle) siteModalTitle.textContent = "Add Site";
+            if (siteModalSaveButton) siteModalSaveButton.innerHTML = '<i class="fas fa-save"></i> Save Site';
+            siteModalForm.action = createUrl;
         }
-
-        openModal(modal);
-
-        window.setTimeout(function () {
-            fields.name.focus();
-        }, 50);
+        siteModal.showModal();
     }
 
-    form.addEventListener("submit", function () {
-        saveButton.disabled = true;
-        saveButton.textContent =
-            modalTitle.textContent === "Edit Site" ? "Updating..." : "Saving...";
+    if (closeSiteModal) closeSiteModal.addEventListener("click", () => siteModal.close());
+    if (cancelSiteModal) cancelSiteModal.addEventListener("click", () => siteModal.close());
+
+    const addSiteBtn = document.getElementById("addSiteButton");
+    if (addSiteBtn) addSiteBtn.addEventListener("click", () => openSiteModal(null));
+
+    const addFirstSiteBtn = document.getElementById("addFirstSiteButton");
+    if (addFirstSiteBtn) addFirstSiteBtn.addEventListener("click", () => openSiteModal(null));
+
+    document.querySelectorAll(".edit-site-button").forEach(btn => {
+        btn.addEventListener("click", () => openSiteModal(btn));
     });
 
-    // ===== VIEW SITE MODAL =====
-    function viewSite(button) {
-        const data = button.dataset;
-
-        document.getElementById("viewSiteId").textContent = data.id || "—";
-        document.getElementById("viewSiteName").textContent = data.name || "—";
-        document.getElementById("viewSiteAddress").textContent = data.address || "—";
-        document.getElementById("viewSiteState").textContent = data.state || "—";
-        document.getElementById("viewSiteStateCode").textContent =
-            data.stateCode || "—";
-        document.getElementById("viewSitePhone").textContent = data.phone || "—";
-
-        openModal(viewModal);
-    }
-
-    document.getElementById("addSiteButton").addEventListener("click", function () {
-        openSiteModal(null);
-    });
-
-    const addFirstButton = document.getElementById("addFirstSiteButton");
-
-    if (addFirstButton) {
-        addFirstButton.addEventListener("click", function () {
-            openSiteModal(null);
+    document.querySelectorAll(".view-site-button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const data = btn.dataset;
+            document.getElementById("viewSiteId").textContent = data.id || "—";
+            document.getElementById("viewSiteName").textContent = data.name || "—";
+            document.getElementById("viewSiteAddress").textContent = data.address || "—";
+            document.getElementById("viewSiteState").textContent = data.state || "—";
+            document.getElementById("viewSiteStateCode").textContent = data.stateCode || "—";
+            document.getElementById("viewSitePhone").textContent = data.phone || "—";
+            if (siteViewModal) siteViewModal.showModal();
         });
+    });
+
+    if (closeViewModal) closeViewModal.addEventListener("click", () => siteViewModal.close());
+    if (cancelViewModal) cancelViewModal.addEventListener("click", () => siteViewModal.close());
+
+    /* ===== SITE TABLE LIVE FILTER ===== */
+    const siteSearchInput = document.getElementById("siteTableSearch");
+    const siteStatusFilter = document.getElementById("siteStatusFilter");
+    const siteTableBody = document.querySelector("#siteLocationsTable tbody");
+    const siteTotalBadge = document.getElementById("siteTotalBadge");
+    const siteShowingCount = document.getElementById("siteShowingCount");
+
+    if (siteSearchInput && siteTableBody) {
+        function filterSiteTable() {
+            const query = siteSearchInput.value.toLowerCase().trim();
+            const statusVal = siteStatusFilter ? siteStatusFilter.value.toLowerCase() : "";
+            const rows = siteTableBody.querySelectorAll("tr[data-site-row]");
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const textMatch = row.textContent.toLowerCase().includes(query);
+                const statusBadge = row.querySelector(".badge.b-active, .badge.b-inactive");
+                const rowStatus = statusBadge ? statusBadge.textContent.toLowerCase().trim() : "";
+
+                const matchesQuery = textMatch;
+                const matchesStatus = !statusVal || rowStatus === statusVal;
+
+                if (matchesQuery && matchesStatus) {
+                    row.style.display = "";
+                    visibleCount++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            if (siteTotalBadge) siteTotalBadge.textContent = visibleCount;
+            if (siteShowingCount) siteShowingCount.textContent = visibleCount;
+        }
+
+        siteSearchInput.addEventListener("input", filterSiteTable);
+        if (siteStatusFilter) {
+            siteStatusFilter.addEventListener("change", filterSiteTable);
+        }
     }
 
-    document.addEventListener("click", function (event) {
-        const target = event.target;
+    /* ===== SWEETALERT DEACTIVATION / DELETION ===== */
+    document.querySelectorAll(".delete-site-button").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            const form = btn.closest("form");
+            const siteName = btn.dataset.siteName || "this site";
+            const isDeleteAction = btn.textContent.includes("Delete") || btn.title.includes("Delete");
 
-        if (!(target instanceof Element)) return;
-
-        const deleteButton = target.closest(".delete-site-button");
-
-        if (deleteButton) {
-            event.preventDefault();
-
-            const deleteForm = deleteButton.closest("form.delete-site-form");
-            const siteName = deleteButton.dataset.siteName || "this site";
-
-            confirmSiteDelete(deleteForm, siteName);
-            return;
-        }
-
-        const editButton = target.closest(".edit-site-button");
-
-        if (editButton) {
-            openSiteModal(editButton);
-            return;
-        }
-
-        const viewButton = target.closest(".view-site-button");
-
-        if (viewButton) {
-            viewSite(viewButton);
-            return;
-        }
-
-        if (target.closest("[data-close-party-edit]")) {
-            closeModal(partyEditModal);
-            return;
-        }
-
-        if (target.closest("[data-close-site-modal]")) {
-            closeModal(modal);
-            return;
-        }
-
-        if (target.closest("[data-close-view-modal]")) {
-            closeModal(viewModal);
-        }
-    });
-
-    sweetClose.addEventListener("click", closeSweetAlert);
-
-    sweetOverlay.addEventListener("click", function (event) {
-        if (event.target === sweetOverlay) {
-            closeSweetAlert();
-        }
-    });
-
-    document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape") {
-            if (partyEditModal.classList.contains("is-open")) {
-                closeModal(partyEditModal);
+            if (window.Swal) {
+                Swal.fire({
+                    title: isDeleteAction ? 'Delete "' + siteName + '"?' : 'Deactivate "' + siteName + '"?',
+                    text: isDeleteAction ? 'This site location will be permanently removed from the system.' : 'The site record and its ID will be preserved for historical reference.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: isDeleteAction ? 'Yes, Delete Site' : 'Yes, Deactivate Site'
+                }).then(result => {
+                    if (result.isConfirmed) form.submit();
+                });
+            } else {
+                if (confirm(isDeleteAction ? 'Delete "' + siteName + '"?' : 'Deactivate "' + siteName + '"?')) form.submit();
             }
-
-            if (modal.classList.contains("is-open")) {
-                closeModal(modal);
-            }
-
-            if (viewModal.classList.contains("is-open")) {
-                closeModal(viewModal);
-            }
-
-            if (sweetOverlay.classList.contains("is-open")) {
-                closeSweetAlert();
-            }
-        }
-    });
-
-    // ===== FLASH MESSAGES =====
-    const flashMessages = {{ page_alerts|tojson }};
-
-    if (Array.isArray(flashMessages) && flashMessages.length > 0) {
-        const lastMessage = flashMessages[flashMessages.length - 1];
-        const category = String(lastMessage[0] || "info").toLowerCase();
-        const message = String(lastMessage[1] || "");
-
-        let type = "";
-        let icon = "i";
-        let heading = "Information";
-
-        if (category === "success") {
-            type = "success";
-            icon = "✓";
-            heading = "Success!";
-        } else if (category === "danger" || category === "error") {
-            icon = "×";
-            heading = "Operation Failed";
-        } else if (category === "warning") {
-            type = "warning";
-            icon = "!";
-            heading = "Warning";
-        }
-
-        showSweetAlert({
-            type: type,
-            icon: icon,
-            title: heading,
-            message: message,
-            permanent: false
         });
-    }
+    });
 })();
 </script>
 {% endblock %}

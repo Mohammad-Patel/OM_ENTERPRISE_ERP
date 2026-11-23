@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+.set-wrap { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.set-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+.set-head h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.set-sub { font-size: 13px; color: #64748b; }
+.set-btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.set-btn:hover { background: #0f172a; color: #fff; }
+.set-btn-grey { background: #64748b; }
+.set-btn-grey:hover { background: #475569; }
+.set-btn-blue { background: #2563eb; }
+.set-btn-blue:hover { background: #1d4ed8; }
+.set-card { border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; padding: 20px; margin-bottom: 20px; }
+.set-card h3 { font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.set-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+.set-group { display: flex; flex-direction: column; gap: 5px; }
+.set-group.full { grid-column: span 2; }
+.set-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; }
+.set-group input, .set-group textarea { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; box-sizing: border-box; font-family: inherit; }
+.set-group input:focus, .set-group textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.set-group textarea { resize: vertical; min-height: 60px; }
+.set-hint { font-size: 11px; color: #64748b; }
+.set-row { display: flex; gap: 8px; }
+.set-row .grow2 { flex: 2; }
+.set-row .grow1 { flex: 1; }
+.set-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.set-errors { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 6px; padding: 10px 14px; margin-bottom: 18px; font-size: 13px; }
+.set-errors ul { margin: 6px 0 0 18px; padding: 0; }
+@media (max-width: 768px) { .set-grid { grid-template-columns: 1fr; } .set-group.full { grid-column: span 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="set-wrap">
+  <div class="set-head">
+    <h2><i class="fas fa-cogs"></i> System Settings &amp; Configuration</h2>
+    <span class="set-sub"><i class="fas fa-info-circle"></i> Invoice numbering, GST rates &amp; company details</span>
+  </div>
+
+  {% if errors %}
+  <div class="set-errors">
+    <b><i class="fas fa-exclamation-triangle"></i> Please fix the following:</b>
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('settings.manage_settings') }}" id="settingsForm" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="set-card">
+      <h3><i class="fas fa-list-ol"></i> Numbering &amp; Sequence Formats</h3>
+      <div class="set-grid">
+        <div class="set-group">
+          <label for="GST_INVOICE_NEXT_NO">GST Invoice Next Number</label>
+          <input type="number" min="1" id="GST_INVOICE_NEXT_NO" name="GST_INVOICE_NEXT_NO" value="{{ settings.get('GST_INVOICE_NEXT_NO', '130') }}" required>
+          <span class="set-hint">130 gives 130/26-27, 131/26-27 ... (the system never reuses a number)</span>
+        </div>
+        <div class="set-group">
+          <label for="NON_GST_INVOICE_NEXT_NO">Non-GST Invoice Next Number</label>
+          <input type="number" min="1" id="NON_GST_INVOICE_NEXT_NO" name="NON_GST_INVOICE_NEXT_NO" value="{{ settings.get('NON_GST_INVOICE_NEXT_NO', '150') }}" required>
+          <span class="set-hint">150 gives 150/26-27, 151/26-27 ...</span>
+        </div>
+        <div class="set-group">
+          <label for="FINANCIAL_YEAR">Financial Year (invoice suffix)</label>
+          <input type="text" id="FINANCIAL_YEAR" name="FINANCIAL_YEAR" value="{{ settings.get('FINANCIAL_YEAR', '26-27') }}" placeholder="26-27" maxlength="5">
+          <span class="set-hint">Leave blank for automatic (April to March)</span>
+        </div>
+        <div class="set-group">
+          <label>GST Issue Challan Prefix &amp; Start No</label>
+          <div class="set-row">
+            <input type="text" class="grow2" name="GST_ISSUE_CHALLAN_PREFIX" value="{{ settings.get('GST_ISSUE_CHALLAN_PREFIX', 'OM/26-27/') }}" placeholder="Prefix">
+            <input type="number" min="1" class="grow1" name="GST_ISSUE_CHALLAN_START" value="{{ settings.get('GST_ISSUE_CHALLAN_START', '180') }}" placeholder="Start no">
+          </div>
+          <span class="set-hint">GST party: OM/26-27/180, OM/26-27/181 ...</span>
+        </div>
+        <div class="set-group">
+          <label for="WITHOUT_GST_ISSUE_CHALLAN_START">Without-GST Issue Challan Start No</label>
+          <input type="number" min="1" id="WITHOUT_GST_ISSUE_CHALLAN_START" name="WITHOUT_GST_ISSUE_CHALLAN_START" value="{{ settings.get('WITHOUT_GST_ISSUE_CHALLAN_START', '1') }}" required>
+          <span class="set-hint">01, 02, 03 ...</span>
+        </div>
+        <div class="set-group">
+          <label for="GST_RECEIVE_CHALLAN_START">Receive Challan Start No</label>
+          <input type="number" min="1" id="GST_RECEIVE_CHALLAN_START" name="GST_RECEIVE_CHALLAN_START" value="{{ settings.get('GST_RECEIVE_CHALLAN_START', '1') }}" required>
+          <span class="set-hint">01, 02, 03 ... (same series for GST and without-GST parties)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-card">
+      <h3><i class="fas fa-percent"></i> GST Rates</h3>
+      <div class="set-grid">
+        <div class="set-group">
+          <label for="CGST_RATE">CGST %</label>
+          <input type="number" step="0.01" min="0" max="100" id="CGST_RATE" name="CGST_RATE" value="{{ settings.get('CGST_RATE', '9') }}" required>
+        </div>
+        <div class="set-group">
+          <label for="SGST_RATE">SGST %</label>
+          <input type="number" step="0.01" min="0" max="100" id="SGST_RATE" name="SGST_RATE" value="{{ settings.get('SGST_RATE', '9') }}" required>
+        </div>
+      </div>
+      <span class="set-hint" style="margin-top: 8px; display: block;">GST is added only for parties that have a valid GSTIN.</span>
+    </div>
+
+    <div class="set-card">
+      <h3><i class="fas fa-building"></i> Company Profile &amp; Default Settings</h3>
+      <div class="set-grid">
+        <div class="set-group">
+          <label for="COMPANY_NAME">Company Name</label>
+          <input type="text" id="COMPANY_NAME" name="COMPANY_NAME" value="{{ settings.get('COMPANY_NAME', 'OM Enterprise') }}" required>
+        </div>
+        <div class="set-group">
+          <label for="COMPANY_GSTIN">GSTIN Number</label>
+          <input type="text" id="COMPANY_GSTIN" name="COMPANY_GSTIN" value="{{ settings.get('COMPANY_GSTIN', '') }}" maxlength="15" placeholder="24XXXXX0000X1Z5">
+        </div>
+        <div class="set-group full">
+          <label for="COMPANY_ADDRESS">Business Address</label>
+          <textarea id="COMPANY_ADDRESS" name="COMPANY_ADDRESS">{{ settings.get('COMPANY_ADDRESS', 'Plot No. 1046, KIRC Road, Near Sindbad Hotel, Kalol, Gujarat') }}</textarea>
+        </div>
+        <div class="set-group">
+          <label for="COMPANY_PHONE">Contact Phone</label>
+          <input type="text" id="COMPANY_PHONE" name="COMPANY_PHONE" value="{{ settings.get('COMPANY_PHONE', '+91 9824219138') }}">
+        </div>
+        <div class="set-group">
+          <label for="COMPANY_EMAIL">E-mail</label>
+          <input type="text" id="COMPANY_EMAIL" name="COMPANY_EMAIL" value="{{ settings.get('COMPANY_EMAIL', '') }}">
+        </div>
+        <div class="set-group">
+          <label for="COMPANY_STATE">State</label>
+          <input type="text" id="COMPANY_STATE" name="COMPANY_STATE" value="{{ settings.get('COMPANY_STATE', 'Gujarat') }}">
+        </div>
+        <div class="set-group">
+          <label for="COMPANY_STATE_CODE">State Code</label>
+          <input type="text" id="COMPANY_STATE_CODE" name="COMPANY_STATE_CODE" value="{{ settings.get('COMPANY_STATE_CODE', '24') }}" maxlength="2">
+        </div>
+        <div class="set-group">
+          <label for="DEFAULT_RENTAL_RATE">Default Rental Rate (Fallback)</label>
+          <input type="text" id="DEFAULT_RENTAL_RATE" name="DEFAULT_RENTAL_RATE" value="{{ settings.get('DEFAULT_RENTAL_RATE', '1.25') }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="set-actions">
+      <a href="{{ home_url }}" class="set-btn set-btn-grey"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+      <button type="submit" class="set-btn set-btn-blue"><i class="fas fa-save"></i> Save Configuration</button>
+    </div>
+  </form>
+</div>
+
+<div id="flash-data" hidden>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}<span data-category="{{ cat }}" data-message="{{ msg }}"></span>{% endfor %}
+  {% endwith %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var box = document.getElementById('flash-data');
+  if (!box) { return; }
+  var queue = Array.prototype.slice.call(box.querySelectorAll('span'));
+  function next() {
+    var el = queue.shift();
+    if (!el) { return; }
+    var ok = el.dataset.category === 'success';
+    var message = el.dataset.message;
+    if (window.Swal) {
+      Swal.fire({ icon: ok ? 'success' : 'error', title: ok ? 'Success' : 'Error', text: message,
+                  confirmButtonColor: '#1e293b', timer: ok ? 2500 : undefined }).then(next);
+    } else {
+      window.alert(message);
+      next();
+    }
+  }
+  next();
+});
+</script>
+{% endblock %}

@@ -45,24 +45,16 @@
             <span class="nav-label">Item Master</span>
         </a>
 
-        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('opening_stock.') %}active{% endif %}"
-           href="{{ url_for('opening_stock.index') }}"
-           {% if request.endpoint and request.endpoint.startswith('opening_stock.') %}aria-current="page"{% endif %}>
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/>
-                <path d="M4.3 7.7 12 12l7.7-4.3M12 12v9"/>
-                <path d="M8.5 5 16.5 9.5"/>
-            </svg>
-            <span class="nav-label">Opening Stock</span>
-        </a>
-
-        <div class="sidebar-heading sidebar-heading-spaced">TRANSACTIONS</div>
+        <div class="sidebar-heading sidebar-heading-spaced">TRANSACTIONS & REPORTS</div>
 
         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('issue_challan.') %}active{% endif %}"
            href="{{ url_for('issue_challan.index') }}"
            {% if request.endpoint and request.endpoint.startswith('issue_challan.') %}aria-current="page"{% endif %}>
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 19L19 5M5 5h14v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
             <span class="nav-label">Issue Challan</span>
         </a>
@@ -70,10 +62,67 @@
         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('receive_challan.') %}active{% endif %}"
            href="{{ url_for('receive_challan.index') }}"
            {% if request.endpoint and request.endpoint.startswith('receive_challan.') %}aria-current="page"{% endif %}>
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M19 5L5 19M19 19V5H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
             <span class="nav-label">Receive Challan</span>
+        </a>
+
+        <!-- Godown Stock (Using correct route from dashboard) -->
+        <a class="nav-link {% if request.endpoint and 'godown_stock' in request.endpoint %}active{% endif %}"
+           href="{{ url_for('stock.godown_stock') }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <span class="nav-label">Godown Stock</span>
+        </a>
+
+        <!-- Site Outstanding (Using correct route from dashboard) -->
+        <a class="nav-link {% if request.endpoint and 'party_site_stock' in request.endpoint %}active{% endif %}"
+           href="{{ url_for('stock.party_site_stock') }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18"/>
+                <path d="M18 17V9"/>
+                <path d="M13 17V5"/>
+                <path d="M8 17v-3"/>
+            </svg>
+            <span class="nav-label">Site Outstanding</span>
+        </a>
+
+        <!-- Monthly Billing -->
+        <a class="nav-link {% if request.endpoint and 'monthly_billing' in request.endpoint %}active{% endif %}"
+           href="{{ url_for('monthly_billing.index') }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+                <line x1="7" y1="15" x2="7.01" y2="15"/>
+                <line x1="11" y1="15" x2="13" y2="15"/>
+            </svg>
+            <span class="nav-label">Monthly Billing</span>
+        </a>
+
+        <!-- Audit Logs -->
+        <a class="nav-link {% if request.endpoint and 'audit_logs' in request.endpoint %}active{% endif %}"
+            href="{{ url_for('audit_logs.index') }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 8v4l3 3"/>
+                <circle cx="12" cy="12" r="9"/>
+            </svg>
+            <span class="nav-label">Audit Logs</span>
+        </a>
+
+        <!-- Settings (Added Here) -->
+        <a class="nav-link {% if request.endpoint and 'settings' in request.endpoint %}active{% endif %}"
+            href="{{ url_for('settings.manage_settings') }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1.45 1.92l-.41.11a2 2 0 0 1-2.28-.95l-.22-.38a2 2 0 0 0-2.72-.73l-.38.22a2 2 0 0 0-.95 2.28l.11.41a2 2 0 0 1-1.92 1.45H2a2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2h.18a2 2 0 0 1 1.92 1.45l.11.41a2 2 0 0 1-.95 2.28l-.38.22a2 2 0 0 0-.73 2.72l.22.38a2 2 0 0 0 2.28.95l.41-.11a2 2 0 0 1 1.45 1.92V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1.92-1.45l.41.11a2 2 0 0 1 2.28.95l.22.38a2 2 0 0 0 2.72.73l.38-.22a2 2 0 0 0 .95-2.28l-.11-.41a2 2 0 0 1 1.92-1.45H22a2 2 0 0 0 2-2v-.44a2 2 0 0 0-2-2h-.18a2 2 0 0 1-1.92-1.45l-.11-.41a2 2 0 0 1 .95-2.28l.38-.22a2 2 0 0 0 .73-2.72l-.22-.38a2 2 0 0 0-2.28-.95l-.41.11a2 2 0 0 1-1.45-1.92V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="nav-label">Settings</span>
         </a>
     </nav>
 

@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Party-wise Site Stock Ledger - OM Enterprise{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+h3 { margin: 28px 0 6px; color: #1e293b; font-size: 15px; font-weight: 700; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; }
+.btn-orange { background: #f97316; }
+.btn-orange:hover { background: #ea580c; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+
+.filter-section { background: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: nowrap; gap: 12px; align-items: flex-end; overflow-x: auto; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 0; min-width: 0; }
+.filter-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; white-space: nowrap; }
+.filter-group select { width: 100%; min-width: 0; padding: 9px 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #1e293b; }
+.filter-actions { display: flex; gap: 8px; flex-shrink: 0; }
+@media (max-width: 800px) { .filter-section { flex-wrap: wrap; overflow-x: visible; } .filter-group { flex: 1 1 220px; } }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+th, td { border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 13px; text-align: left; }
+th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+tbody tr:hover { background-color: #f8fafc; }
+tfoot td { background: #f8fafc; font-weight: 800; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.selected-info { margin-bottom: 15px; font-size: 14px; color: #334155; }
+.tag { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.tag-Opening { background: #f1f5f9; color: #475569; }
+.tag-Issue { background: #dbeafe; color: #1d4ed8; }
+.tag-Receive { background: #dcfce7; color: #15803d; }
+.zero { color: #94a3b8; font-weight: 500 !important; }
+
+/* Colours that were earlier written with Jinja inside style="" (now plain classes) */
+.col-issued { color: #2563eb; }
+.col-received { color: #16a34a; }
+.out { font-weight: bold; }
+.out-neg { color: #b91c1c; }
+.out-zero { color: #94a3b8; }
+.out-pos { color: #dc2626; }
+.qty-in { color: #2563eb; }
+.qty-out { color: #16a34a; }
+.empty-cell { text-align: center; color: #64748b; padding: 30px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h2>Party &amp; Site-wise Current Stock Balance</h2>
+    {% if stock_rows %}
+    <a href="{{ url_for('stock_ledger.print_ledger', party_id=party_id, site_id=site_id) }}" class="btn btn-orange" target="_blank" rel="noopener">
+      <i class="fas fa-print"></i> Print / Export PDF
+    </a>
+    {% endif %}
+  </div>
+
+  <form method="GET" action="{{ url_for('stock_ledger.index') }}" class="filter-section" id="filterForm">
+    <div class="filter-group">
+      <label for="partySelect">Select Party / Client</label>
+      <select name="party_id" id="partySelect" required>
+        <option value="">-- Choose Party --</option>
+        {% for p in parties %}
+        {% set p_id = p.Party_ID or p.ID %}
+        {% set p_name = p.Party_Name or p.Name or p_id %}
+        <option value="{{ p_id }}">{{ p_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="siteSelect">Select Site Location</label>
+      <select name="site_id" id="siteSelect" required>
+        <option value="">-- Choose Site --</option>
+      </select>
+    </div>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn"><i class="fas fa-search"></i> View Stock</button>
+      <a href="{{ url_for('stock_ledger.index') }}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+
+  {% if selected_party_name %}
+  <div class="selected-info">
+    Showing stock for Party: <b>{{ selected_party_name }}</b> | Site: <b>{{ selected_site_name }}</b>
+  </div>
+  {% endif %}
+
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 8%" class="text-center">S.No.</th>
+        <th style="width: 44%">Item Description</th>
+        <th style="width: 12%" class="text-right">Opening Qty</th>
+        <th style="width: 12%" class="text-right">Issued Qty</th>
+        <th style="width: 12%" class="text-right">Returned Qty</th>
+        <th style="width: 12%" class="text-right">Outstanding</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in stock_rows %}
+      <tr>
+        <td class="text-center">{{ row.s_no }}</td>
+        <td><b>{{ row.item_description }}</b></td>
+        <td class="text-right {% if row.opening == '0' %}zero{% endif %}">{{ row.opening }}</td>
+        <td class="text-right col-issued">{{ row.issued }}</td>
+        <td class="text-right col-received">{{ row.received }}</td>
+        <td class="text-right out {% if row.outstanding_raw < 0 %}out-neg{% elif row.outstanding_raw == 0 %}out-zero{% else %}out-pos{% endif %}">{{ row.outstanding }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="empty-cell">
+          {% if selected_party_name %} No stock records found for this location. {% else %} Please select a Party and Site Location above to view stock balance. {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% if stock_rows %}
+    <tfoot>
+      <tr>
+        <td colspan="2" class="text-right">Total</td>
+        <td class="text-right">{{ totals.opening }}</td>
+        <td class="text-right">{{ totals.issued }}</td>
+        <td class="text-right">{{ totals.received }}</td>
+        <td class="text-right">{{ totals.outstanding }}</td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+  </div>
+
+  {% if movements %}
+  <h3><i class="fas fa-clock-rotate-left"></i> Movement History</h3>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 12%">Date</th>
+        <th style="width: 11%">Type</th>
+        <th style="width: 16%">Challan No.</th>
+        <th>Details</th>
+        <th style="width: 11%" class="text-right">Qty (Nos)</th>
+        <th style="width: 14%" class="text-right">Balance With Party</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in movements %}
+      <tr>
+        <td>{{ m.date_display }}</td>
+        <td><span class="tag tag-{{ m.type }}">{{ m.type }}</span></td>
+        <td>{% if m.url %}<a href="{{ m.url }}" target="_blank" rel="noopener"><b>{{ m.no }}</b></a>{% else %}{{ m.no }}{% endif %}</td>
+        <td>{{ m.detail }}</td>
+        <td class="text-right {% if m.sign > 0 %}qty-in{% else %}qty-out{% endif %}">{{ m.qty_display }}</td>
+        <td class="text-right"><b>{{ m.balance }}</b></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Flask data (script ke andar Jinja nahi, isliye red underline nahi aati) -->
+<div id="page-data" hidden data-sites="{{ sites_json | e }}" data-site-id="{{ site_id }}" data-party-id="{{ party_id }}"></div>
+
+<script>
+(function () {
+'use strict';
+const pageData = document.getElementById('page-data').dataset;
+const allSites = JSON.parse(pageData.sites);
+const currentSiteId = pageData.siteId;
+const currentPartyId = pageData.partyId;
+
+function normId(v) { return String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\.0+$/, ''); }
+function sitePartyId(s) {
+    const key = Object.keys(s).find(k => ['partyid', 'customerid', 'custid', 'clientid'].includes(k.toLowerCase().replace(/[^a-z]/g, '')));
+    return key ? s[key] : '';
+}
+function siteLabel(s) { return s.Site_Name || s.Site_Location || s.Location || s.Site_Address || s.Address || s.Site_ID || ''; }
+
+const partySelect = document.getElementById('partySelect');
+const siteSelect = document.getElementById('siteSelect');
+
+function filterSites(partyId, selected) {
+    siteSelect.innerHTML = '<option value="">-- Choose Site --</option>';
+    if (!partyId) return;
+    allSites.filter(s => normId(sitePartyId(s)) === normId(partyId)).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.Site_ID || '';
+        opt.textContent = siteLabel(s);
+        if (selected && normId(opt.value) === normId(selected)) opt.selected = true;
+        siteSelect.appendChild(opt);
+    });
+}
+
+// Page load: restore the previously chosen party, then its sites + chosen site
+if (currentPartyId) {
+    Array.from(partySelect.options).forEach(o => {
+        if (normId(o.value) === normId(currentPartyId)) partySelect.value = o.value;
+    });
+}
+partySelect.addEventListener('change', () => filterSites(partySelect.value, ''));
+filterSites(partySelect.value, currentSiteId);
+})();
+</script>
+{% endblock %}

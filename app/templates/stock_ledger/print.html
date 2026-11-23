@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Statement - {{ ledger.party_name }} - OM Enterprise</title>
+<style>
+@page { size: A4 portrait; margin: 8mm 10mm; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html, body { margin: 0; padding: 0; background: #cbd5e1; color: #0f172a; font-size: 10pt; line-height: 1.35;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums; -webkit-text-size-adjust: 100%; }
+
+/* ---------- A4 sheet ---------- */
+#sheet-host { padding: 12px 0 6px; }
+.page { width: 210mm; min-height: 297mm; margin: 0 auto 12px; padding: 8mm 10mm; background: #fff; outline: 1px solid #94a3b8;
+  box-shadow: 0 6px 18px rgba(15,23,42,.15); display: flex; flex-direction: column; justify-content: space-between; border-radius: 2px; }
+
+/* ---------- header ---------- */
+.header { display: grid; grid-template-columns: 88mm 1fr; align-items: center; border-bottom: 2.5px solid #0f172a; padding-bottom: 3.5mm; margin-bottom: 4mm; }
+.logo-area { display: flex; align-items: center; gap: 12px; }
+.brand-logo { width: 65px; height: 54px; flex-shrink: 0; }
+.logo-text { display: flex; flex-direction: column; gap: 2px; }
+.logo-text .brand-name { font-size: 15pt; font-weight: 900; color: #0f172a; letter-spacing: .5px; line-height: 1.1; white-space: nowrap; }
+.logo-text .brand-sub { font-size: 5.5pt; font-weight: 800; color: #f97316; letter-spacing: .6px; text-transform: uppercase; }
+.title-area { text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.title-area h1 { font-size: 14pt; margin: 0 0 2px; font-weight: 900; color: #0f172a; letter-spacing: .8px; text-transform: uppercase; }
+.title-area .company-name { font-size: 10pt; font-weight: 800; color: #334155; margin: 0; }
+.title-area p { font-size: 8pt; margin: 0; color: #475569; line-height: 1.25; }
+.title-area .tax-details { font-weight: 800; color: #0f172a; margin-top: 2px; }
+
+/* ---------- party / statement details ---------- */
+.party-grid { display: grid; grid-template-columns: 62% 38%; border: 1.5px solid #0f172a; border-radius: 4px; overflow: hidden; margin-bottom: 4mm; background: #fff; }
+.pg-left { border-right: 1.5px solid #0f172a; min-width: 0; }
+.pg-right { min-width: 0; }
+.box-title { background: #dee1e9; color: #0f172a; padding: 4.5px 10px; font-weight: 800; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #94a3b8; }
+.box-content { padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; }
+.field-row { display: grid; grid-template-columns: 30mm 1fr; gap: 6px; font-size: 9.5pt; line-height: 1.35; }
+.field-row b { color: #334155; font-weight: 700; white-space: nowrap; }
+.field-row b::after { content: ""; }
+.field-row span { color: #0f172a; font-weight: 600; min-width: 0; word-break: break-word; }
+
+/* ---------- stock table ---------- */
+.tbl-wrap { border: 1.5px solid #0f172a; border-radius: 4px; overflow: hidden; background: #fff; }
+.items-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: -2px; }
+.items-table thead { display: table-header-group; }
+.items-table th { background: #dee1e9; color: #0f172a; border-right: 1px solid #aab2c0; border-bottom: 2px solid #0f172a; padding: 7px 6px; font-size: 8pt; font-weight: 800; letter-spacing: .2px; text-transform: uppercase; }
+.items-table td { border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; padding: 6px 8px; font-size: 9.5pt; vertical-align: middle; }
+.items-table th:last-child, .items-table td:last-child { border-right: none; }
+.items-table tbody tr:nth-child(even) td { background: #fafbfc; }
+.items-table tr { break-inside: avoid; page-break-inside: avoid; }
+.items-table .total-row td { font-weight: 800; background: #dee1e9 !important; border-top: 1.5px solid #0f172a; border-bottom: none; font-size: 10pt; }
+.text-center { text-align: center; } .text-right { text-align: right; } .text-left { text-align: left; }
+
+/* ---------- footer ---------- */
+.footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-top: 8mm; font-size: 9pt; break-inside: avoid; }
+.footer .note { flex: 1; padding: 5px 10px; background: #f8fafc; border-left: 3.5px solid #0f172a; border-radius: 0 3px 3px 0; color: #334155; font-size: 8.5pt; line-height: 1.4; }
+.footer p { margin: 0; }
+.sign { text-align: center; min-width: 62mm; }
+.sign .for { font-size: 8.5pt; font-weight: 700; color: #334155; }
+.sign .line { border-top: 1px solid #334155; margin-top: 16mm; padding-top: 4px; font-size: 8.5pt; font-weight: 700; }
+
+/* ---------- buttons (hidden in print) ---------- */
+.print-actions { width: 210mm; max-width: 100%; margin: 0 auto 25px; display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.btn-action { background: #f97316; color: #fff; border: none; padding: 11px 26px; border-radius: 6px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
+.btn-action:hover { background: #ea580c; }
+.btn-secondary { background: #1e293b; }
+.btn-secondary:hover { background: #0f172a; }
+
+@media print {
+  html, body { background: #fff; }
+  .tbl-wrap { overflow: visible; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  #sheet-host { padding: 0; zoom: 1 !important; }
+  .page { width: auto; min-height: 280mm; margin: 0; padding: 0; outline: none; box-shadow: none; border-radius: 0; }
+  .print-actions { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="sheet-host">
+<div class="page">
+  <div>
+    <header class="header">
+      <div class="logo-area">
+        <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="15" width="210" height="170" rx="12" fill="#0F172A" />
+          <circle cx="28" cy="28" r="4" fill="#F97316" />
+          <circle cx="212" cy="28" r="4" fill="#F97316" />
+          <circle cx="28" cy="172" r="4" fill="#F97316" />
+          <circle cx="212" cy="172" r="4" fill="#F97316" />
+          <line x1="15" y1="65" x2="225" y2="65" stroke="#1E293B" stroke-width="2" />
+          <line x1="15" y1="135" x2="225" y2="135" stroke="#1E293B" stroke-width="2" />
+          <line x1="85" y1="15" x2="85" y2="185" stroke="#1E293B" stroke-width="2" />
+          <line x1="155" y1="15" x2="155" y2="185" stroke="#1E293B" stroke-width="2" />
+          <path d="M 40,50 L 105,50 C 115,50 120,55 120,65 L 120,135 C 120,145 115,150 105,150 L 40,150 Z" fill="none" stroke="#F97316" stroke-width="14" stroke-linejoin="round" />
+          <path d="M 120,150 L 120,60 L 148,110 L 176,60 L 176,150" fill="none" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="110" y="96" width="80" height="8" rx="2" fill="#F97316" />
+        </svg>
+        <div class="logo-text">
+          <span class="brand-name">OM ENTERPRISE</span>
+          <span class="brand-sub">RCC FORM-WORK &amp; SCAFFOLDING RENTALS</span>
+        </div>
+      </div>
+
+      <div class="title-area">
+        <h1>STOCK STATEMENT</h1>
+        <p class="company-name">OM ENTERPRISE</p>
+        <p>PLOT NO: 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL</p>
+        <p>TALUKA-KALOL, GANDHINAGAR, GUJARAT - 382721</p>
+        <p>Contact: +91 9998802167, 9824219138</p>
+        <p class="tax-details">GSTIN: 24BDU102R1Z8 &nbsp;|&nbsp; SAC: 997313</p>
+      </div>
+    </header>
+
+    <section class="party-grid">
+      <div class="pg-left">
+        <div class="box-title">Party Details</div>
+        <div class="box-content">
+          <div class="field-row"><b>Party Name :</b><span>{{ ledger.party_name or '-' }}</span></div>
+          <div class="field-row"><b>Site Location :</b><span>{{ ledger.site_name or '-' }}{% if ledger.site_address %}, {{ ledger.site_address }}{% endif %}</span></div>
+          <div class="field-row"><b>Billing Address :</b><span>{{ ledger.party_address or '-' }}</span></div>
+        </div>
+      </div>
+      <div class="pg-right">
+        <div class="box-title">Statement Details</div>
+        <div class="box-content">
+          <div class="field-row"><b>Mobile No. :</b><span>{{ ledger.party_mobile or '-' }}</span></div>
+          <div class="field-row"><b>GSTIN :</b><span>{{ ledger.party_gstin if ledger.party_gstin and ledger.party_gstin != '-' else '-' }}</span></div>
+          <div class="field-row"><b>Statement Date :</b><span id="stDate">{{ ledger.printed_on }}</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tbl-wrap">
+    <table class="items-table">
+      <colgroup><col style="width:8%"><col style="width:34%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:16%"></colgroup>
+      <thead>
+        <tr>
+          <th class="text-center">S.No.</th>
+          <th class="text-left">Item Description</th>
+          <th class="text-right">Opening</th>
+          <th class="text-right">Issued</th>
+          <th class="text-right">Returned</th>
+          <th class="text-right">Outstanding</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="text-center">{{ row.s_no }}</td>
+          <td><b>{{ row.item_description }}</b></td>
+          <td class="text-right">{{ row.opening }}</td>
+          <td class="text-right">{{ row.issued }}</td>
+          <td class="text-right">{{ row.received }}</td>
+          <td class="text-right"><b>{{ row.outstanding }}</b></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center" style="padding: 20px;">No stock records found for this location.</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="2" class="text-right"><b>Total :</b></td>
+          <td class="text-right">{{ ledger.totals.opening }}</td>
+          <td class="text-right">{{ ledger.totals.issued }}</td>
+          <td class="text-right">{{ ledger.totals.received }}</td>
+          <td class="text-right"><b>{{ ledger.totals.outstanding }}</b></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="note">
+      <p><b>Note:</b> Please verify this stock statement at your site. Discrepancies if any must be reported within 3 days.</p>
+    </div>
+    <div class="sign">
+      <p class="for">For OM Enterprise</p>
+      <div class="line">Authorised Signatory</div>
+    </div>
+  </footer>
+</div>
+</div>
+
+<!-- Back & Print buttons (statement ke end me) -->
+<div class="print-actions">
+  <a href="{{ url_for('stock_ledger.index', party_id=party_id, site_id=site_id) }}" class="btn-action btn-secondary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back to Stock Ledger</a>
+  <button type="button" class="btn-action" onclick="window.print()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Statement</button>
+</div>
+
+<script>
+(function () {
+  /* Statement date: if the server sent none, show today's date */
+  var d = document.getElementById('stDate');
+  if (d && !d.textContent.trim()) {
+    var t = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    d.textContent = p(t.getDate()) + '-' + p(t.getMonth() + 1) + '-' + t.getFullYear();
+  }
+  /* Phones: shrink the A4 sheet to the screen width (print is never scaled) */
+  var host = document.getElementById('sheet-host');
+  function fit() {
+    var z = Math.min(1, (document.documentElement.clientWidth - 12) / 794);
+    host.style.zoom = z < 1 ? z : '';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

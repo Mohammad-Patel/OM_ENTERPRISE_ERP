@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.log-wrap { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.log-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+.log-head h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; color: #fff; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+.btn-green { background: #15803d; }
+.btn-green:hover { background: #166534; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+.card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; background: #f8fafc; }
+.card .label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+.card .value { font-size: 24px; font-weight: 800; margin-top: 4px; color: #1e293b; }
+.card .value.small { font-size: 16px; margin-top: 8px; }
+.card.blue .value { color: #1d4ed8; }
+.card.green .value { color: #15803d; }
+
+.diag { padding: 12px 16px; border-radius: 6px; margin-bottom: 18px; font-size: 13px; line-height: 1.5; border: 1px solid; }
+.diag.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.diag.info { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
+.log-filter { background: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.log-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 150px; min-width: 140px; }
+.log-group.wide { flex: 2 1 240px; }
+.log-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; }
+.log-group input, .log-group select { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; box-sizing: border-box; }
+.filter-actions { display: flex; gap: 8px; }
+
+.table-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #64748b; }
+.table-controls select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; }
+
+.table-wrap { overflow-x: auto; }
+table.logs { width: 100%; border-collapse: collapse; }
+table.logs th, table.logs td { border: 1px solid #e2e8f0; padding: 10px 12px; font-size: 13px; text-align: left; vertical-align: top; }
+table.logs th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; white-space: nowrap; }
+table.logs tbody tr:hover { background-color: #f8fafc; }
+.muted { color: #94a3b8; }
+.time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.badge { padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; border: 1px solid; display: inline-block; text-transform: uppercase; letter-spacing: .03em; }
+.b-create { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.b-update { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.b-danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.b-warn   { background: #fefce8; color: #ca8a04; border-color: #fef08a; }
+.b-other  { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+.entity b { color: #0f172a; }
+.entity small { display: block; color: #64748b; }
+
+.sum { color: #334155; }
+details.chg { margin-top: 6px; }
+details.chg > summary { cursor: pointer; color: #2563eb; font-size: 12px; font-weight: 600; list-style: none; }
+details.chg > summary::-webkit-details-marker { display: none; }
+details.chg > summary::before { content: "\25B8  "; }
+details.chg[open] > summary::before { content: "\25BE  "; }
+table.chg-table { width: 100%; margin-top: 6px; border-collapse: collapse; background: #f8fafc; }
+table.chg-table th, table.chg-table td { border: 1px solid #e2e8f0; padding: 5px 8px; font-size: 12px; word-break: break-word; }
+table.chg-table th { background: #e2e8f0; font-size: 10px; }
+table.chg-table td.f { font-weight: 700; white-space: nowrap; width: 150px; }
+table.chg-table td.old { color: #b91c1c; }
+table.chg-table td.new { color: #15803d; }
+
+.pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #475569; }
+.pagination-links { display: flex; gap: 5px; flex-wrap: wrap; }
+.pagination-links a, .pagination-links span { padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px; text-decoration: none; color: #1e293b; background: #fff; font-weight: 500; }
+.pagination-links a:hover { background: #f1f5f9; }
+.pagination-links span.active { background: #1e293b; color: #fff; border-color: #1e293b; }
+.pagination-links span.dots { border: none; background: transparent; padding: 6px 4px; }
+@media (max-width: 800px) { .cards { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="log-wrap">
+  <div class="log-head">
+    <h2><i class="fas fa-history"></i> System Audit Logs &amp; Activity Trail</h2>
+    <div class="head-actions">
+      <a href="{{ url_for('audit_logs.export', **qargs) }}" class="btn btn-green"><i class="fas fa-file-csv"></i> Export CSV</a>
+      <a href="{{ home_url }}" class="btn btn-secondary"><i class="fas fa-home"></i> Home</a>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card blue"><div class="label">Total Entries</div><div class="value">{{ cards.total }}</div></div>
+    <div class="card green"><div class="label">Today</div><div class="value">{{ cards.today }}</div></div>
+    <div class="card"><div class="label">Last Activity</div><div class="value small">{{ cards.last }}</div></div>
+  </div>
+
+  {% if diag.state != 'ok' %}
+  <div class="diag {{ 'error' if diag.state in ['error', 'nofile'] else 'info' }}">
+    <i class="fas fa-circle-info"></i> <b>{{ diag.message }}</b>
+  </div>
+  {% endif %}
+
+  <form method="GET" action="{{ url_for('audit_logs.index') }}" class="log-filter" id="logFilter">
+    <div class="log-group wide">
+      <label for="search">Search</label>
+      <input type="text" id="search" name="search" value="{{ search_query }}" placeholder="Invoice / challan no, user, action, reason, field values...">
+    </div>
+    <div class="log-group">
+      <label for="action">Action</label>
+      <select name="action" id="action">
+        <option value="">All Actions</option>
+        {% for act in actions %}<option value="{{ act }}" {% if action_filter == act %}selected{% endif %}>{{ act }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="log-group">
+      <label for="entity">Module / Entity</label>
+      <select name="entity" id="entity">
+        <option value="">All</option>
+        {% for en in entities %}<option value="{{ en }}" {% if entity_filter == en %}selected{% endif %}>{{ en }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="log-group">
+      <label for="user">User</label>
+      <select name="user" id="user">
+        <option value="">All Users</option>
+        {% for u in users %}<option value="{{ u }}" {% if user_filter == u %}selected{% endif %}>{{ u }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="log-group"><label for="date_from">From Date</label><input type="date" id="date_from" name="date_from" value="{{ date_from }}"></div>
+    <div class="log-group"><label for="date_to">To Date</label><input type="date" id="date_to" name="date_to" value="{{ date_to }}"></div>
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <div class="filter-actions">
+      <button type="submit" class="btn"><i class="fas fa-search"></i> Filter</button>
+      <a href="{{ url_for('audit_logs.index') }}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+
+  <div class="table-controls">
+    <div>Showing <b>{{ logs|length }}</b> of <b>{{ total_records }}</b> record(s){% if filters_active %} <span style="color:#f97316;font-weight:600;">(filtered)</span>{% endif %}</div>
+    <div>
+      <label>Show </label>
+      <select onchange="location = this.value;">
+        {% for n in per_page_options %}
+        <option value="{{ url_for('audit_logs.index', **dict(qargs, per_page=n)) }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+      <label> entries per page</label>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="logs">
+      <thead>
+        <tr>
+          <th style="width: 150px;">Date &amp; Time</th>
+          <th style="width: 110px;">User</th>
+          <th style="width: 120px;">Action</th>
+          <th style="width: 190px;">Record</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in logs %}
+        <tr>
+          <td class="time">{{ l.time }}</td>
+          <td>{% if l.user %}<b>{{ l.user }}</b>{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td><span class="badge {{ l.action_class }}">{{ l.action }}</span></td>
+          <td class="entity">
+            {% if l.entity_id %}<b>{{ l.entity_id }}</b>{% else %}<span class="muted">-</span>{% endif %}
+            {% if l.entity_type %}<small>{{ l.entity_type }}</small>{% endif %}
+          </td>
+          <td>
+            {% if l.reason %}<div><b>Reason:</b> {{ l.reason }}</div>{% endif %}
+            {% if l.summary %}<div class="sum">{{ l.summary }}</div>{% endif %}
+            {% if not l.reason and not l.summary and not l.changes %}<span class="muted">-</span>{% endif %}
+            {% if l.changes %}
+            <details class="chg">
+              <summary>View details ({{ l.changes|length }} field{{ '' if l.changes|length == 1 else 's' }})</summary>
+              <table class="chg-table">
+                <thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead>
+                <tbody>
+                  {% for c in l.changes %}
+                  <tr>
+                    <td class="f">{{ c.field }}</td>
+                    <td class="old">{{ c.before if c.before else '-' }}</td>
+                    <td class="new">{{ c.after if c.after else '-' }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </details>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align: center; color: #64748b; padding: 30px;">
+            {% if filters_active and cards.total %}No audit logs match your filters. <a href="{{ url_for('audit_logs.index') }}">Clear filters</a>
+            {% else %}No audit logs recorded yet.{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div>Page <b>{{ page }}</b> of <b>{{ total_pages }}</b></div>
+    <div class="pagination-links">
+      {% if page > 1 %}<a href="{{ url_for('audit_logs.index', **dict(qargs, page=page-1)) }}">&laquo; Prev</a>{% endif %}
+      {% for n in page_numbers %}
+        {% if n is none %}<span class="dots">&hellip;</span>
+        {% elif n == page %}<span class="active">{{ n }}</span>
+        {% else %}<a href="{{ url_for('audit_logs.index', **dict(qargs, page=n)) }}">{{ n }}</a>{% endif %}
+      {% endfor %}
+      {% if page < total_pages %}<a href="{{ url_for('audit_logs.index', **dict(qargs, page=page+1)) }}">Next &raquo;</a>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// empty filters are not sent (clean URL)
+document.getElementById('logFilter').addEventListener('submit', function () {
+    this.querySelectorAll('input[name], select[name]').forEach(function (el) {
+        if (el.type !== 'hidden' && el.value === '') { el.disabled = true; }
+    });
+});
+</script>
+{% endblock %}

@@ -1,3 +1,4 @@
+import logging
 
 from flask import Blueprint, flash, redirect, request, url_for
 
@@ -10,6 +11,7 @@ from app.services.site_service import (
     delete_site,
 )
 
+logger = logging.getLogger(__name__)
 
 sites_bp = Blueprint(
     "sites",
@@ -41,6 +43,27 @@ def _party_exists(party_id):
     return get_party(party_id) is not None
 
 
+def _run(party_id, action, success_message, error_message):
+    """
+    Run a site action, flash the result and go back to the Party Details page.
+    Every failure - expected (SiteServiceError) or not - shows a message instead of a 500 page.
+    """
+    if not _party_exists(party_id):
+        flash("Party record nahi mila.", "warning")
+        return redirect(url_for("parties.index"))
+
+    try:
+        result = action()
+        flash(success_message(result) if callable(success_message) else success_message, "success")
+    except SiteServiceError as exc:
+        flash(str(exc), "danger")
+    except Exception:
+        logger.exception(error_message)
+        flash(error_message, "danger")
+
+    return _party_page(party_id)
+
+
 @sites_bp.route("/", methods=["GET"])
 def index(party_id):
     return _party_page(party_id)
@@ -51,26 +74,12 @@ def create(party_id):
     if request.method == "GET":
         return _party_page(party_id)
 
-    if not _party_exists(party_id):
-        flash("Party record nahi mila.", "warning")
-        return redirect(url_for("parties.index"))
-
-    try:
-        site_id = create_site(
-            party_id,
-            _site_form_data(),
-            username="Administrator",
-        )
-
-        flash(
-            f"Site successfully added. Site ID: {site_id}",
-            "success",
-        )
-
-    except SiteServiceError as exc:
-        flash(str(exc), "danger")
-
-    return _party_page(party_id)
+    return _run(
+        party_id,
+        lambda: create_site(party_id, _site_form_data(), username="Administrator"),
+        lambda site_id: f"Site successfully added. Site ID: {site_id}",
+        "Site add nahi ho saki. Dobara try karein.",
+    )
 
 
 @sites_bp.route("/<site_id>/edit", methods=["GET", "POST"])
@@ -78,35 +87,25 @@ def edit(party_id, site_id):
     if request.method == "GET":
         return _party_page(party_id)
 
-    if not _party_exists(party_id):
-        flash("Party record nahi mila.", "warning")
-        return redirect(url_for("parties.index"))
-
-    try:
-        update_site(
+    return _run(
+        party_id,
+        lambda: update_site(
             party_id,
             site_id,
             _site_form_data(),
             reason="Updated from Party Details modal",
             username="Administrator",
-        )
-
-        flash("Site successfully updated.", "success")
-
-    except SiteServiceError as exc:
-        flash(str(exc), "danger")
-
-    return _party_page(party_id)
+        ),
+        "Site successfully updated.",
+        "Site update nahi ho saki. Dobara try karein.",
+    )
 
 
 @sites_bp.route("/<site_id>/deactivate", methods=["POST"])
 def deactivate(party_id, site_id):
-    if not _party_exists(party_id):
-        flash("Party record nahi mila.", "warning")
-        return redirect(url_for("parties.index"))
-
-    try:
-        deactivate_site(
+    return _run(
+        party_id,
+        lambda: deactivate_site(
             party_id,
             site_id,
             reason=(
@@ -114,42 +113,26 @@ def deactivate(party_id, site_id):
                 or "Deactivated from Party Details"
             ),
             username="Administrator",
-        )
-
-        flash(
-            "Site deactivated. Historical records preserved.",
-            "success",
-        )
-
-    except SiteServiceError as exc:
-        flash(str(exc), "danger")
-
-    return _party_page(party_id)
-
+        ),
+        "Site deactivated. Historical records preserved.",
+        "Site deactivate nahi ho saki. Dobara try karein.",
+    )
 
 
 @sites_bp.route("/<site_id>/delete", methods=["POST"])
 def delete(party_id, site_id):
-    """Legacy Delete route: site ko permanently delete nahi, deactivate kare."""
-    if not _party_exists(party_id):
-        flash("Party record nahi mila.", "warning")
-        return redirect(url_for("parties.index"))
-
-    try:
-        delete_site(
+    """Permanently delete an inactive site (refused if challans / bills / stock use it)."""
+    return _run(
+        party_id,
+        lambda: delete_site(
             party_id,
             site_id,
             reason=(
                 request.form.get("Reason", "").strip()
-                or "Site deactivated from Party Details"
+                or "Permanently deleted inactive site"
             ),
             username="Administrator",
-        )
-        flash(
-            "Site successfully deactivated. Site ID aur historical record preserve hain.",
-            "success",
-        )
-    except SiteServiceError as exc:
-        flash(str(exc), "danger")
-
-    return _party_page(party_id)
+        ),
+        "Inactive site successfully deleted from the system.",
+        "Site delete nahi ho saki. Dobara try karein.",
+    )

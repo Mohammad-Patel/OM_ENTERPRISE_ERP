@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Godown Entries - OM Enterprise{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+.btn-primary { background: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-danger { background: #fff; color: #dc2626; border: 1px solid #fca5a5; padding: 5px 12px; font-size: 12px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.btn-danger:hover { background: #fef2f2; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+.card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; background: #f8fafc; }
+.card .label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+.card .value { font-size: 26px; font-weight: 800; margin-top: 4px; }
+.card.green .value { color: #15803d; }
+.card.red .value { color: #b91c1c; }
+.card.blue .value { color: #1d4ed8; }
+
+details.new-entry { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; background: #f8fafc; }
+details.new-entry summary { cursor: pointer; padding: 12px 18px; font-weight: 700; font-size: 14px; color: #1e293b; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding: 4px 18px 18px; }
+.form-grid .fg { display: flex; flex-direction: column; gap: 5px; }
+.form-grid label, .filter-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; }
+.form-grid input, .form-grid select { padding: 9px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; width: 100%; box-sizing: border-box; }
+.form-actions { padding: 0 18px 18px; }
+
+/* Professional Single-Line Filter Section Layout */
+.filter-section { background: #f8fafc; padding: 15px 18px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: nowrap; gap: 10px; align-items: flex-end; overflow-x: auto; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 130px; flex: 1; }
+.filter-group.search-box { flex: 1.5; }
+.filter-group input, .filter-group select { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; box-sizing: border-box; }
+.filter-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-end; }
+
+.table-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 13px; color: #475569; }
+.table-top select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 13px; text-align: left; vertical-align: middle; }
+th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+tbody tr:hover { background-color: #f8fafc; }
+.in { color: #15803d; font-weight: 700; }
+.out { color: #b91c1c; font-weight: 700; }
+tr.is-cancelled td { opacity: .55; }
+tr.is-cancelled td.keep { opacity: 1; }
+tr.is-cancelled .strike { text-decoration: line-through; }
+.tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; background: #dcfce7; color: #15803d; white-space: nowrap; display: inline-block; }
+.tag.cancel { background: #fee2e2; color: #b91c1c; }
+
+.pager { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; font-size: 13px; color: #475569; }
+.pages { display: flex; gap: 4px; flex-wrap: wrap; }
+.pages a, .pages span { min-width: 34px; padding: 6px 10px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; color: #1e293b; background: #fff; font-size: 13px; box-sizing: border-box; }
+.pages a:hover { background: #f1f5f9; }
+.pages .current { background: #1e293b; color: #fff; border-color: #1e293b; font-weight: 700; }
+.pages .disabled { color: #94a3b8; background: #f8fafc; }
+.pages .dots { border: none; background: none; }
+
+@media (max-width: 1200px) {
+  .filter-section { flex-wrap: wrap; }
+  .filter-group { min-width: 180px; }
+}
+@media (max-width: 800px) { .cards { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h2><i class="fas fa-boxes-packing"></i> Godown Entries (Purchase / Sale)</h2>
+    <div class="header-actions">
+      <a href="{{ url_for('stock.godown_stock') }}" class="btn btn-secondary"><i class="fas fa-warehouse"></i> Godown Stock</a>
+      <a href="{{ url_for('stock.statement') }}" class="btn"><i class="fas fa-file-lines"></i> Godown Statement</a>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card green"><div class="label">Stock In (Filtered)</div><div class="value">{{ summary.in }}</div></div>
+    <div class="card red"><div class="label">Stock Out (Filtered)</div><div class="value">{{ summary.out }}</div></div>
+    <div class="card blue"><div class="label">Net Change (Filtered)</div><div class="value">{{ summary.net }}</div></div>
+  </div>
+
+  <details class="new-entry" {% if all_count == 0 %}open{% endif %}>
+    <summary><i class="fas fa-plus"></i> New Entry</summary>
+    <form method="post" action="{{ url_for('stock.add_entry') }}">
+      <div class="form-grid">
+        <div class="fg">
+          <label>Date (DD-MM-YYYY)</label>
+          <input type="text" name="entry_date" value="{{ today }}" required>
+        </div>
+        <div class="fg">
+          <label>Entry Type</label>
+          <select name="entry_type" required>
+            {% for t in entry_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Item</label>
+          <select name="item_id" required>
+            <option value="">-- Select item --</option>
+            {% for iid, label in items %}<option value="{{ iid }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Quantity</label>
+          <input type="number" name="quantity" min="0.01" step="any" required>
+        </div>
+        <div class="fg">
+          <label>Rate (optional)</label>
+          <input type="number" name="rate" min="0" step="any">
+        </div>
+        <div class="fg">
+          <label>Supplier / Buyer</label>
+          <input type="text" name="party_name" placeholder="Name of seller / buyer">
+        </div>
+        <div class="fg">
+          <label>Bill / Invoice No.</label>
+          <input type="text" name="reference_no">
+        </div>
+        <div class="fg">
+          <label>Remarks (required for scrap / adjustment)</label>
+          <input type="text" name="remarks">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save Entry</button>
+      </div>
+    </form>
+  </details>
+
+  <!-- Single-Row Responsive Filter Section -->
+  <form method="GET" action="{{ url_for('stock.entries') }}" class="filter-section">
+    <div class="filter-group search-box">
+      <label for="q">Search</label>
+      <input type="text" id="q" name="q" value="{{ f_q }}" placeholder="Search supplier, bill, remarks...">
+    </div>
+    <div class="filter-group">
+      <label for="item_id">Item</label>
+      <select id="item_id" name="item_id">
+        <option value="">All items</option>
+        {% for iid, label in items %}<option value="{{ iid }}" {% if iid == f_item %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="entry_type">Type</label>
+      <select id="entry_type" name="entry_type">
+        <option value="">All types</option>
+        {% for t in entry_types %}<option value="{{ t }}" {% if t == f_type %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        <option value="">All</option>
+        <option value="active" {% if f_status == 'active' %}selected{% endif %}>Active</option>
+        <option value="cancelled" {% if f_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="from">From Date</label>
+      <input type="date" id="from" name="from" value="{{ f_from }}">
+    </div>
+    <div class="filter-group">
+      <label for="to">To Date</label>
+      <input type="date" id="to" name="to" value="{{ f_to }}">
+    </div>
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+      <a href="{{ url_for('stock.entries') }}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+
+  <div class="table-top">
+    <form method="GET" action="{{ url_for('stock.entries') }}" style="margin:0;">
+      {% for k, v in qargs.items() if k != 'per_page' %}
+      <input type="hidden" name="{{ k }}" value="{{ v }}">
+      {% endfor %}
+      Show
+      <select name="per_page" onchange="this.form.submit()">
+        {% for opt in per_page_options %}
+        <option value="{{ opt }}" {% if opt == per_page %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+      entries per page
+    </form>
+    <div>Showing <b>{{ pagination.first }}</b> to <b>{{ pagination.last }}</b> of <b>{{ pagination.total }}</b> entries</div>
+  </div>
+
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Entry No</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Item</th>
+        <th class="text-right">Qty</th>
+        <th class="text-right">Rate</th>
+        <th>Supplier / Buyer</th>
+        <th>Bill No</th>
+        <th>Remarks</th>
+        <th>Status</th>
+        <th class="text-center">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in rows %}
+      <tr class="{% if e.cancelled %}is-cancelled{% endif %}">
+        <td class="strike"><b>{{ e.Entry_No }}</b></td>
+        <td>{{ e.Entry_Date }}</td>
+        <td><span class="{{ e.direction }}">{{ e.Entry_Type }}</span></td>
+        <td class="strike">{{ e.item_label }}</td>
+        <td class="text-right"><span class="{{ e.direction }}">{% if e.direction == 'in' %}+{% else %}&minus;{% endif %}{{ e.qty_fmt }}</span></td>
+        <td class="text-right">{{ e.rate_fmt }}</td>
+        <td>{{ e.Party_Name }}</td>
+        <td>{{ e.Reference_No }}</td>
+        <td>{{ e.Remarks }}{% if e.cancelled and e.Cancel_Reason %}<br><small><b>Cancelled:</b> {{ e.Cancel_Reason }}</small>{% endif %}</td>
+        <td class="keep">{% if e.cancelled %}<span class="tag cancel">Cancelled</span>{% else %}<span class="tag">Active</span>{% endif %}</td>
+        <td class="keep text-center">
+          <div style="display:flex; gap:6px; justify-content:center;">
+            <a href="{{ url_for('stock.statement', item_id=e.Item_ID) }}" class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" title="Item statement"><i class="fas fa-file-lines"></i></a>
+            {% if not e.cancelled %}
+            <form id="cancel-form-{{ e.Entry_ID }}" method="post" action="{{ url_for('stock.cancel_entry', entry_id=e.Entry_ID) }}" style="margin:0;">
+              <input type="hidden" name="reason" id="reason-input-{{ e.Entry_ID }}" value="">
+              <button type="button" class="btn btn-danger" onclick="confirmCancel('{{ e.Entry_No }}', 'cancel-form-{{ e.Entry_ID }}', 'reason-input-{{ e.Entry_ID }}')">
+                <i class="fas fa-ban"></i> Cancel
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="11" style="text-align:center;color:#64748b;padding:30px;">No entries found{% if qargs %} for the selected filters{% endif %}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <div class="pager">
+    <div>Page <b>{{ pagination.page }}</b> of <b>{{ pagination.pages }}</b></div>
+    <div class="pages">
+      {% if pagination.prev %}
+      <a href="{{ url_for('stock.entries', page=pagination.prev, **qargs) }}">&laquo; Prev</a>
+      {% else %}
+      <span class="disabled">&laquo; Prev</span>
+      {% endif %}
+
+      {% for n in pagination.numbers %}
+        {% if n is none %}
+          <span class="dots">&hellip;</span>
+        {% elif n == pagination.page %}
+          <span class="current">{{ n }}</span>
+        {% else %}
+          <a href="{{ url_for('stock.entries', page=n, **qargs) }}">{{ n }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.next %}
+      <a href="{{ url_for('stock.entries', page=pagination.next, **qargs) }}">Next &raquo;</a>
+      {% else %}
+      <span class="disabled">Next &raquo;</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- SweetAlert2 Integration for Professional Cancellation Prompt -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function confirmCancel(entryNo, formId, reasonInputId) {
+    Swal.fire({
+        title: 'Cancel Entry?',
+        text: `Reason for cancelling entry ${entryNo}?`,
+        input: 'text',
+        inputPlaceholder: 'Enter cancellation reason here...',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, Cancel Entry',
+        cancelButtonText: 'Abort',
+        inputValidator: (value) => {
+            if (!value || value.trim() === '') {
+                return 'Kripya cancellation ka reason likhein!';
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(reasonInputId).value = result.value;
+            document.getElementById(formId).submit();
+        }
+    });
+}
+</script>
+{% endblock %}

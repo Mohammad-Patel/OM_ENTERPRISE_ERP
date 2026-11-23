@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Billing - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+.mb-wrap { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.mb-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+.mb-head h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+
+.btn { background: #1e293b; color: #fff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none; white-space: nowrap; }
+.btn:hover { background: #0f172a; color: #fff; }
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover { background: #475569; }
+.btn-blue { background: #2563eb; }
+.btn-blue:hover { background: #1d4ed8; }
+
+/* 6 Filters ek hi line mein responsive design */
+.mb-filter { background: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: nowrap; gap: 10px; align-items: flex-end; overflow-x: auto; }
+.mb-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 0; min-width: 0; }
+.mb-group.wide { flex: 2 1 0; }
+.mb-group.mid { flex: 1.2 1 0; }
+.mb-group.date { flex: 1 1 0; min-width: 118px; }
+.mb-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; white-space: nowrap; }
+.mb-group input, .mb-group select { width: 100%; min-width: 0; padding: 8px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; text-overflow: ellipsis; }
+.mb-group input[type="date"] { padding: 7px 6px; font-size: 12px; }
+.mb-filter-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.mb-filter-actions .btn { white-space: nowrap; padding: 9px 14px; }
+@media (max-width: 1100px) { .mb-filter { flex-wrap: wrap; overflow-x: visible; } .mb-group, .mb-group.wide, .mb-group.mid, .mb-group.date { flex: 1 1 150px; } }
+
+.table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #64748b; flex-wrap: wrap; gap: 10px; }
+.table-controls select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; }
+
+.table-wrap { overflow-x: auto; margin-top: 15px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #e2e8f0; padding: 11px 14px; font-size: 13px; text-align: left; }
+th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; white-space: nowrap; }
+tbody tr:hover { background-color: #f8fafc; }
+
+.action-btns { display: flex; gap: 6px; align-items: center; }
+.icon-btn { width: 32px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-size: 13px; border: 1px solid transparent; cursor: pointer; transition: all 0.2s; }
+.btn-view { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.btn-view:hover { background: #2563eb; color: #fff; }
+.btn-edit { background: #fefce8; color: #ca8a04; border-color: #fef08a; }
+.btn-edit:hover { background: #ca8a04; color: #fff; }
+.btn-delete { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.btn-delete:hover { background: #dc2626; color: #fff; }
+
+.pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #475569; flex-wrap: wrap; gap: 10px; }
+.pagination-links { display: flex; gap: 5px; flex-wrap: wrap; }
+.pagination-links a, .pagination-links span { padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px; text-decoration: none; color: #1e293b; background: #fff; font-weight: 500; }
+.pagination-links a:hover { background: #f1f5f9; }
+.pagination-links span.active { background: #1e293b; color: #fff; border-color: #1e293b; }
+.pagination-links span.dots { border: none; background: transparent; padding: 6px 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-wrap">
+  <div class="mb-head">
+    <h2><i class="fas fa-file-invoice-dollar"></i> Monthly Billing &amp; Invoices</h2>
+    <a href="{{ url_for('monthly_billing.new') }}" class="btn btn-blue"><i class="fas fa-plus"></i> Generate New Invoice</a>
+  </div>
+
+  <!-- Search & 6 Filters -->
+  <form method="GET" action="{{ url_for('monthly_billing.index') }}" class="mb-filter" id="filterForm">
+    <div class="mb-group wide">
+      <label for="search">Search</label>
+      <input type="text" id="search" name="search" value="{{ search_query or '' }}" placeholder="Invoice No, Party, Site...">
+    </div>
+
+    <div class="mb-group">
+      <label for="gst_filter">GST Type</label>
+      <select name="gst_filter" id="gst_filter">
+        <option value="">All Types</option>
+        <option value="gst" {% if gst_filter == 'gst' %}selected{% endif %}>GST Invoices</option>
+        <option value="nogst" {% if gst_filter == 'nogst' %}selected{% endif %}>Without GST</option>
+      </select>
+    </div>
+
+    <div class="mb-group mid">
+      <label for="party_id">Party</label>
+      <select name="party_id" id="party_id">
+        <option value="">All Parties</option>
+        {% for p in parties %}
+        {% set p_id = p.Party_ID or p.ID %}
+        <option value="{{ p_id }}" {% if party_filter == p_id|string %}selected{% endif %}>{{ p.Party_Name or p.Name or p_id }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-group mid">
+      <label for="site_id">Site</label>
+      <select name="site_id" id="site_id">
+        <option value="">All Sites</option>
+      </select>
+    </div>
+
+    <div class="mb-group date">
+      <label for="date_from">Date</label>
+      <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+    </div>
+
+    <div class="mb-group">
+      <label for="status">Status</label>
+      <select name="status" id="status">
+        <option value="">All Status</option>
+        <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+      </select>
+    </div>
+
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+
+    <div class="mb-filter-actions">
+      <button type="submit" class="btn"><i class="fas fa-search"></i> Filter</button>
+      <a href="{{ url_for('monthly_billing.index') }}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+
+  <div class="table-controls">
+    <div>Showing <b>{{ bills|length }}</b> of <b>{{ total_records }}</b> record(s){% if filters_active %} <span style="color:#2563eb;font-weight:600;">(filtered)</span>{% endif %}</div>
+    <div>
+      <label>Show </label>
+      <select onchange="location = this.value;">
+        {% for n in ['10', '25', '50', 'All'] %}
+        <option value="{{ url_for('monthly_billing.index', **dict(qargs, per_page=n)) }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+      <label> entries per page</label>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice No.</th>
+          <th>Date</th>
+          <th>Party Name</th>
+          <th>Site Location</th>
+          <th>Period</th>
+          <th>Net Amount (₹)</th>
+          <th>Status</th>
+          <th style="width: 120px; text-align: center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bills %}
+        <tr>
+          <td><b>{{ b.Bill_No }}</b></td>
+          <td>{{ b.Bill_Date or '-' }}</td>
+          <td>{{ b.Party_Name or '-' }}</td>
+          <td>{{ b.Site_Name or '-' }}</td>
+          <td>{{ b.Period_Start }} to {{ b.Period_End }}</td>
+          <td><b>₹ {{ "{:,.2f}".format(b.Net_Total|float) }}</b></td>
+          <td>
+            {% if b.Status == 'Cancelled' or b.Cancelled %}
+              <span style="color: #dc2626; font-weight: 600;">Cancelled</span>
+            {% else %}
+              <span style="color: #16a34a; font-weight: 600;">Active</span>
+            {% endif %}
+          </td>
+          <td style="text-align: center;">
+            <div class="action-btns" style="justify-content: center;">
+              <a href="{{ url_for('monthly_billing.print_invoice', bill_no=b.Bill_No) }}" class="icon-btn btn-view" title="Print Invoice" target="_blank" rel="noopener">
+                <i class="fas fa-print"></i>
+              </a>
+              {% if not (b.Status == 'Cancelled' or b.Cancelled) %}
+              <a href="{{ url_for('monthly_billing.edit_invoice', bill_no=b.Bill_No) }}" class="icon-btn btn-edit" title="Edit Invoice">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              <!-- {% if b.Status == 'Cancelled' or b.Cancelled %}
+              <form action="{{ url_for('monthly_billing.cancel_invoice', bill_no=b.Bill_No) }}" method="POST" class="delete-form" data-bill="{{ b.Bill_No }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="icon-btn btn-delete" title="Delete Invoice">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </form>
+              {% endif %} -->
+
+              {% if b.Status == 'Cancelled' or b.Cancelled %}
+              <form action="{{ url_for('monthly_billing.delete_invoice', bill_no=b.Bill_No) }}" method="POST" class="delete-form" data-bill="{{ b.Bill_No }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="icon-btn btn-delete" title="Delete Invoice">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </form>
+              {% endif %}
+
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: #64748b; padding: 30px;">
+            {% if filters_active %}No invoices match your filters. <a href="{{ url_for('monthly_billing.index') }}">Clear filters</a>{% else %}No monthly invoices generated yet. Click "Generate New Invoice" to create one.{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div class="pagination">
+    <div>Page <b>{{ page }}</b> of <b>{{ total_pages }}</b> (Total: {{ total_records }} records)</div>
+    <div class="pagination-links">
+      {% if page > 1 %}
+      <a href="{{ url_for('monthly_billing.index', **dict(qargs, page=page-1)) }}">« Prev</a>
+      {% endif %}
+
+      {% set ns = namespace(last=0) %}
+      {% for p_num in range(1, total_pages + 1) %}
+        {% if p_num == 1 or p_num == total_pages or (p_num - page)|abs <= 2 %}
+          {% if p_num - ns.last > 1 %}<span class="dots">…</span>{% endif %}
+          {% if p_num == page %}
+          <span class="active">{{ p_num }}</span>
+          {% else %}
+          <a href="{{ url_for('monthly_billing.index', **dict(qargs, page=p_num)) }}">{{ p_num }}</a>
+          {% endif %}
+          {% set ns.last = p_num %}
+        {% endif %}
+      {% endfor %}
+
+      {% if page < total_pages %}
+      <a href="{{ url_for('monthly_billing.index', **dict(qargs, page=page+1)) }}">Next »</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Hidden data for sites filtering -->
+<div id="page-data" hidden data-sites="{{ sites_json | e }}" data-site-filter="{{ site_filter }}"></div>
+
+<div id="flash-data" hidden>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}<span data-category="{{ cat }}" data-message="{{ msg }}"></span>{% endfor %}
+  {% endwith %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Flash messages handler
+  var box = document.getElementById('flash-data');
+  if (box) {
+    var queue = Array.prototype.slice.call(box.querySelectorAll('span'));
+    function next() {
+      var el = queue.shift();
+      if (!el) { return; }
+      var ok = el.dataset.category === 'success';
+      var message = el.dataset.message;
+      if (window.Swal) {
+        Swal.fire({ icon: ok ? 'success' : 'error', title: ok ? 'Success' : 'Error', text: message,
+                    confirmButtonColor: '#1e293b', timer: ok ? 2500 : undefined }).then(next);
+      } else {
+        window.alert(message);
+        next();
+      }
+    }
+    next();
+  }
+
+  // Sites loading and filtering logic for index filter
+  const pageData = document.getElementById('page-data').dataset;
+  let allSites = [];
+  try {
+    allSites = JSON.parse(pageData.sites || '[]');
+  } catch (e) {
+    console.error("Error parsing sites JSON:", e);
+  }
+
+  const partySelect = document.getElementById('party_id');
+  const siteSelect = document.getElementById('site_id');
+  const initialSiteFilter = pageData.siteFilter || '';
+
+  function normId(v) {
+    return String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\.0+$/, '');
+  }
+
+  function sitePartyId(s) {
+    return s.party_id || s.Party_ID || s.PARTY_ID || s.PartyID || '';
+  }
+
+  function siteLabel(s) {
+    return s.name || s.Site_Name || s.site_name || s.Site_Location || s.Location || s.Site_Address || s.Address || s.id || s.Site_ID || '';
+  }
+
+  function buildFilterSites(partyId, keepValue) {
+    siteSelect.innerHTML = '<option value="">All Sites</option>';
+    const list = partyId ? allSites.filter(s => normId(sitePartyId(s)) === normId(partyId)) : allSites;
+    list.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id || s.Site_ID || s.site_id || '';
+      opt.textContent = siteLabel(s);
+      if (keepValue && normId(opt.value) === normId(keepValue)) {
+        opt.selected = true;
+      }
+      siteSelect.appendChild(opt);
+    });
+  }
+
+  if (partySelect) {
+    partySelect.addEventListener('change', function () {
+      buildFilterSites(this.value, '');
+    });
+    // Initial load
+    buildFilterSites(partySelect.value, initialSiteFilter);
+  }
+
+  // Permanent Delete confirmation with SweetAlert2 for Cancelled invoices
+  document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'Delete Invoice ' + form.dataset.bill + '?',
+        text: 'This action cannot be undone and will permanently remove the invoice!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, delete it!'
+      }).then(result => {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+    });
+  });
+
+
+  // Clean empty filters on submit
+  var filterForm = document.getElementById('filterForm');
+  if (filterForm) {
+    filterForm.addEventListener('submit', function () {
+      this.querySelectorAll('input[name], select[name]').forEach(el => {
+        if (el.type !== 'hidden' && el.value === '') el.disabled = true;
+      });
+    });
+  }
+});
+</script>
+{% endblock %}

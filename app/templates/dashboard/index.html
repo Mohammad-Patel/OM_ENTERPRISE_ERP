@@ -1,120 +1,141 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard | OM ENTERPRISE ERP{% endblock %}
+{% block title %}Dashboard - OM Enterprise ERP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.container { max-width: 100%; background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+h2 { margin: 0; color: #1e293b; font-size: 20px; font-weight: 700; }
+.date-chip { background: #f1f5f9; color: #334155; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid #cbd5e1; }
+
+.welcome-banner { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border-radius: 8px; padding: 24px 28px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.welcome-banner h2 { color: #fff; font-size: 22px; margin-bottom: 6px; }
+.welcome-banner p { color: #94a3b8; font-size: 13px; margin: 0; }
+.welcome-symbol { font-size: 32px; font-weight: 900; color: #f97316; background: rgba(249, 115, 22, 0.1); padding: 10px 20px; border-radius: 8px; border: 1px dashed #f97316; }
+
+.section-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 24px; }
+.stat-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; background: #f8fafc; display: flex; flex-direction: column; gap: 4px; border-left: 4px solid #1e293b; }
+.stat-card.green { border-left-color: #15803d; }
+.stat-card.blue { border-left-color: #2563eb; }
+.stat-card.orange { border-left-color: #c2410c; }
+.stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+.stat-value { font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 2px; }
+.stat-desc { font-size: 11px; color: #64748b; }
+
+.quick-access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-bottom: 10px; }
+.quick-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s ease-in-out; position: relative; }
+.quick-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transform: translateY(-2px); }
+.quick-card.highlight { border-color: #f97316; background: #fffaf5; }
+.quick-card h3 { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+.quick-card p { margin: 0; font-size: 12px; color: #64748b; line-height: 1.4; }
+.quick-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 12px; font-weight: 700; }
+.quick-icon { font-size: 18px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 6px; color: #1e293b; margin-bottom: 4px; }
+.quick-card.highlight .quick-icon { background: #ffedd5; color: #c2410c; }
+
+@media (max-width: 768px) { .stats-grid, .quick-access-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="page-heading">
+<div class="container">
+  <div class="page-header">
     <div>
-        <p class="eyebrow">OVERVIEW</p>
-        <h1>Dashboard</h1>
-        <p class="page-description">
-            Welcome to OM ENTERPRISE ERP. Your business workspace starts here.
-        </p>
+      <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Welcome to OM ENTERPRISE ERP. Your business workspace starts here.</p>
     </div>
-    <div class="date-chip" id="dashboardDate">Business Overview</div>
-</section>
+    <div class="date-chip"><i class="fas fa-calendar-alt"></i> Business Overview</div>
+  </div>
 
-<section class="welcome-panel">
+  <div class="welcome-banner">
     <div>
-        <p class="eyebrow">OM ENTERPRISE ERP</p>
-        <h2>Everything in one workspace.</h2>
-        <p>
-            Manage parties, site locations, items, challans and monthly billing
-            from a single dashboard.
-        </p>
+      <p style="font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #f97316; text-transform: uppercase; margin-bottom: 4px;">OM ENTERPRISE ERP</p>
+      <h2>Everything in one workspace.</h2>
+      <p>Manage parties, site locations, items, challans, godown stock, and monthly billing from a single dashboard.</p>
     </div>
     <div class="welcome-symbol" aria-hidden="true">OM</div>
-</section>
+  </div>
 
-<section class="section-heading">
-    <div>
-        <h2>Master Overview</h2>
-        <p>Real-time summary counts from your Excel master database.</p>
+  <div class="section-title">Master Overview</div>
+  <div class="stats-grid">
+    <div class="stat-card green">
+      <span class="stat-label">Total Parties</span>
+      <span class="stat-value">{{ total_parties|default(0) }}</span>
+      <span class="stat-desc">Active clients & accounts</span>
     </div>
-</section>
 
-<section class="stats-grid">
-    <article class="stat-card">
-        <span class="stat-label">Total Parties</span>
-        <strong>{{ total_parties|default(0) }}</strong>
-        <small>Active clients</small>
-    </article>
-
-    <article class="stat-card">
-        <span class="stat-label">Site Locations</span>
-        <strong>{{ total_sites|default(0) }}</strong>
-        <small>Party-wise active sites</small>
-    </article>
-
-    <article class="stat-card">
-        <span class="stat-label">Item Master</span>
-        <strong>{{ total_items|default(0) }}</strong>
-        <small>Registered equipment</small>
-    </article>
-
-    <article class="stat-card">
-        <span class="stat-label">Stock Status</span>
-        <strong style="font-size: 16px; color: #f97316;">Live Active</strong>
-        <small>Ledger sync enabled</small>
-    </article>
-</section>
-
-<section class="section-heading">
-    <div>
-        <h2>Quick Access & Modules</h2>
-        <p>Direct navigation to transactions, inventory, and billing engines.</p>
+    <div class="stat-card blue">
+      <span class="stat-label">Site Locations</span>
+      <span class="stat-value">{{ total_sites|default(0) }}</span>
+      <span class="stat-desc">Party-wise active sites</span>
     </div>
-</section>
 
-<section class="quick-access-grid">
-    <a href="{{ url_for('parties.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
-        <span class="quick-icon">♙</span>
-        <h3>Party Master</h3>
-        <p>Create and manage GST and Without GST parties.</p>
-        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">Open Module →</span>
+    <div class="stat-card">
+      <span class="stat-label">Item Master</span>
+      <span class="stat-value">{{ total_items|default(0) }}</span>
+      <span class="stat-desc">Registered equipment & inventory</span>
+    </div>
+
+    <div class="stat-card orange">
+      <span class="stat-label">Stock Status</span>
+      <span class="stat-value" style="font-size: 20px; color: #f97316; margin-top: 6px;">Live Active</span>
+      <span class="stat-desc">Ledger sync enabled</span>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top: 25px;">Quick Access & Modules</div>
+  <div class="quick-access-grid">
+    <a href="{{ url_for('parties.index') }}" class="quick-card">
+      <span class="quick-icon"><i class="fas fa-users"></i></span>
+      <h3>Party Master</h3>
+      <p>Create and manage GST and Without GST parties.</p>
+      <div class="quick-footer" style="color: #1e293b;">Open Module <span>&rarr;</span></div>
     </a>
 
-    <a href="{{ url_for('items.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
-        <span class="quick-icon">▤</span>
-        <h3>Item Master</h3>
-        <p>Maintain item descriptions, weight and rent rates.</p>
-        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">Open Module →</span>
+    <a href="{{ url_for('items.index') }}" class="quick-card">
+      <span class="quick-icon"><i class="fas fa-boxes"></i></span>
+      <h3>Item Master</h3>
+      <p>Maintain item descriptions, weight and rent rates.</p>
+      <div class="quick-footer" style="color: #1e293b;">Open Module <span>&rarr;</span></div>
     </a>
 
-    <a href="{{ url_for('issue_challan.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
-        <span class="quick-icon">↗</span>
-        <h3>Issue Challan</h3>
-        <p>Prepare site-wise material issue challans & transport.</p>
-        <span class="coming-soon" style="color: #f97316; font-weight: 700;">Manage Issue →</span>
+    <a href="{{ url_for('issue_challan.index') }}" class="quick-card">
+      <span class="quick-icon"><i class="fas fa-truck-ramp-box"></i></span>
+      <h3>Issue Challan</h3>
+      <p>Prepare site-wise material issue challans & transport.</p>
+      <div class="quick-footer" style="color: #f97316;">Manage Issue <span>&rarr;</span></div>
     </a>
 
-    <a href="{{ url_for('receive_challan.index') }}" class="quick-card" style="text-decoration: none; color: inherit;">
-        <span class="quick-icon">↙</span>
-        <h3>Receive Challan</h3>
-        <p>Process return material and log breakage/damages.</p>
-        <span class="coming-soon" style="color: #f97316; font-weight: 700;">Manage Receive →</span>
+    <a href="{{ url_for('receive_challan.index') }}" class="quick-card">
+      <span class="quick-icon"><i class="fas fa-arrow-down"></i></span>
+      <h3>Receive Challan</h3>
+      <p>Process return material and log breakage/damages.</p>
+      <div class="quick-footer" style="color: #f97316;">Manage Receive <span>&rarr;</span></div>
     </a>
 
-    <a href="{{ url_for('stock.godown_stock') }}" class="quick-card" style="text-decoration: none; color: inherit;">
-        <span class="quick-icon">📦</span>
-        <h3>Godown Stock</h3>
-        <p>View real-time available usable & damaged stock.</p>
-        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">View Summary →</span>
+    <a href="{{ url_for('stock.godown_stock') }}" class="quick-card">
+      <span class="quick-icon"><i class="fas fa-warehouse"></i></span>
+      <h3>Godown Stock</h3>
+      <p>View real-time available usable & damaged stock.</p>
+      <div class="quick-footer" style="color: #1e293b;">View Summary <span>&rarr;</span></div>
     </a>
 
-    <a href="{{ url_for('stock.party_site_stock') }}" class="quick-card" style="text-decoration: none; color: inherit;">
-        <span class="quick-icon">🔍</span>
-        <h3>Site Outstanding</h3>
-        <p>Check in-hand material balance at any party site.</p>
-        <span class="coming-soon" style="color: #0f172a; font-weight: 700;">Check Outstanding →</span>
+    <a href="{{ url_for('stock.party_site_stock') }}" class="quick-card">
+      <span class="quick-icon"><i class="fas fa-search-location"></i></span>
+      <h3>Site Outstanding</h3>
+      <p>Check in-hand material balance at any party site.</p>
+      <div class="quick-footer" style="color: #1e293b;">Check Outstanding <span>&rarr;</span></div>
     </a>
 
-    <a href="{{ url_for('monthly_billing.generate') }}" class="quick-card" style="text-decoration: none; color: inherit; border-color: #f97316; background: #fffaf5;">
-        <span class="quick-icon">▧</span>
-        <h3>Monthly Billing</h3>
-        <p>Prepare date-range rental invoices with GST & calculation.</p>
-        <span class="coming-soon" style="color: #f97316; font-weight: 700;">Generate Invoice →</span>
+    <a href="{{ url_for('monthly_billing.index') }}" class="quick-card highlight">
+      <span class="quick-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+      <h3>Monthly Billing</h3>
+      <p>Prepare date-range rental invoices with GST & calculation.</p>
+      <div class="quick-footer" style="color: #f97316;">Generate Invoice <span>&rarr;</span></div>
     </a>
-</section>
-
+  </div>
+</div>
 {% endblock %}
