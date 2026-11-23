@@ -1,4 +1,5 @@
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 .venv/
@@ -8,7 +9,6 @@ env/
 .vscode/
 .idea/
 *.log
-
 backups/
 data/*.backup_*.xlsx
 *.bak
