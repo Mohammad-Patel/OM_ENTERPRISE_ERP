@@ -54,7 +54,8 @@ class ChallanError(Exception):
 
 
 # GST rule + numbering live in ONE place (app/services/numbering_service.py)
-from app.services.numbering_service import (is_gst_registered, next_issue_challan_no,
+from app.services.numbering_service import (is_gst_registered, next_issue_challan_no, take_challan_no,
+                                            preview_challan_numbers, ISSUE,
                                             is_valid_gstin)
 
 # --------------------------------------------------------------------------
@@ -324,11 +325,29 @@ def next_challan_no(book, party):
 
 def preview_numbers(book, parties):
     """Next number for each series + which parties are GST (used by the create popup)."""
+    nums = preview_challan_numbers(book, ISSUE)
     return {
-        'gst': next_issue_challan_no(book, {'GSTIN': '24AAAAA0000A1Z5', 'Party_Type': 'Regular'}),
-        'non_gst': next_issue_challan_no(book, {}),
+        'gst': nums['gst'],
+        'non_gst': nums['non_gst'],
         'gst_party_ids': [sid(p.get('Party_ID')) for p in parties if is_gst_registered(p)],
     }
+
+
+def pick_challan_row(df, challan_no):
+    """
+    Index of the challan row for a number.  The same number can legitimately exist twice (a series
+    can be restarted from Settings), so the list passes ?id=<Issue_ID>; without it the NEWEST
+    challan with that number is used.
+    """
+    mask = df['Challan_No'].astype(str) == str(challan_no)
+    wanted = sid(request.values.get('id', ''))
+    if wanted and 'Issue_ID' in df.columns:
+        by_id = mask & (df['Issue_ID'].apply(sid) == wanted)
+        if by_id.any():
+            return df.index[by_id][-1]
+    if not mask.any():
+        return None
+    return df.index[mask][-1]
 
 
 def normalize_date(value):
@@ -513,10 +532,10 @@ def index():
             c['Party_Mobile'] = party_phones.get(sid(c.get('Party_ID'))) or '-'
 
         # item lines per challan (for the edit popup)
-        issue_to_no = {sid(c.get('Issue_ID')): str(c.get('Challan_No')) for c in all_challans}
+        known_ids = {sid(c.get('Issue_ID')) for c in all_challans}
         for r in records(book.df(challan_items_sheet(book))):
-            no = issue_to_no.get(sid(r.get('Issue_ID')))
-            if no:
+            no = sid(r.get('Issue_ID'))                  # keyed by Issue_ID: the number can repeat
+            if no in known_ids:
                 items_by_challan.setdefault(no, []).append({
                     'item_id': sid(r.get('Item_ID')),
                     'qty': r.get('Quantity'),
@@ -629,7 +648,8 @@ def _create_challan():
         lines, total_wt, total_val = build_lines(f, item_master)
 
         # always server generated, from the party's GST status (never trusted from the form)
-        challan_no = next_challan_no(book, parties.get(sid(header['Party_ID']), {}))
+        challan_no, counter_update = take_challan_no(book, ISSUE, parties.get(sid(header['Party_ID']), {}),
+                                                     records(df))
         issue_id = next_id(df, 'Issue_ID')
         lines = number_lines(lines, issue_id, next_id(items_df, 'Line_ID'))
 
@@ -661,10 +681,11 @@ def _create_challan():
             c_sheet: append_rows(df, [new_row]),
             i_sheet: append_rows(items_df, lines),
             a_sheet: audit_df,
+            **counter_update,                      # series counter + 1, saved together with the challan
         })
 
     flash(f'Challan {challan_no} created successfully!', 'success')
-    return redirect(url_for('issue_challan.print_challan', challan_no=challan_no))
+    return redirect(url_for('issue_challan.print_challan', challan_no=challan_no, id=issue_id))
 
 
 @issue_challan_bp.route('/generate', methods=['GET', 'POST'])
@@ -691,9 +712,9 @@ def print_challan(challan_no):
         book = Book.load()
         df = book.df(challan_sheet(book))
         if not df.empty and 'Challan_No' in df.columns:
-            match = df[df['Challan_No'].astype(str) == str(challan_no)]
-            if not match.empty:
-                challan_data = records(match)[0]
+            hit = pick_challan_row(df, challan_no)
+            if hit is not None:
+                challan_data = records(df.loc[[hit]])[0]
 
         if challan_data:
             party = next((p for p in load_parties(book)
@@ -752,10 +773,9 @@ def edit(challan_no):
         df = book.df(c_sheet)
         if df.empty or 'Challan_No' not in df.columns:
             raise ChallanError('Challan not found.')
-        mask = df['Challan_No'].astype(str) == str(challan_no)
-        if not mask.any():
+        idx = pick_challan_row(df, challan_no)
+        if idx is None:
             raise ChallanError('Challan not found.')
-        idx = df.index[mask][0]
 
         before = records(df.loc[[idx]])[0]
         if str(before.get('Status', '')).strip().lower() in ('cancelled', 'canceled'):
@@ -811,13 +831,13 @@ def delete(challan_no):
         df = book.df(c_sheet)
         if df.empty or 'Challan_No' not in df.columns:
             raise ChallanError('Challan not found.')
-        mask = df['Challan_No'].astype(str) == str(challan_no)
-        if not mask.any():
+        idx = pick_challan_row(df, challan_no)
+        if idx is None:
             raise ChallanError('Challan not found.')
 
-        before = records(df[mask])[0]
+        before = records(df.loc[[idx]])[0]
         issue_id = sid(before.get('Issue_ID'))
-        updates = {c_sheet: df[~mask]}
+        updates = {c_sheet: df.drop(index=idx)}      # only THIS row (the number can repeat)
 
         i_sheet = challan_items_sheet(book)
         if i_sheet:

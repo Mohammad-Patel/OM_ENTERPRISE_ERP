@@ -30,7 +30,7 @@ html, body { margin: 0; padding: 0; background: #cbd5e1; color: #0f172a; font-si
 .title-area .tax-details { font-weight: 800; color: #0f172a; margin-top: 2px; }
 
 /* ---------- party / statement details ---------- */
-.party-grid { display: grid; grid-template-columns: 62% 38%; border: 1.5px solid #0f172a; border-radius: 4px; overflow: hidden; margin-bottom: 4mm; background: #fff; }
+.party-grid { display: grid; grid-template-columns: 62% 38%; border: 1.5px solid #0f172a; border-radius: 2px; overflow: hidden; margin-bottom: 4mm; background: #fff; }
 .pg-left { border-right: 1.5px solid #0f172a; min-width: 0; }
 .pg-right { min-width: 0; }
 .box-title { background: #dee1e9; color: #0f172a; padding: 4.5px 10px; font-weight: 800; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #94a3b8; }
@@ -41,7 +41,7 @@ html, body { margin: 0; padding: 0; background: #cbd5e1; color: #0f172a; font-si
 .field-row span { color: #0f172a; font-weight: 600; min-width: 0; word-break: break-word; }
 
 /* ---------- stock table ---------- */
-.tbl-wrap { border: 1.5px solid #0f172a; border-radius: 4px; overflow: hidden; background: #fff; }
+.tbl-wrap { border: 1.5px solid #0f172a; border-radius: 2px; overflow: hidden; background: #fff; }
 .items-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: -2px; }
 .items-table thead { display: table-header-group; }
 .items-table th { background: #dee1e9; color: #0f172a; border-right: 1px solid #aab2c0; border-bottom: 2px solid #0f172a; padding: 7px 6px; font-size: 8pt; font-weight: 800; letter-spacing: .2px; text-transform: uppercase; }
@@ -116,11 +116,11 @@ html, body { margin: 0; padding: 0; background: #cbd5e1; color: #0f172a; font-si
     <section class="party-grid">
       <div class="pg-left">
         <div class="box-title">Party Details</div>
-        <div class="box-content">
-          <div class="field-row"><b>Party Name :</b><span>{{ ledger.party_name or '-' }}</span></div>
-          <div class="field-row"><b>Site Location :</b><span>{{ ledger.site_name or '-' }}{% if ledger.site_address %}, {{ ledger.site_address }}{% endif %}</span></div>
-          <div class="field-row"><b>Billing Address :</b><span>{{ ledger.party_address or '-' }}</span></div>
-        </div>
+          <div class="box-content">
+            {% set _site = (ledger.site_address or ledger.site_name or ledger.party_address or '') | string | trim %}
+            <div class="field-row"><b>Party Name :</b><span>{{ ledger.party_name or '-' }}</span></div>
+            <div class="field-row"><b>Site Location :</b><span>{{ _site or '-' }}</span></div>
+          </div>
       </div>
       <div class="pg-right">
         <div class="box-title">Statement Details</div>

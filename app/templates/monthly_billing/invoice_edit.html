@@ -130,7 +130,7 @@ table input.warn { border-color: #f97316; background: #fff7ed; }
     <div class="meta">
       <div><div class="k">Billed To</div><div class="v">{{ draft.party.Party_Name or draft.party_id }}</div>
         <div style="font-size:12px;color:#475569;margin-top:2px;">GSTIN: <b>{{ draft.party.GSTIN if draft.party.GSTIN else 'Unregistered' }}</b></div></div>
-      <div><div class="k">Site</div><div class="v">{{ draft.site.Site_Name or draft.site_id }}</div></div>
+      <div><div class="k">Site</div><div class="v">{{ draft.site.Site_Name or draft.site.Site_Address or draft.site_id }}</div></div>
       <div><div class="k">Billing Period</div><div class="v">{{ dmy(draft.period_start) }} to {{ dmy(draft.period_end) }}</div></div>
       <div><div class="k">Invoice No. / Date</div>
         <div class="v">{% if is_edit %}{{ draft.bill_no }}{% else %}<span style="color:#64748b;font-weight:600;">Auto on save</span>{% endif %}</div>
@@ -279,6 +279,7 @@ function addRow(r) {
     const tr = buildRow(r);
     rowsEl.appendChild(tr);
     renumber();
+    initRatePrev();
     recalcAll();
     return tr;
 }
@@ -324,12 +325,43 @@ function recalcAll() {
     $('invTitle').textContent = gst ? 'TAX INVOICE' : 'INVOICE';
 }
 
+/* ------------- same item => same rate (auto copy to the other rows) ------- */
+function rentalRows() { return [...rowsEl.querySelectorAll('tr[data-type="rental"]')]; }
+function itemOf(tr) { const s = tr.querySelector('.it'); return s ? normId(s.value) : ''; }
+function sameItemRate(tr, itemId) {
+    const id = normId(itemId);
+    if (!id) return null;
+    for (const o of rentalRows()) {
+        if (o === tr || itemOf(o) !== id) continue;
+        const v = num(o.querySelector('.rate').value);
+        if (v > 0) return v;
+    }
+    return null;
+}
+/* Copies the rate typed in one row to the other rows of the SAME item, but only to rows that are
+   still empty/0 or still hold the previous value of this row. A row with its own different
+   rate (a deliberate rate change) is never overwritten. */
+function syncRate(tr) {
+    const id = itemOf(tr);
+    const rate = tr.querySelector('.rate');
+    const oldV = num(rate.dataset.prev), newV = rate.value;
+    rate.dataset.prev = newV;
+    if (!id) return;
+    rentalRows().forEach(o => {
+        if (o === tr || itemOf(o) !== id) return;
+        const r = o.querySelector('.rate'), cur = num(r.value);
+        if (cur === 0 || cur === oldV) { r.value = newV; r.dataset.prev = newV; }
+    });
+}
+function initRatePrev() { rowsEl.querySelectorAll('.rate').forEach(r => { r.dataset.prev = r.value; }); }
+
 /* ------------------------------ events -------------------------------- */
 rowsEl.addEventListener('input', e => {
     dirty = true;
     const tr = e.target.closest('tr');
     if (!tr) return;
     if (e.target.classList.contains('days')) tr.dataset.manual = '1';       // days typed by hand
+    if (e.target.classList.contains('rate')) syncRate(tr);                  // same item -> same rate
     recalcAll();
 });
 rowsEl.addEventListener('change', e => {
@@ -344,7 +376,12 @@ rowsEl.addEventListener('change', e => {
         const it = itemById(e.target.value);
         tr.querySelector('.desc-h').value = it ? it.name : '';
         const rate = tr.querySelector('.rate');
-        if (it && num(rate.value) === 0) rate.value = it.rate || 0;
+        if (num(rate.value) === 0) {
+            const known = sameItemRate(tr, e.target.value);
+            if (known !== null) rate.value = known;                          // reuse rate already entered for this item
+            else if (it) rate.value = it.rate || 0;
+        }
+        rate.dataset.prev = rate.value;
     }
     recalcAll();
 });
@@ -420,6 +457,7 @@ if (cancelBtn) cancelBtn.addEventListener('click', () => {
 
 /* ------------------------------ start --------------------------------- */
 INITIAL_ROWS.forEach(r => rowsEl.appendChild(buildRow(r)));
+initRatePrev();
 renumber();
 recalcAll();
 dirty = false;

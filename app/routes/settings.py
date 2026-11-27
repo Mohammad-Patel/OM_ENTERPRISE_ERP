@@ -20,6 +20,7 @@ import pandas as pd
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from werkzeug.routing import BuildError
 
+from app.services.numbering_service import current_series_values
 from app.routes.challan_store import (
     Book, ChallanError, append_rows, audit_update, excel_lock, next_id, records, save_sheets,
 )
@@ -38,9 +39,11 @@ FIELDS = {
     'NON_GST_INVOICE_NEXT_NO': ('150', 'int', 'Non-GST invoice next number', 'First number of the non-GST invoice series'),
     'FINANCIAL_YEAR': ('', 'fy', 'Financial year', 'Invoice suffix like 26-27. Blank = automatic (April - March)'),
     'GST_ISSUE_CHALLAN_PREFIX': ('OM/26-27/', 'text', 'GST issue challan prefix', 'GST issue challan = prefix + number'),
-    'GST_ISSUE_CHALLAN_START': ('180', 'int', 'GST issue challan start number', 'OM/26-27/180, 181 ...'),
-    'WITHOUT_GST_ISSUE_CHALLAN_START': ('1', 'int', 'Without-GST issue challan start number', '01, 02, 03 ...'),
-    'RECEIVE_CHALLAN_START': ('1', 'int', 'Receive challan start number', '01, 02, 03 ... (GST and without-GST share it)'),
+    # the 4 challan series: the value is the number the NEXT challan gets (counts up by itself)
+    'GST_ISSUE_CHALLAN_NEXT_NO': ('', 'series', 'GST issue challan next no', 'Next GST issue challan number, e.g. OM/26-27/89'),
+    'WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO': ('', 'series', 'Without-GST issue challan next no', 'Next without-GST issue challan number'),
+    'GST_RECEIVE_CHALLAN_NEXT_NO': ('', 'series', 'GST receive challan next no', 'Next GST receive challan number'),
+    'WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO': ('', 'series', 'Without-GST receive challan next no', 'Next without-GST receive challan number'),
     'CGST_RATE': ('9', 'rate', 'CGST %', 'Applied on GST invoices'),
     'SGST_RATE': ('9', 'rate', 'SGST %', 'Applied on GST invoices'),
     'COMPANY_NAME': ('OM Enterprise', 'text', 'Company name', 'Printed on invoices'),
@@ -80,7 +83,9 @@ def _current_values(book):
         key = str(r.get('Setting_Key') or '').strip().upper()
         if key:
             saved[key] = str(r.get('Setting_Value') if r.get('Setting_Value') is not None else '').strip()
-    return {k: saved.get(k, spec[0]) for k, spec in FIELDS.items()}
+    values = {k: saved.get(k, spec[0]) for k, spec in FIELDS.items()}
+    values.update(current_series_values(book))      # the number each series will give next, right now
+    return values
 
 
 def _validate(form):
@@ -90,6 +95,19 @@ def _validate(form):
         if key not in form:                       # field not on the form -> leave unchanged
             continue
         val = str(form.get(key, '')).strip()[:MAX_TEXT]
+        if kind == 'series':
+            # untouched field (same as what the page showed) -> leave the live counter alone, so a stale
+            # tab can never move a series backwards
+            if val == str(form.get('ORIG_' + key, '')).strip():
+                continue
+            m = re.fullmatch(r'(.*?)(\d{1,9})', val)
+            if not m or int(m.group(2)) < 1:
+                errors.append(f'{label}: enter the number the next challan should get (1 or more).')
+                continue
+            if key == 'GST_ISSUE_CHALLAN_NEXT_NO' and m.group(1).strip():
+                clean['GST_ISSUE_CHALLAN_PREFIX'] = m.group(1).strip()   # OM/26-27/89 -> prefix + 89
+            clean[key] = str(int(m.group(2)))
+            continue
         if kind == 'int':
             if not re.fullmatch(r'\d{1,9}', val) or int(val) < 1:
                 errors.append(f'{label}: enter a whole number of 1 or more.')

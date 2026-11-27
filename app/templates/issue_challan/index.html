@@ -167,13 +167,13 @@ table.item-table select, table.item-table input { width: 100%; }
         <td>{{ c.Party_Mobile or '-' }}</td>
         <td style="text-align: center;">
           <div class="action-btns" style="justify-content: center;">
-            <a href="{{ url_for('issue_challan.print_challan', challan_no=c.Challan_No) }}" class="icon-btn btn-view" title="View / Print Challan" aria-label="View challan {{ c.Challan_No }}" target="_blank" rel="noopener">
+            <a href="{{ url_for('issue_challan.print_challan', challan_no=c.Challan_No, id=c.Issue_ID) }}" class="icon-btn btn-view" title="View / Print Challan" aria-label="View challan {{ c.Challan_No }}" target="_blank" rel="noopener">
               <i class="fas fa-eye"></i>
             </a>
-            <button type="button" class="icon-btn btn-edit edit-btn" title="Edit Challan" aria-label="Edit challan {{ c.Challan_No }}" data-challan="{{ c.Challan_No }}">
+            <button type="button" class="icon-btn btn-edit edit-btn" title="Edit Challan" aria-label="Edit challan {{ c.Challan_No }}" data-challan="{{ c.Issue_ID }}">
               <i class="fas fa-edit"></i>
             </button>
-            <form action="{{ url_for('issue_challan.delete', challan_no=c.Challan_No) }}" method="POST" class="delete-form" data-challan="{{ c.Challan_No }}" style="display:inline;">
+            <form action="{{ url_for('issue_challan.delete', challan_no=c.Challan_No, id=c.Issue_ID) }}" method="POST" class="delete-form" data-challan="{{ c.Challan_No }}" style="display:inline;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="icon-btn btn-delete" title="Delete Challan" aria-label="Delete challan {{ c.Challan_No }}">
                 <i class="fas fa-trash-alt"></i>
@@ -365,6 +365,7 @@ const CURRENT_DATE = pageData.currentDate;
 const INITIAL_SITE_FILTER = pageData.siteFilter;
 const CREATE_URL = pageData.createUrl;
 const EDIT_URL_TEMPLATE = pageData.editUrl;
+let creating = true;          /* true while the popup creates a new challan (edit keeps its own number) */
 const DEFAULT_RATE = 59;
 const DEFAULT_WEIGHT = 10;
 
@@ -407,7 +408,9 @@ function sitesOfParty(partyId) {
 const challansMap = {};
 challansList.forEach(c => {
     const no = clean(c.Challan_No);
-    challansMap[no] = {
+    const key = clean(c.Issue_ID);               /* the challan number can repeat after a series restart */
+    challansMap[key] = {
+        issue_id: key,
         challan_no: no,
         date: clean(c.Challan_Date || c.Date),
         party_id: clean(c.Party_ID),
@@ -492,6 +495,7 @@ function fillSites(partyId, selectedSite) {
 function openCreateModal() {
     $('modalTitle').textContent = 'Create New Issue Challan';
     $('challanForm').action = CREATE_URL;
+    creating = true;
 
     $('challan_no').value = NEXT_NON_GST_CHALLAN_NO;
     $('challan_date').value = CURRENT_DATE;
@@ -518,7 +522,8 @@ function openEditModal(challanNo) {
         return;
     }
     $('modalTitle').textContent = 'Edit Issue Challan: ' + c.challan_no;
-    $('challanForm').action = EDIT_URL_TEMPLATE.replace('__NO__', c.challan_no);
+    $('challanForm').action = EDIT_URL_TEMPLATE.replace('__NO__', c.challan_no) + '?id=' + encodeURIComponent(c.issue_id);
+    creating = false;
 
     $('challan_no').value = c.challan_no;
     $('challan_date').value = c.date || CURRENT_DATE;
@@ -534,7 +539,7 @@ function openEditModal(challanNo) {
 
     const tbody = $('itemsTable').querySelector('tbody');
     tbody.innerHTML = '';
-    const saved = challanItemsMap[c.challan_no] || [];
+    const saved = challanItemsMap[c.issue_id] || [];
     if (saved.length) saved.forEach(it => addRow(it.item_id, it.qty)); else addRow();
     setItemsEnabled(true);
     calculateTotals();
@@ -582,7 +587,7 @@ $('addRowBtn').addEventListener('click', () => addRow());
 $('partySelect').addEventListener('change', function () {
     fillSites(this.value, '');
     // number follows the party type, but only while CREATING (edit keeps its number)
-    if ($('challanForm').action === CREATE_URL) { $('challan_no').value = previewChallanNo(this.value); }
+    if (creating) { $('challan_no').value = previewChallanNo(this.value); }
 });
 
 const itemsBody = $('itemsTable').querySelector('tbody');

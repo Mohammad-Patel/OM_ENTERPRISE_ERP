@@ -62,6 +62,22 @@ def _same_id(a: Any, b: Any) -> bool:
     return clean(a) == clean(b)
 
 
+def _norm_text(value: Any) -> str:
+    """Case / spacing / trailing punctuation ignore karke compare ke liye text."""
+    text = re.sub(r"\s+", " ", _normalise(value))
+    return text.strip(" .,;-").casefold()
+
+
+def _site_label(site: dict[str, Any]) -> str:
+    """Site ka display text: Site Name optional hai, isliye Site Address fallback."""
+    return _normalise(site.get("Site_Name")) or _normalise(site.get("Site_Address"))
+
+
+def _site_address_text(site: dict[str, Any]) -> str:
+    """Purani sites mein pata Site Name mein bhara hota tha - use bhi address maanein."""
+    return _normalise(site.get("Site_Address")) or _normalise(site.get("Site_Name"))
+
+
 def _is_active(value: Any) -> bool:
     """Blank legacy status ko active maana jayega."""
     return _normalise(value).upper() not in INACTIVE_VALUES
@@ -140,7 +156,7 @@ def list_sites(
         result,
         key=lambda site: (
             not _is_active(site.get("Is_Active")),
-            _normalise(site.get("Site_Name")).casefold(),
+            _site_label(site).casefold(),
         ),
     )
 
@@ -161,10 +177,45 @@ def _clean_site_data(data: dict[str, Any]) -> dict[str, str]:
         for field in SITE_FIELDS
     }
 
-    if not cleaned["Site_Name"]:
-        raise SiteServiceError("Site Name required hai.")
+    # Site Name optional hai; Site Address required hai.
+    if not cleaned["Site_Address"]:
+        raise SiteServiceError("Site Address required hai.")
 
     return cleaned
+
+
+def _validate_unique_site(
+    party_id: str,
+    cleaned: dict[str, str],
+    exclude_site_id: str = "",
+) -> None:
+    """
+    Duplicate site roke:
+      * same Site Name (jab naam diya ho)
+      * same Site Address, jab naam khali ho ya dono sites ka naam same ho
+    Alag naam ke saath same address allowed hai (ek hi complex ke do projects).
+    """
+    new_name = _norm_text(cleaned.get("Site_Name"))
+    new_addr = _norm_text(cleaned.get("Site_Address"))
+
+    for site in list_sites(party_id):
+        if _normalise(site.get("Site_ID")) == _normalise(exclude_site_id):
+            continue
+
+        other_name = _norm_text(site.get("Site_Name"))
+        other_addr = _norm_text(_site_address_text(site))
+
+        if new_name and new_name == other_name:
+            raise SiteServiceError(
+                "Is Party ke liye same naam ka Site pehle se hai."
+            )
+
+        if new_addr and new_addr == other_addr and (
+            not new_name or new_name == other_name
+        ):
+            raise SiteServiceError(
+                "Is Party ke liye ye Site Address pehle se maujood hai."
+            )
 
 
 def _validate_unique_name(
@@ -172,15 +223,10 @@ def _validate_unique_name(
     site_name: str,
     exclude_site_id: str = "",
 ) -> None:
-    for site in list_sites(party_id):
-        if (
-            _normalise(site.get("Site_ID")) != _normalise(exclude_site_id)
-            and _normalise(site.get("Site_Name")).casefold()
-            == site_name.casefold()
-        ):
-            raise SiteServiceError(
-                "Is Party ke liye same naam ka Site pehle se hai."
-            )
+    """Purana naam - compatibility ke liye."""
+    _validate_unique_site(
+        party_id, {"Site_Name": site_name, "Site_Address": ""}, exclude_site_id
+    )
 
 
 def _find_site_row(
@@ -226,7 +272,7 @@ def create_site(
         )
 
     cleaned = _clean_site_data(data)
-    _validate_unique_name(party_id, cleaned["Site_Name"])
+    _validate_unique_site(party_id, cleaned)
 
     site_id = _site_id()
     now = _now()
@@ -312,7 +358,7 @@ def update_site(
         )
 
     cleaned = _clean_site_data(data)
-    _validate_unique_name(party_id, cleaned["Site_Name"], site_id)
+    _validate_unique_site(party_id, cleaned, site_id)
 
     updated = dict(old_site)
     updated.update(cleaned)

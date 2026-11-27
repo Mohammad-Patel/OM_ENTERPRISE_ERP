@@ -152,7 +152,7 @@ def party_sites(party_id):
         "sites": [
             {
                 "Site_ID": site.get("Site_ID"),
-                "Site_Name": site.get("Site_Name"),
+                "Site_Name": site.get("Site_Name") or site.get("Site_Address") or site.get("Site_ID"),
             }
             for site in sites
         ]

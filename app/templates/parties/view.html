@@ -262,7 +262,7 @@ tbody tr:hover { background-color: #f8fafc; }
 
                                     <form method="POST" action="{{ url_for('sites.deactivate', party_id=party_id, site_id=site.get('Site_ID')) }}" class="deactivate-site-form" style="display: inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="button" class="icon-btn btn-del-sm delete-site-button" data-site-name="{{ site.get('Site_Name') or 'this site' }}" title="Deactivate Site">
+                                        <button type="button" class="icon-btn btn-del-sm delete-site-button" data-site-name="{{ site.get('Site_Name') or site.get('Site_Address') or 'this site' }}" title="Deactivate Site">
                                             <i class="fas fa-ban"></i>
                                         </button>
                                     </form>
@@ -270,7 +270,7 @@ tbody tr:hover { background-color: #f8fafc; }
                                     <!-- Inactive Site ke liye View ke baaju mein Delete Button -->
                                     <form method="POST" action="{{ url_for('sites.delete', party_id=party_id, site_id=site.get('Site_ID')) }}" class="delete-site-form" style="display: inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="button" class="icon-btn btn-del-sm delete-site-button" data-site-name="{{ site.get('Site_Name') or 'this site' }}" title="Delete Site">
+                                        <button type="button" class="icon-btn btn-del-sm delete-site-button" data-site-name="{{ site.get('Site_Name') or site.get('Site_Address') or 'this site' }}" title="Delete Site">
                                             <i class="fas fa-trash"></i> Delete
                                         </button>
                                     </form>
@@ -387,12 +387,13 @@ tbody tr:hover { background-color: #f8fafc; }
             <fieldset class="pm-form-section">
                 <legend>Site Information</legend>
                 <div class="pm-form-group">
-                    <label for="modalSiteName">Site Name <span class="pm-required">*</span></label>
-                    <input type="text" id="modalSiteName" name="Site_Name" maxlength="150" required placeholder="Site / Project Name">
+                    <!-- <label for="modalSiteName">Site Name <span class="pm-required">*</span></label> -->
+                     <label for="modalSiteName">Site Name <small>(optional)</small></label>
+                    <input type="text" id="modalSiteName" name="Site_Name" maxlength="150" placeholder="Site / Project Name (optional)">
                 </div>
                 <div class="pm-form-group">
-                    <label for="modalSiteAddress">Site Address</label>
-                    <textarea id="modalSiteAddress" name="Site_Address" rows="3" placeholder="Complete site address"></textarea>
+                    <label for="modalSiteAddress">Site Address<span class="pm-required">*</span></label>
+                    <textarea id="modalSiteAddress" name="Site_Address" rows="3" required placeholder="Complete site address"></textarea>
                 </div>
                 <div class="pm-form-grid">
                     <div class="pm-form-group">
@@ -454,13 +455,13 @@ tbody tr:hover { background-color: #f8fafc; }
 
     const createUrl = "{{ url_for('sites.create', party_id=party_id) }}";
     const currentParty = {
-        "Party_Type": "{{ party.get('Party_Type', '') }}",
-        "Party_Name": "{{ party.get('Party_Name', '') }}",
-        "GSTIN": "{{ party.get('GSTIN', '') }}",
-        "Phone": "{{ party.get('Phone') or party.get('Mobile', '') }}",
-        "State": "{{ party.get('State', '') }}",
-        "State_Code": "{{ party.get('State_Code', '') }}",
-        "Address": "{{ party.get('Address', '') }}"
+        "Party_Type": "{{ (party.get('Party_Type', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}",
+        "Party_Name": "{{ (party.get('Party_Name', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}",
+        "GSTIN": "{{ (party.get('GSTIN', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}",
+        "Phone": "{{ (party.get('Phone') or party.get('Mobile', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}",
+        "State": "{{ (party.get('State', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}",
+        "State_Code": "{{ (party.get('State_Code', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}",
+        "Address": "{{ (party.get('Address', '') or '') | replace('\\', '\\\\') | replace('\"', '\\\"') | replace('\r', '') | replace('\n', '\\n') }}"
     };
 
     /* ===== EDIT PARTY MODAL ===== */
@@ -584,7 +585,7 @@ tbody tr:hover { background-color: #f8fafc; }
             if (siteModalSaveButton) siteModalSaveButton.innerHTML = '<i class="fas fa-save"></i> Update Site';
             siteModalForm.action = button.dataset.url;
             if (fields.name) fields.name.value = button.dataset.name || "";
-            if (fields.address) fields.address.value = button.dataset.address || "";
+            if (fields.address) fields.address.value = button.dataset.address || button.dataset.name || "";
             if (fields.state) fields.state.value = button.dataset.state || "";
             if (fields.stateCode) fields.stateCode.value = button.dataset.stateCode || "";
             if (fields.phone) fields.phone.value = button.dataset.phone || "";

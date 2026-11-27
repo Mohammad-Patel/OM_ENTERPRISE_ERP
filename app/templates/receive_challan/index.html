@@ -186,13 +186,13 @@ table.inner input.recv-qty { width: 90px; text-align: right; }
         <td class="num">{{ c.Breakage_Amount }}</td>
         <td style="text-align: center;">
           <div class="action-btns" style="justify-content: center;">
-            <a href="{{ url_for('receive_challan.print_challan', challan_no=c.Receive_Challan_No) }}" class="icon-btn btn-view" title="View / Print Challan" aria-label="View challan {{ c.Receive_Challan_No }}" target="_blank" rel="noopener">
+            <a href="{{ url_for('receive_challan.print_challan', challan_no=c.Receive_Challan_No, id=c.Receive_ID) }}" class="icon-btn btn-view" title="View / Print Challan" aria-label="View challan {{ c.Receive_Challan_No }}" target="_blank" rel="noopener">
               <i class="fas fa-eye"></i>
             </a>
-            <button type="button" class="icon-btn btn-edit edit-btn" title="Edit Challan" aria-label="Edit challan {{ c.Receive_Challan_No }}" data-challan="{{ c.Receive_Challan_No }}">
+            <button type="button" class="icon-btn btn-edit edit-btn" title="Edit Challan" aria-label="Edit challan {{ c.Receive_Challan_No }}" data-challan="{{ c.Receive_ID }}">
               <i class="fas fa-edit"></i>
             </button>
-            <form action="{{ url_for('receive_challan.delete', challan_no=c.Receive_Challan_No) }}" method="POST" class="delete-form" data-challan="{{ c.Receive_Challan_No }}" style="display:inline;">
+            <form action="{{ url_for('receive_challan.delete', challan_no=c.Receive_Challan_No, id=c.Receive_ID) }}" method="POST" class="delete-form" data-challan="{{ c.Receive_Challan_No }}" style="display:inline;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="icon-btn btn-delete" title="Delete Challan" aria-label="Delete challan {{ c.Receive_Challan_No }}">
                 <i class="fas fa-trash-alt"></i>
@@ -366,6 +366,9 @@ table.inner input.recv-qty { width: 90px; text-align: right; }
      data-challans="{{ challans_json | e }}"
      data-receive-data="{{ (receive_data_json or '{}') | e }}"
      data-next-challan-no="{{ next_challan_no }}"
+     data-next-gst-challan-no="{{ next_gst_challan_no }}"
+     data-next-non-gst-challan-no="{{ next_non_gst_challan_no }}"
+     data-gst-party-ids="{{ gst_party_ids_json | e }}"
      data-current-date="{{ current_date }}"
      data-site-filter="{{ site_filter }}"
      data-stock-url="{{ url_for('receive_challan.stock') }}"
@@ -382,7 +385,13 @@ const pageData = document.getElementById('page-data').dataset;
 const allSites = JSON.parse(pageData.sites);
 const challansList = JSON.parse(pageData.challans);
 const receiveData = JSON.parse(pageData.receiveData);
-const NEXT_NO = pageData.nextChallanNo;
+const NEXT_GST_NO = pageData.nextGstChallanNo;
+const NEXT_NON_GST_NO = pageData.nextNonGstChallanNo;
+const GST_PARTY_IDS = JSON.parse(pageData.gstPartyIds || '[]');
+/* number of the series this party belongs to (GST party -> GST receive series, other -> without-GST series) */
+function previewChallanNo(partyId) {
+    return GST_PARTY_IDS.indexOf(String(partyId)) !== -1 ? NEXT_GST_NO : NEXT_NON_GST_NO;
+}
 const CURRENT_DATE = pageData.currentDate;
 const INITIAL_SITE_FILTER = pageData.siteFilter;
 const STOCK_URL = pageData.stockUrl;
@@ -396,7 +405,8 @@ const breakBody = $('breakageTable').querySelector('tbody');
 
 let stockItems = [];      // items lying with the party at the chosen site
 let stockReq = 0;         // guards against out-of-order responses
-let currentExclude = '';  // receive challan being edited (its own returns are not counted)
+let currentExclude = '';  // Receive_ID of the challan being edited (its own returns are not counted)
+let creating = true;      // true while the popup creates a new challan (edit keeps its own number)
 
 /* ------------------------------ helpers ------------------------------ */
 function clean(v) { return (v === null || v === undefined || v === 'None' || v === 'nan') ? '' : String(v); }
@@ -422,8 +432,9 @@ function fmtInt(n) { return Number.isInteger(n) ? String(n) : n.toFixed(2).repla
 const challansMap = {};
 challansList.forEach(c => {
     const no = clean(c.Receive_Challan_No);
-    challansMap[no] = {
-        no, date: clean(c.Receive_Date), party_id: clean(c.Party_ID), site_id: clean(c.Site_ID),
+    const key = clean(c.Receive_ID);              /* the challan number can repeat after a series restart */
+    challansMap[key] = {
+        id: key, no, date: clean(c.Receive_Date), party_id: clean(c.Party_ID), site_id: clean(c.Site_ID),
         vehicle_no: clean(c.Vehicle_No), driver_name: clean(c.Driver_Name), driver_mob: clean(c.Driver_Mob),
         remarks: clean(c.Remarks)
     };
@@ -497,7 +508,7 @@ async function loadStock(prefill) {
     if (!party || !site) { stockItems = []; renderStock({}); return; }
     setStockMessage('Loading stock...');
     try {
-        const qs = new URLSearchParams({ party_id: party, site_id: site, exclude: currentExclude });
+        const qs = new URLSearchParams({ party_id: party, site_id: site, exclude_id: currentExclude });
         const res = await fetch(STOCK_URL + '?' + qs.toString(), { headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
@@ -630,7 +641,8 @@ function openCreateModal() {
     $('modalTitle').textContent = 'Create New Receive Challan';
     $('challanForm').action = CREATE_URL;
     currentExclude = '';
-    $('challan_no').value = NEXT_NO;
+    creating = true;
+    $('challan_no').value = NEXT_NON_GST_NO;
     $('challan_date').value = CURRENT_DATE;
     $('partySelect').value = '';
     fillSites('', '');
@@ -645,12 +657,13 @@ function openCreateModal() {
     showModal();
 }
 
-async function openEditModal(no) {
-    const c = challansMap[no];
+async function openEditModal(key) {
+    const c = challansMap[key];
     if (!c) { Swal.fire('Not found', 'Challan data not found. Please refresh the page.', 'error'); return; }
     $('modalTitle').textContent = 'Edit Receive Challan: ' + c.no;
-    $('challanForm').action = EDIT_URL_TEMPLATE.replace('__NO__', c.no);
-    currentExclude = c.no;
+    $('challanForm').action = EDIT_URL_TEMPLATE.replace('__NO__', c.no) + '?id=' + encodeURIComponent(c.id);
+    currentExclude = c.id;
+    creating = false;
 
     $('challan_no').value = c.no;
     $('challan_date').value = c.date || CURRENT_DATE;
@@ -664,7 +677,7 @@ async function openEditModal(no) {
     setSubmitLabel('Update Receive Challan');
     showModal();
 
-    const saved = receiveData[no] || { items: [], breakage: [] };
+    const saved = receiveData[c.id] || { items: [], breakage: [] };
     const prefill = {};
     saved.items.forEach(it => { prefill[normId(it.item_id)] = it.qty; });
     await loadStock(prefill);                              // stock WITHOUT this challan's own returns
@@ -681,6 +694,8 @@ $('addBreakageBtn').addEventListener('click', () => addBreakageRow());
 
 $('partySelect').addEventListener('change', function () {
     fillSites(this.value, '');
+    // the number follows the party type (GST / without GST), but only while CREATING
+    if (creating) { $('challan_no').value = previewChallanNo(this.value); }
     breakBody.querySelectorAll('tr').forEach(tr => tr.remove());
     loadStock({});
 });

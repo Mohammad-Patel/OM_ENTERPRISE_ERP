@@ -71,25 +71,38 @@
           <input type="text" id="FINANCIAL_YEAR" name="FINANCIAL_YEAR" value="{{ settings.get('FINANCIAL_YEAR', '26-27') }}" placeholder="26-27" maxlength="5">
           <span class="set-hint">Leave blank for automatic (April to March)</span>
         </div>
+      </div>
+    </div>
+
+    <div class="set-card">
+      <h3><i class="fas fa-file-invoice"></i> Challan Number Series (4 independent series)</h3>
+      <div class="set-grid">
         <div class="set-group">
-          <label>GST Issue Challan Prefix &amp; Start No</label>
-          <div class="set-row">
-            <input type="text" class="grow2" name="GST_ISSUE_CHALLAN_PREFIX" value="{{ settings.get('GST_ISSUE_CHALLAN_PREFIX', 'OM/26-27/') }}" placeholder="Prefix">
-            <input type="number" min="1" class="grow1" name="GST_ISSUE_CHALLAN_START" value="{{ settings.get('GST_ISSUE_CHALLAN_START', '180') }}" placeholder="Start no">
-          </div>
-          <span class="set-hint">GST party: OM/26-27/180, OM/26-27/181 ...</span>
+          <label for="GST_ISSUE_CHALLAN_NEXT_NO">GST Issue Challan - Next No</label>
+          <input type="text" id="GST_ISSUE_CHALLAN_NEXT_NO" name="GST_ISSUE_CHALLAN_NEXT_NO" value="{{ settings.get('GST_ISSUE_CHALLAN_NEXT_NO', '') }}" placeholder="OM/26-27/1" autocomplete="off">
+          <input type="hidden" name="ORIG_GST_ISSUE_CHALLAN_NEXT_NO" value="{{ settings.get('GST_ISSUE_CHALLAN_NEXT_NO', '') }}">
+          <span class="set-hint">Type the full number, e.g. OM/26-27/89 - the next GST issue challan gets 89, then 90, 91 ...</span>
         </div>
         <div class="set-group">
-          <label for="WITHOUT_GST_ISSUE_CHALLAN_START">Without-GST Issue Challan Start No</label>
-          <input type="number" min="1" id="WITHOUT_GST_ISSUE_CHALLAN_START" name="WITHOUT_GST_ISSUE_CHALLAN_START" value="{{ settings.get('WITHOUT_GST_ISSUE_CHALLAN_START', '1') }}" required>
-          <span class="set-hint">01, 02, 03 ...</span>
+          <label for="WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO">Without-GST Issue Challan - Next No</label>
+          <input type="number" min="1" id="WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO" name="WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO" value="{{ settings.get('WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO', '') }}">
+          <input type="hidden" name="ORIG_WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO" value="{{ settings.get('WITHOUT_GST_ISSUE_CHALLAN_NEXT_NO', '') }}">
+          <span class="set-hint">67 gives 67, 68, 69 ... (shown as 01, 02 ... below 10)</span>
         </div>
         <div class="set-group">
-          <label for="GST_RECEIVE_CHALLAN_START">Receive Challan Start No</label>
-          <input type="number" min="1" id="GST_RECEIVE_CHALLAN_START" name="GST_RECEIVE_CHALLAN_START" value="{{ settings.get('GST_RECEIVE_CHALLAN_START', '1') }}" required>
-          <span class="set-hint">01, 02, 03 ... (same series for GST and without-GST parties)</span>
+          <label for="GST_RECEIVE_CHALLAN_NEXT_NO">GST Receive Challan - Next No</label>
+          <input type="number" min="1" id="GST_RECEIVE_CHALLAN_NEXT_NO" name="GST_RECEIVE_CHALLAN_NEXT_NO" value="{{ settings.get('GST_RECEIVE_CHALLAN_NEXT_NO', '') }}">
+          <input type="hidden" name="ORIG_GST_RECEIVE_CHALLAN_NEXT_NO" value="{{ settings.get('GST_RECEIVE_CHALLAN_NEXT_NO', '') }}">
+          <span class="set-hint">Receive challan of a GST party</span>
+        </div>
+        <div class="set-group">
+          <label for="WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO">Without-GST Receive Challan - Next No</label>
+          <input type="number" min="1" id="WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO" name="WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO" value="{{ settings.get('WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO', '') }}">
+          <input type="hidden" name="ORIG_WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO" value="{{ settings.get('WITHOUT_GST_RECEIVE_CHALLAN_NEXT_NO', '') }}">
+          <span class="set-hint">Receive challan of a without-GST party</span>
         </div>
       </div>
+      <span class="set-hint" style="margin-top: 8px; display: block;">The number shown is what the next challan of that series will get. Change it any time (even many times a day) - the series continues from the new number. Old challans and the other series are never changed.</span>
     </div>
 
     <div class="set-card">

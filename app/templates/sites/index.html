@@ -226,7 +226,7 @@
                     <tr>
                         <td>
                             <div class="site-name">
-                                {{ site.get('Site_Name') or '—' }}
+                                {{ site.get('Site_Name') or site.get('Site_Address') or '—' }}
                             </div>
                             <small>{{ site.get('Site_ID') or '' }}</small>
                         </td>

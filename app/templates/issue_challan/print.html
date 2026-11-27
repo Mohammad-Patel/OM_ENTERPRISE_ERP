@@ -1,9 +1,11 @@
 {#- Indian rupee format: 123900.00 / "123,900.00" -> 1,23,900/-    (paise shown only if not .00) -#}
 {%- macro rs(v) -%}
 {%- set t = (v | string).replace(',', '').strip() -%}
-{%- if not t or t in ['-', 'None'] -%}-
+{%- if not t or t in ['-', 'None', 'none', 'NULL', 'null', 'nan', 'NaN'] -%}-
 {%- else -%}
-  {%- set parts = t.split('.') -%}
+  {%- set neg = '-' if t.startswith('-') else '' -%}
+  {%- set t_abs = t.lstrip('-') -%}
+  {%- set parts = t_abs.split('.') -%}
   {%- set ip = parts[0] -%}
   {%- set dp0 = parts[1] if parts | length > 1 else '' -%}
   {%- set dp = '' if not dp0.strip('0') else dp0 -%}
@@ -13,27 +15,28 @@
       {%- set g.groups = [g.h[-2:]] + g.groups -%}
       {%- set g.h = g.h[:-2] -%}
     {%- endfor -%}
-    {{- g.groups | join(',') }},{{ ip[-3:] -}}
-  {%- else -%}{{- ip -}}{%- endif -%}
+    {{- neg }}{{ g.groups | join(',') }},{{ ip[-3:] -}}
+  {%- else -%}{{- neg }}{{ ip -}}{%- endif -%}
   {%- if dp %}.{{ dp }}{% endif %}/-
 {%- endif -%}
 {%- endmacro -%}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="format-detection" content="telephone=no">
-<title>Issue Challan - {{ challan.Challan_No if challan else challan_no }} - OM Enterprise</title>
-<script>document.documentElement.classList.add('js');</script>
-<style>
-* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="format-detection" content="telephone=no">
+  <title>Issue Challan - {{ challan.Challan_No if challan else challan_no }} - OM Enterprise</title>
+  <script>document.documentElement.classList.add('js');</script>
+  <style>
+@page { size: A4 portrait; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
 html, body {
   margin: 0;
   padding: 0;
   background: #cbd5e1;
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #0f172a;
   font-size: 9.5pt;
   line-height: 1.35;
@@ -41,91 +44,146 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Header */
-.header { display: grid; grid-template-columns: 88mm 1fr; gap: 6mm; border-bottom: 3px solid #0f172a; padding-bottom: 4mm; margin-bottom: 4mm; }
-.logo-area { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.brand-logo { width: 68px; height: 56px; flex-shrink: 0; }
-.logo-text { display: flex; flex-direction: column; min-width: 0; }
-.logo-text .brand-name { font-size: 15pt; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; line-height: 1.05; white-space: nowrap; }
-.logo-text .brand-sub { font-size: 6pt; font-weight: 800; color: #f97316; letter-spacing: 0.6px; margin-top: 5px; text-transform: uppercase; }
-.title-area { text-align: right; }
-.title-area h1 { font-size: 15pt; margin: 0 0 3px 0; font-weight: 900; color: #0f172a; letter-spacing: 0.6px; }
-.title-area .company-name { font-size: 10.5pt; font-weight: 800; color: #1e293b; margin: 1px 0; }
-.title-area p { font-size: 8pt; margin: 1px 0; color: #334155; line-height: 1.35; }
-.tax-details { font-weight: 800; color: #0f172a !important; margin-top: 3px !important; }
+/* ---- screen-only toolbar ---- */
+.toolbar { position: sticky; top: 0; z-index: 100; background: #0f172a; padding: 10px 20px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.toolbar .tb-title { color: #f8fafc; font-weight: 700; font-size: 14px; }
+.toolbar .tb-actions { display: flex; gap: 8px; align-items: center; }
+.tb-btn { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; font-family: inherit; transition: opacity 0.2s; }
+.tb-btn.grey { background: #475569; }
+.tb-btn:hover { opacity: 0.9; }
+.notfound { max-width: 520px; margin: 60px auto; background: #fff; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 
-/* Receiver + Meta */
-.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1px solid #334155; margin-bottom: 4mm; break-inside: avoid; }
+/* measuring container (hidden) */
+html.js .doc-src { position: absolute; left: -10000px; top: 0; width: 190mm; visibility: hidden; pointer-events: none; display: flex; flex-direction: column; }
+html.js .doc-src > * { flex: none; }
+html:not(.js) .doc-src { width: 210mm; max-width: 100%; margin: 15px auto; padding: 8mm 10mm; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+/* A4 sheets */
+.dens-normal  { --pad: 1;   --fs: 1;   }
+.dens-compact { --pad: .78; --fs: .95; }
+.dens-tight   { --pad: .58; --fs: .9;  }
+
+#sheets { padding: 15px 0 10px; }
+.sheet { width: 210mm; height: 297mm; margin: 0 auto 15px; padding: 8mm 10mm 0; background: #ffffff; outline: 1px solid #94a3b8; box-shadow: 0 6px 18px rgba(15,23,42,0.15); display: flex; flex-direction: column; position: relative; overflow: hidden; box-sizing: border-box; break-after: page; page-break-after: always; border-radius: 2px; }
+.sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0 1px; }
+.sheet-body > * { flex: none; }
+.sheet-body > .footer { margin-top: auto; }
+
+.sheet-foot { flex: none; height: 7mm; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 1mm; font-size: 7.5pt; color: #64748b; font-weight: 500; }
+.sheet-foot .cont { font-style: italic; color: #475569; }
+.sheet-foot b { color: #0f172a; }
+
+/* Corporate Header Design */
+.header { display: grid; grid-template-columns: 88mm 1fr; border-bottom: 2.5px solid #0f172a; padding-bottom: 3.5mm; margin-bottom: 3mm; align-items: center; width: 100%; }
+.logo-area { display: flex; align-items: center; gap: 12px; }
+.brand-logo { width: 65px; height: 54px; flex-shrink: 0; }
+.logo-text { display: flex; flex-direction: column; gap: 2px; }
+.logo-text .brand-name { font-size: 15pt; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; line-height: 1.1; }
+.logo-text .brand-sub { font-size: 5.5pt; font-weight: 800; color: #f97316; letter-spacing: 0.6px; text-transform: uppercase; }
+.title-area { text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.title-area h1 { font-size: 14pt; margin: 0 0 2px 0; font-weight: 900; color: #0f172a; letter-spacing: 0.8px; text-transform: uppercase; }
+.title-area .company-name { font-size: 9.5pt; font-weight: 800; color: #334155; margin: 0; }
+.title-area p { font-size: 8.5pt; margin: 0; color: #475569; line-height: 1.25; }
+.tax-details { font-weight: 800; color: #0f172a !important; margin-top: 2px !important; }
+
+/* Receiver & Challan Details Grid */
+.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1.5px solid #0f172a; margin-bottom: 3.5mm; border-radius: 2px; width: 100%; overflow: hidden; background: #fff; break-inside: avoid; }
 .receiver, .meta { display: flex; flex-direction: column; min-width: 0; }
-.receiver { border-right: 1px solid #334155; }
-.box-title { background: #f1f5f9; padding: 5px 8px; border-bottom: 1px solid #334155; font-weight: 800; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .3px; color: #0f172a; }
-.box-content { padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
-.top-fields { display: flex; flex-direction: column; }
-.bottom-fields { display: flex; flex-direction: column; margin-top: auto; padding-top: 4px; }
-.field-row { display: grid; grid-template-columns: 34mm 1fr; gap: 4px; margin-bottom: 3px; font-size: 9pt; }
-.field-row b { color: #334155; font-weight: 700; }
-.field-row span { color: #000000; font-weight: 600; word-break: break-word; overflow-wrap: anywhere; }
+.receiver { border-right: 1.5px solid #0f172a; }
+.box-title { background: #dee1e9; color: #0f172a; padding: 4.5px 8px; font-weight: 800; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #94a3b8; }
+.box-content { padding: 5px 8px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; gap: 3px; }
+.top-fields, .bottom-fields { display: flex; flex-direction: column; gap: 2.5px; }
+.field-row { display: grid; grid-template-columns: 29mm 1fr; gap: 4px; font-size: 8.5pt; line-height: 1.3; }
+.field-row b { color: #334155; white-space: nowrap; font-weight: 700; }
+.field-row span { color: #0f172a; font-weight: 600; word-break: break-word; overflow-wrap: anywhere; }
 .dummy-spacer { visibility: hidden; }
 
-/* Items */
-.items-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #334155; margin-bottom: 4mm; }
+/* Professional Items Table Design */
+.tbl-wrap { border: 1.5px solid #0f172a; border-radius: 2px; overflow: hidden; background: #fff; margin-bottom: 3.5mm; width: 100%; }
+.tbl-wrap .items-table { margin-bottom: -1px; }
+.items-table { width: 100%; border-collapse: collapse; border: none; margin-bottom: 0; table-layout: fixed; background: #fff; }
 .items-table thead { display: table-header-group; }
-.items-table th { background: #e8edf5; color: #000; border-bottom: 1.5px solid #334155; border-right: 1px solid #334155; padding: calc(6px * var(--pad, 1)) 7px; font-size: calc(8.5pt * var(--fs, 1)); font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
-.items-table td { border-bottom: 1px solid #94a3b8; border-right: 1px solid #94a3b8; padding: calc(6px * var(--pad, 1)) 7px; font-size: calc(9.5pt * var(--fs, 1)); overflow-wrap: anywhere; }
+.items-table th { background: #dee1e9; color: #0f172a; border-right: 1px solid #aab2c0; border-bottom: 2px solid #0f172a; padding: calc(5.5px * var(--pad, 1)) 7px; font-size: calc(8.5pt * var(--fs, 1)); font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
 .items-table th:last-child, .items-table td:last-child { border-right: none; }
+.items-table td { border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; padding: calc(5px * var(--pad, 1)) 7px; font-size: calc(8.8pt * var(--fs, 1)); line-height: 1.3; vertical-align: middle; overflow-wrap: anywhere; color: #0f172a; }
+.items-table tbody tr:nth-child(even) td { background: #fcfcfd; }
+.items-table td.sno { font-weight: 700; }
+.items-table td:last-child { font-weight: 600; }
 .items-table tr { break-inside: avoid; page-break-inside: avoid; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .text-left { text-align: left; }
-.total-row td { font-weight: 800; background: #f1f5f9; border-top: 1.5px solid #334155; border-bottom: none; }
 
-/* Transport */
-.transport-grid { display: grid; grid-template-columns: 60% 40%; border: 1px solid #334155; padding: 7px 8px; gap: 10px; margin-bottom: 4mm; break-inside: avoid; }
-.transport-grid .field-row { grid-template-columns: 44mm 1fr; margin-bottom: 3px; }
-.transport-grid > div + div .field-row { grid-template-columns: 30mm 1fr; }
+.total-row td { font-weight: 800; background: #dee1e9 !important; color: #000000; border-top: 1.5px solid #0f172a; border-bottom: none; padding: calc(6px * var(--pad, 1)) 7px; font-size: calc(9pt * var(--fs, 1)); }
 
-/* Terms */
-.terms { font-size: 7.5pt; line-height: 1.35; color: #1e293b; margin-top: 5mm; break-inside: avoid; }
-.terms-heading { font-weight: 800; font-size: 8.5pt; color: #0f172a; margin-bottom: 2px; }
-.note-title { font-weight: 800; margin-top: 2px; text-decoration: underline; }
-.terms ol { margin: 2px 0 0 15px; padding: 0; }
-.terms li { margin-bottom: 1.5px; }
+/* Transport & Logistics Grid */
+.transport-wrap { border: 1.5px solid #0f172a; border-radius: 2px; overflow: hidden; background: #fff; margin-bottom: 3mm; width: 100%; break-inside: avoid; page-break-inside: avoid; }
+.transport-grid { display: grid; grid-template-columns: 58% 42%; padding: 6px 8px; gap: 10px; background: #fff; }
+.transport-grid .field-row { grid-template-columns: 42mm 1fr; margin-bottom: 2.5px; }
+.transport-grid > div + div .field-row { grid-template-columns: 29mm 1fr; }
+.transport-grid .field-row:last-child { margin-bottom: 0; }
 
-/* Footer */
-.footer { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; align-items: flex-end; margin-top: 5mm; text-align: center; break-inside: avoid; }
+/* Terms & Conditions */
+.terms { font-size: 7.5pt; line-height: 1.3; color: #334155; margin-top: 1.5mm; margin-bottom: 1.5mm; padding: 5px 8px; background: #f8fafc; border-left: 3.5px solid #0f172a; border-radius: 0 3px 3px 0; width: 100%; break-inside: avoid; page-break-inside: avoid; }
+.terms-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.terms-heading { font-weight: 800; font-size: 8pt; color: #0f172a; text-transform: uppercase; letter-spacing: 0.4px; }
+.note-title { font-weight: 800; font-size: 7.5pt; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
+.terms ol { margin: 0 0 0 14px; padding: 0; }
+.terms li { margin-bottom: 1px; }
+
+/* Signatures Footer */
+.footer { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: flex-end; margin-top: 3mm; text-align: center; width: 100%; break-inside: avoid; page-break-inside: avoid; }
 .sign-box { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 16mm; }
-.sign-line { border-top: 1px solid #334155; width: 90%; padding-top: 3px; font-size: 8pt; font-weight: 700; }
+.sign-for { font-size: 7.5pt; font-weight: 700; color: #334155; margin-bottom: 8mm; }
+.sign-line { border-top: 1px solid #334155; width: 85%; padding-top: 4px; font-size: 7.5pt; font-weight: 700; color: #0f172a; letter-spacing: 0.2px; }
 
-.print-actions { width: 210mm; max-width: 100%; margin: 0 auto 25px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; }
-.btn-action { background: #f97316; color: #fff; border: none; padding: 11px 26px; border-radius: 6px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 10pt; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
-.btn-action:hover { background: #ea580c; }
-.btn-secondary { background: #1e293b; }
-.btn-secondary:hover { background: #0f172a; }
+/* Bottom Paper Saver Bar */
+.print-actions { width: 210mm; max-width: 100%; margin: 15px auto 30px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; }
+.pe-info { display: inline-flex; align-items: center; gap: 8px; color: #334155; font-size: 9pt; font-weight: 600; background: #fff; padding: 6px 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; }
+.pe-info select { padding: 4px 6px; border: 1px solid #94a3b8; border-radius: 4px; font-size: 9pt; background: #fff; color: #0f172a; }
 
-.not-found { width: 210mm; max-width: calc(100% - 24px); margin: 40px auto; background: #fff; border: 1px solid #94a3b8; padding: 40px; text-align: center; font-size: 11pt; }
-</style>
+@media print {
+  html, body { background: #ffffff !important; }
+  .toolbar { display: none !important; }
+  .print-actions { display: none !important; }
+  #sheets { padding: 0; zoom: 1 !important; }
+  .sheet { margin: 0; outline: none; box-shadow: none; height: 296.4mm; border: none; border-radius: 0; }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+  </style>
 </head>
 <body>
 
 {% if not challan %}
-<div class="not-found">
-  <h3>Challan not found</h3>
-  <p>Challan No. <b>{{ challan_no }}</b> ka data nahi mila.</p>
-</div>
-<div class="print-actions">
-  <a href="{{ url_for('issue_challan.index') }}" class="btn-action btn-secondary">Back to Dashboard</a>
-</div>
+  <div class="toolbar">
+    <div class="tb-title">Issue Challan</div>
+    <div class="tb-actions"><a class="tb-btn grey" href="{{ url_for('issue_challan.index') }}">&larr; Back to Dashboard</a></div>
+  </div>
+  <div class="notfound">
+    <h2 style="margin-top:0;">Challan not found</h2>
+    <p>Challan No. <b>{{ challan_no }}</b> ka data nahi mila.</p>
+    <a class="tb-btn" href="{{ url_for('issue_challan.index') }}">Back to Dashboard</a>
+  </div>
 {% else %}
 
 {% set p = party or {} %}
 {% set s = site or {} %}
 {% set party_state_code = p.State_Code or 24 %}
 {% set site_state_code = s.State_Code or party_state_code %}
-{% set site_full = [s.Site_Name, s.Site_Address] | select | join(', ') %}
+{% set site_full = (s.Site_Address or s.Site_Name or '') | trim %}
 
-<div id="doc" class="doc-src dens-normal" data-label="Issue Challan No. {{ challan.Challan_No }}">
+<div class="toolbar">
+  <div class="tb-title">ISSUE CHALLAN &mdash; {{ challan.Challan_No }} <small id="tbPages" style="font-weight:500;opacity:.7;margin-left:6px;"></small></div>
+  <div class="tb-actions">
+    <button class="tb-btn" onclick="window.print()">&#128424; Print / Save as PDF</button>
+    <a class="tb-btn grey" href="{{ url_for('issue_challan.index') }}">&larr; Back</a>
+  </div>
+</div>
 
-  <div data-part="head">
+<!-- Source document for print engine: repeats Header & Party Details on every A4 page -->
+<div id="doc" class="doc-src dens-normal">
+
+  <div data-part="challan-head">
     <header class="header">
       <div class="logo-area">
         <svg class="brand-logo" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
@@ -151,31 +209,32 @@ html, body {
       <div class="title-area">
         <h1>ISSUE CHALLAN</h1>
         <p class="company-name">OM ENTERPRISE</p>
-        <p>PLOT NO: 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL</p>
+        <p>PLOT NO. 1046, KIRC ROAD, NEAR SINDBAD HOTEL, KALOL</p>
         <p>TALUKA-KALOL, GANDHINAGAR, GUJARAT - 382721</p>
-        <p>Contact: +91 9998802167, 9824219138 | Email: sbsanghvi.86@gmail.com</p>
+        <p>Contact : +91 9998802167, 9824219138</p>
+        <p>E-Mail: sbsanghvi.86@gmail.com</p>
         <p class="tax-details">GSTIN: 24BDU102R1Z8 &nbsp;|&nbsp; SAC: 997313</p>
       </div>
     </header>
 
     <section class="party-grid">
       <div class="receiver">
-        <div class="box-title">Details Of Receiver</div>
+        <div class="box-title">DETAILS OF RECEIVER</div>
         <div class="box-content">
           <div class="top-fields">
             <div class="field-row"><b>Name:</b><span>{{ p.Party_Name or challan.Party_ID or '-' }}</span></div>
             <div class="field-row"><b>Billing Address:</b><span>{{ p.Address or '-' }}</span></div>
           </div>
-          <div class="field-row"><b>Mobile No.:</b><span>{{ p.Phone or '-' }}</span></div>
           <div class="bottom-fields">
-            <div class="field-row state-row"><b>State Code:</b><span>{{ party_state_code }}</span></div>
-            <div class="field-row"><b>GSTIN No:</b><span>{{ p.GSTIN or '-' }}</span></div>
+            <div class="field-row"><b>Mobile No.:</b><span>{{ p.Phone or '-' }}</span></div>
+            <div class="field-row"><b>State Code:</b><span>{{ party_state_code }}</span></div>
+            <div class="field-row"><b>GSTIN No.:</b><span>{{ p.GSTIN if p.GSTIN else 'Unregistered' }}</span></div>
           </div>
         </div>
       </div>
 
       <div class="meta">
-        <div class="box-title">Challan Details</div>
+        <div class="box-title">CHALLAN DETAILS</div>
         <div class="box-content">
           <div class="top-fields">
             <div class="field-row"><b>Challan No.:</b><span>{{ challan.Challan_No }}</span></div>
@@ -183,7 +242,7 @@ html, body {
             <div class="field-row"><b>Site Address:</b><span>{{ site_full or challan.Site_ID or '-' }}</span></div>
           </div>
           <div class="bottom-fields">
-            <div class="field-row state-row"><b>State Code:</b><span>{{ site_state_code }}</span></div>
+            <div class="field-row"><b>State Code:</b><span>{{ site_state_code }}</span></div>
             <div class="field-row dummy-spacer"><b>&nbsp;</b><span>&nbsp;</span></div>
           </div>
         </div>
@@ -191,32 +250,31 @@ html, body {
     </section>
   </div>
 
-  <div data-part="run" class="run-head">
-    <div class="rh-left"><b>OM ENTERPRISE</b> &nbsp;|&nbsp; ISSUE CHALLAN</div>
-    <div class="rh-mid">No. <b>{{ challan.Challan_No }}</b> &nbsp;&middot;&nbsp; Date <b>{{ challan.Challan_Date or challan.Date or '-' }}</b> &nbsp;&middot;&nbsp; {{ p.Party_Name or challan.Party_ID or '-' }}</div>
-    <div class="rh-right">Page <i data-fill="page"></i> of <i data-fill="pages"></i></div>
-  </div>
-
+  <!-- Items Table with multi-page pagination -->
   <table class="items-table" data-flow="table" data-cols="3">
-    <colgroup><col style="width:14%"><col style="width:66%"><col style="width:20%"></colgroup>
+    <colgroup>
+      <col style="width: 12%">
+      <col style="width: 68%">
+      <col style="width: 20%">
+    </colgroup>
     <thead>
       <tr>
         <th class="text-center">S.No.</th>
-        <th class="text-left">ITEM DESCRIPTION</th>
+        <th class="text-left">Item Description</th>
         <th class="text-right">Qty (Nos)</th>
       </tr>
     </thead>
     <tbody>
       {% for itm in items %}
       <tr>
-        <td class="text-center">{{ loop.index }}</td>
+        <td class="text-center sno">{{ loop.index }}</td>
         <td>{{ itm.Description or itm.Item_Name or itm.Item_ID }}</td>
         <td class="text-right">{{ itm.Qty_Display or itm.Quantity }}</td>
       </tr>
       {% else %}
       <tr>
         <td class="text-center">-</td>
-        <td>No items found for this challan</td>
+        <td style="color:#64748b;">No items found for this challan</td>
         <td class="text-right">-</td>
       </tr>
       {% endfor %}
@@ -230,25 +288,32 @@ html, body {
     </tfoot>
   </table>
 
-  <section class="transport-grid" data-flow="block">
-    <div>
-      <div class="field-row"><b>Vehicle No.:</b><span>{{ challan.Vehicle_No or '-' }}</span></div>
-      <div class="field-row"><b>Transporter:</b><span>{{ challan.Transporter_Name or 'SELF' }}</span></div>
-      <div class="field-row"><b>Driver Name:</b><span>{{ challan.Driver_Name or '-' }}</span></div>
-      <div class="field-row"><b>Mode of Transport:</b><span>BY ROAD</span></div>
-      <div class="field-row"><b>E Way Bill No.:</b><span>{{ challan.EWay_Bill_No or '-' }}</span></div>
-      <div class="field-row"><b>Approx. Goods Value Rs:</b><span>{{ rs(goods_value_display) }}</span></div>
-    </div>
-    <div>
-      <div class="field-row"><b>Weight:</b><span>{{ weight_display }}</span></div>
-      <div class="field-row"><b>Driver Licence:</b><span>{{ challan.Driver_Licence or '-' }}</span></div>
-      <div class="field-row"><b>Driver Mob No:</b><span>{{ challan.Driver_Mob or '-' }}</span></div>
-    </div>
-  </section>
+  <!-- Transport & Logistics Details -->
+  <div class="transport-wrap" data-flow="block">
+    <div class="box-title">TRANSPORT &amp; DISPATCH DETAILS</div>
+    <section class="transport-grid">
+      <div>
+        <div class="field-row"><b>Vehicle No.:</b><span>{{ challan.Vehicle_No or '-' }}</span></div>
+        <div class="field-row"><b>Transporter:</b><span>{{ challan.Transporter_Name or 'SELF' }}</span></div>
+        <div class="field-row"><b>Driver Name:</b><span>{{ challan.Driver_Name or '-' }}</span></div>
+        <div class="field-row"><b>Mode of Transport:</b><span>BY ROAD</span></div>
+        <div class="field-row"><b>E-Way Bill No.:</b><span>{{ challan.EWay_Bill_No or '-' }}</span></div>
+        <div class="field-row"><b>Approx. Goods Value:</b><span>{{ rs(goods_value_display) }}</span></div>
+      </div>
+      <div>
+        <div class="field-row"><b>Weight:</b><span>{{ weight_display }}</span></div>
+        <div class="field-row"><b>Driver Licence:</b><span>{{ challan.Driver_Licence or '-' }}</span></div>
+        <div class="field-row"><b>Driver Mob No.:</b><span>{{ challan.Driver_Mob or '-' }}</span></div>
+      </div>
+    </section>
+  </div>
 
+  <!-- Terms and Conditions -->
   <section class="terms" data-flow="block">
-    <div class="terms-heading">GOODS ON HIRE NOT FOR SALE</div>
-    <div class="note-title">NOTE:</div>
+    <div class="terms-header">
+      <span class="terms-heading">GOODS ON HIRE &mdash; NOT FOR SALE</span>
+      <span class="note-title">TERMS &amp; CONDITIONS</span>
+    </div>
     <ol>
       <li>Goods will not be accepted back after 5 PM on any working day.</li>
       <li>Client is fully responsible for goods' safety, loss, damage, theft or misuse from delivery until return.</li>
@@ -257,32 +322,268 @@ html, body {
       <li>All disputes are subject to Gujarat/Gandhinagar jurisdiction only.</li>
       <li>Full cost price of unreturned/damaged material along with applicable hire charges will be charged.</li>
       <li>Company deals only with client; third-party defaults/non-returns are client's responsibility.</li>
-      <li>Sunday holiday- no issue or return of goods.</li>
+      <li>Sunday holiday - no issue or return of goods.</li>
     </ol>
   </section>
 
+  <!-- Signatures Footer -->
   <footer class="footer" data-flow="block">
     <div class="sign-box"><div class="sign-line">Client Stamp, Signature &amp; Date</div></div>
     <div class="sign-box"><div class="sign-line">Checked By</div></div>
-    <div class="sign-box"><div class="sign-line">Auth. Signatory</div></div>
+    <div class="sign-box"><div class="sign-for">For OM ENTERPRISE</div><div class="sign-line">Auth. Signatory</div></div>
   </footer>
 </div>
 
-<div id="sheets"></div>
+<!-- Rendered A4 sheets container -->
+<div id="sheets" data-label="Issue Challan No. {{ challan.Challan_No }}"></div>
 
 <div class="print-actions">
-  <a href="{{ url_for('issue_challan.index') }}" class="btn-action btn-secondary">Back to Dashboard</a>
   <span class="pe-info"><span id="pageInfo"></span>
     <select id="densitySel" aria-label="Paper saver">
       <option value="auto">Paper saver: Auto</option>
       <option value="normal">Normal spacing</option>
       <option value="compact">Compact</option>
       <option value="tight">Extra compact</option>
-    </select></span>
-  <button type="button" class="btn-action" onclick="window.print()">Print Challan</button>
+    </select>
+  </span>
 </div>
-
-{% include 'components/print_engine.html' %}
 {% endif %}
+
+<!-- Automatic Print Engine Script (Repeats Header & Party Details on every A4 page) -->
+<script>
+(function () {
+'use strict';
+var MIN_TAIL = 3, MAX_TRIES = 16, DENS = ['normal', 'compact', 'tight'];
+var DENS_NAME = {normal: 'normal spacing', compact: 'compact spacing', tight: 'extra compact spacing'};
+var doc = document.getElementById('doc'), host = document.getElementById('sheets');
+if (!doc || !host) { return; }
+var mode = 'auto', safety = 0;
+
+function sum(a, f) { var s = 0; a.forEach(function (x) { s += f(x); }); return s; }
+function outerH(el) {
+    var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return Math.ceil(r.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0));
+}
+function mk(tag, cls) { var e = document.createElement(tag); if (cls) { e.className = cls; } return e; }
+
+function measureTable(el) {
+    var th = el.tHead, tf = el.tFoot;
+    var b = {type: 'table', el: el, units: [],
+             theadH: th ? Math.ceil(th.getBoundingClientRect().height) : 0,
+             tfootH: tf ? Math.ceil(tf.getBoundingClientRect().height) : 0};
+    Array.prototype.forEach.call(el.tBodies, function (tb) {
+        Array.prototype.forEach.call(tb.rows, function (tr) {
+            b.units.push({el: tr, h: Math.ceil(tr.getBoundingClientRect().height)});
+        });
+    });
+    var cs = getComputedStyle(el);
+    var inner = b.theadH + b.tfootH + sum(b.units, function (u) { return u.h; });
+    b.chrome = Math.max(0, Math.ceil(el.getBoundingClientRect().height) - inner) +
+               Math.ceil(parseFloat(cs.marginBottom) || 0) + Math.ceil(parseFloat(cs.marginTop) || 0) + 4;
+    return b;
+}
+
+function measure(d) {
+    doc.className = 'doc-src dens-' + d;
+    void doc.offsetHeight;
+    var m = {blocks: [], headEl: null, headH: 0, d: d};
+    Array.prototype.forEach.call(doc.children, function (el) {
+        var part = el.getAttribute('data-part'), flow = el.getAttribute('data-flow');
+        if (part === 'challan-head') { m.headEl = el; m.headH = outerH(el); }
+        else if (flow === 'table') { m.blocks.push(measureTable(el)); }
+        else if (flow === 'block') { m.blocks.push({type: 'block', el: el, h: outerH(el)}); }
+    });
+    return m;
+}
+
+function layout(m, P) {
+    var pages = [], cur, rem;
+
+    function newPage() {
+        cur = {items: [], fresh: true};
+        pages.push(cur);
+        cur.items.push({k: 'head'});
+        rem = P - m.headH;
+    }
+    function atomic(b) {
+        if (b.h > rem && !cur.fresh) { newPage(); }
+        cur.items.push({k: 'block', b: b}); cur.fresh = false; rem -= b.h;
+    }
+
+    newPage();
+    var tables = m.blocks.filter(function (b) { return b.type === 'table'; });
+    var lastT = tables.length ? tables[tables.length - 1] : null;
+    var lastIdx = lastT ? m.blocks.indexOf(lastT) : -1;
+    var closing = lastT ? m.blocks.slice(lastIdx + 1) : [];
+    var closingH = sum(closing, function (c) { return c.h; });
+
+    function placeTable(b, isLast) {
+        var portion = null, n = b.units.length;
+        function openCost() { return b.theadH + b.chrome; }
+        function open() {
+            portion = {k: 'table', b: b, units: [], tfoot: false};
+            cur.items.push(portion); cur.fresh = false;
+            rem -= openCost();
+        }
+        function close() { portion = null; }
+        function put(u) { portion.units.push(u); rem -= u.h; }
+        function placeUnits(units, finalIsEnd) {
+            units.forEach(function (u, idx) {
+                var isEnd = finalIsEnd && idx === units.length - 1;
+                var reserve = isEnd ? b.tfootH : 0;
+                var need = u.h + reserve + (portion ? 0 : openCost());
+                if (need > rem && !cur.fresh) { close(); newPage(); need = u.h + reserve + openCost(); }
+                if (!portion) { open(); }
+                put(u);
+                if (isEnd) { portion.tfoot = true; rem -= b.tfootH; }
+            });
+        }
+
+        var K = isLast ? Math.min(MIN_TAIL, n) : 0;
+        placeUnits(b.units.slice(0, n - K), !isLast);
+
+        if (isLast) {
+            var tail = b.units.slice(n - K);
+            var tailH = sum(tail, function (u) { return u.h; }) + b.tfootH + closingH;
+            var need = tailH + (portion ? 0 : openCost());
+            if (need > rem && (!cur.fresh || portion)) { close(); newPage(); need = tailH + openCost(); }
+            if (need <= rem) {
+                if (!portion) { open(); }
+                tail.forEach(put);
+                portion.tfoot = true; rem -= b.tfootH;
+                closing.forEach(function (c) { cur.items.push({k: 'block', b: c}); rem -= c.h; });
+            } else {
+                placeUnits(tail, true);
+                closing.forEach(function (c) {
+                    if (c.h > rem && !cur.fresh) { newPage(); }
+                    cur.items.push({k: 'block', b: c});
+                    cur.fresh = false;
+                    rem -= c.h;
+                });
+            }
+        }
+    }
+
+    m.blocks.forEach(function (b, bi) {
+        if (lastT && bi > lastIdx) { return; }
+        if (b.type === 'block') { atomic(b); } else { placeTable(b, b === lastT); }
+    });
+    return pages;
+}
+
+function buildTable(it) {
+    var b = it.b, t = b.el.cloneNode(false), tb = mk('tbody');
+    var cg = b.el.querySelector('colgroup');
+    if (cg) { t.appendChild(cg.cloneNode(true)); }
+    if (b.el.tHead) { t.appendChild(b.el.tHead.cloneNode(true)); }
+    it.units.forEach(function (u) { tb.appendChild(u.el.cloneNode(true)); });
+    t.appendChild(tb);
+    if (it.tfoot && b.el.tFoot) { t.appendChild(b.el.tFoot.cloneNode(true)); }
+    var w = mk('div', 'tbl-wrap');
+    w.appendChild(t);
+    return w;
+}
+
+function build(pick) {
+    host.className = 'dens-' + pick.m.d;
+    host.innerHTML = '';
+    var total = pick.pages.length;
+    pick.pages.forEach(function (pg, i) {
+        var sheet = mk('div', 'sheet'), body = mk('div', 'sheet-body');
+        sheet.appendChild(body);
+        pg.items.forEach(function (it) {
+            if (it.k === 'head') { body.appendChild(pick.m.headEl.cloneNode(true)); }
+            else if (it.k === 'block') { body.appendChild(it.b.el.cloneNode(true)); }
+            else { body.appendChild(buildTable(it)); }
+        });
+        var foot = mk('div', 'sheet-foot');
+        foot.innerHTML = '<span>OM Enterprise &middot; ' + (host.getAttribute('data-label') || '').replace(/</g, '&lt;') + '</span>' +
+                         '<span class="cont">' + (i < total - 1 ? 'Continued on next page \u2192' : '') + '</span>' +
+                         '<span>Page <b>' + (i + 1) + '</b> of <b>' + total + '</b></span>';
+        sheet.appendChild(foot);
+        host.appendChild(sheet);
+    });
+}
+
+function overflowing() {
+    var bad = false;
+    Array.prototype.forEach.call(host.querySelectorAll('.sheet-body'), function (b) {
+        if (b.scrollHeight - b.clientHeight > 1) { bad = true; }
+    });
+    return bad;
+}
+
+function capacity() {
+    var s = mk('div', 'sheet'), b = mk('div', 'sheet-body');
+    s.appendChild(b); s.appendChild(mk('div', 'sheet-foot'));
+    host.appendChild(s);
+    var h = b.clientHeight;
+    host.removeChild(s);
+    return h;
+}
+
+function fitZoom() {
+    var avail = document.documentElement.clientWidth - 12, w = 793.7;
+    var scale = avail < w ? (avail / w) : 1;
+    if ('zoom' in document.body.style) {
+        host.style.zoom = scale < 1 ? String(scale) : '';
+        host.style.transform = '';
+        host.style.transformOrigin = '';
+    } else {
+        host.style.zoom = '';
+        host.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+        host.style.transformOrigin = 'top left';
+    }
+}
+
+function run() {
+    host.className = ''; host.innerHTML = '';
+    var base = capacity();
+    var results = DENS.map(function (d) { return {d: d, m: measure(d)}; });
+    var pick = null;
+    for (var t = 0; t <= MAX_TRIES; t++) {
+        var P = base - safety;
+        results.forEach(function (r) { r.pages = layout(r.m, P); });
+        if (mode === 'auto') {
+            var min = Math.min.apply(null, results.map(function (r) { return r.pages.length; }));
+            pick = results.filter(function (r) { return r.pages.length === min; })[0];
+        } else {
+            pick = results.filter(function (r) { return r.d === mode; })[0];
+        }
+        build(pick);
+        if (!overflowing()) { break; }
+        safety += 6;
+    }
+    fitZoom();
+    var tp = document.getElementById('tbPages');
+    if (tp) { tp.textContent = pick.pages.length + (pick.pages.length === 1 ? ' page' : ' pages'); }
+    var info = document.getElementById('pageInfo');
+    if (info) { info.textContent = pick.pages.length + (pick.pages.length === 1 ? ' page' : ' pages') + ' \u00b7 ' + DENS_NAME[pick.m.d]; }
+}
+
+function start() {
+    try { run(); }
+    catch (e) {
+        if (window.console) { console.error('challan print engine failed', e); }
+        document.documentElement.classList.remove('js');
+        host.innerHTML = '';
+    }
+}
+
+var sel = document.getElementById('densitySel');
+if (sel) { sel.addEventListener('change', function () { mode = sel.value; safety = 0; start(); }); }
+window.addEventListener('resize', fitZoom);
+// window.addEventListener('beforeprint', function () { host.style.zoom = ''; });
+window.addEventListener('beforeprint', function () {
+    host.style.zoom = '';
+    host.style.transform = '';
+    host.style.transformOrigin = '';
+});
+window.addEventListener('afterprint', fitZoom);
+
+if (document.fonts && document.fonts.ready) { document.fonts.ready.then(start); } else { start(); }
+})();
+</script>
+
 </body>
 </html>

@@ -36,7 +36,7 @@ th { background: #f1f5f9; font-weight: 700; }
       <select name="site_id" required>
         <option value="">Select Site</option>
         {% for s in sites %}
-        <option value="{{ s.Site_ID }}" {% if selected_site_id == s.Site_ID|string %}selected{% endif %}>{{ s.Site_Name or s.Address }}</option>
+        <option value="{{ s.Site_ID }}" {% if selected_site_id == s.Site_ID|string %}selected{% endif %}>{{ s.Site_Name or s.Site_Address or s.Address }}</option>
         {% endfor %}
       </select>
     </div>

@@ -106,7 +106,7 @@ html:not(.js) .doc-src { width: 210mm; max-width: 100%; margin: 15px auto; paddi
 .tax-details { font-weight: 800; color: #0f172a !important; margin-top: 2px !important; }
 
 /* Party & Invoice Details Grid */
-.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1.5px solid #0f172a; margin-bottom: 3.5mm; border-radius: 4px; width: 100%; overflow: hidden; background: #fff; }
+.party-grid { display: grid; grid-template-columns: 55% 45%; border: 1.5px solid #0f172a; margin-bottom: 3.5mm; border-radius: 2px; width: 100%; overflow: hidden; background: #fff; }
 .receiver, .meta { display: flex; flex-direction: column; }
 .receiver { border-right: 1.5px solid #0f172a; }
 .box-title { background: #dee1e9; color: #0f172a; padding: 4.5px 8px; font-weight: 800; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #94a3b8; }
@@ -119,7 +119,7 @@ html:not(.js) .doc-src { width: 210mm; max-width: 100%; margin: 15px auto; paddi
 /* Professional Items Table Design */
 .items-table { width: 100%; border-collapse: collapse; border: none; margin-bottom: 0; table-layout: fixed; background: #fff; }
 .tbl-wrap { border: 1.5px solid #0f172a; border-radius: 4px; overflow: hidden; background: #fff; margin-bottom: 3.5mm; }
-.tbl-wrap.is-last { border-radius: 4px 4px 0 0; margin-bottom: 0; }
+.tbl-wrap.is-last { border-radius: 2px 2px 0 0; margin-bottom: 0; }
 .tbl-wrap .items-table { margin-bottom: -2px; }
 .items-table thead { display: table-header-group; }
 .items-table th { background: #dee1e9; color: #0f172a; border-right: 1px solid #aab2c0; border-bottom: 2px solid #0f172a; padding: 5.5px 6px; font-size: 8.5pt; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
@@ -148,7 +148,7 @@ html:not(.js) .doc-src { width: 210mm; max-width: 100%; margin: 15px auto; paddi
 .carry-row td { font-weight: 700; font-style: italic; background: #eef1f6 !important; font-size: 8.5pt; color: #1e293b; padding: 5px 8px; border-top: 1px solid #94a3b8; border-bottom: 1px solid #98a2b3; }
 
 /* Summary & Tax Section Layout (Fixed right border cut-off issue) */
-.summary-wrapper { display: grid; grid-template-columns: 56% 44%; gap: 0; margin-top: 0; margin-bottom: 3mm; width: 100%; box-sizing: border-box; border: 1.5px solid #0f172a; border-top: none; border-radius: 0 0 4px 4px; overflow: hidden; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+.summary-wrapper { display: grid; grid-template-columns: 56% 44%; gap: 0; margin-top: 0; margin-bottom: 3mm; width: 100%; box-sizing: border-box; border: 1.5px solid #0f172a; border-top: none; border-radius: 0 0 2px 2px; overflow: hidden; background: #fff; break-inside: avoid; page-break-inside: avoid; }
 .balance-block { border: none; border-right: 1.5px solid #0f172a; display: flex; flex-direction: column; border-radius: 0; width: 100%; overflow: hidden; background: #fff; }
 .balance-content { padding: 6px 8px; font-size: 8pt; line-height: 1.3; flex: 1; }
 .words-block { padding: 6px 8px; font-size: 8pt; line-height: 1.3; border-top: 1px solid #cbd5e1; background: #f8fafc; }
@@ -249,18 +249,35 @@ html:not(.js) .doc-src { width: 210mm; max-width: 100%; margin: 15px auto; paddi
     <section class="party-grid">
       <div class="receiver">
         <div class="box-title">RECIPIENT DETAILS</div>
-        <div class="box-content">
+        <!-- <div class="box-content">
           <div class="top-fields">
             <div class="field-row"><b>Recipient:</b><span>{{ inv.party.Party_Name or '-' }}</span></div>
             <div class="field-row"><b>Site Name:</b><span>{{ inv.site_full or inv.site.Site_Name or '-' }}</span></div>
             <div class="field-row"><b>Address:</b><span>{{ inv.party.Address or '-' }}</span></div>
-            <!-- <div class="field-row"><b>Site:</b><span>{{ inv.site_full or inv.site.Site_Name or '-' }}</span></div> -->
+            <div class="field-row"><b>Site:</b><span>{{ inv.site_full or inv.site.Site_Name or '-' }}</span></div>
           </div>
           <div class="bottom-fields">
             <div class="field-row"><b>Mobile No.:</b><span>{{ inv.party.Phone or '-' }}</span></div>
             <div class="field-row"><b>GSTIN No:</b><span>{{ inv.party_gstin if inv.party_gstin else 'Unregistered' }}</span></div>
           </div>
-        </div>
+        </div> -->
+        <div class="box-content">
+  {% set _site = (inv.site.Site_Address or inv.site.Site_Name or inv.site_full or inv.party.Address or '') | trim %}
+  {% set _st = (inv.site.State or inv.party.State or '') | string | trim %}
+  {% set _sc = (inv.site.State_Code or inv.party.State_Code or inv.state_code or '') | string | trim %}
+  {% if _sc.endswith('.0') %}{% set _sc = _sc[:-2] %}{% endif %}
+  {% set _ph = (inv.party.Phone or inv.site.Phone or '') | string | trim %}
+  {% if _ph.endswith('.0') %}{% set _ph = _ph[:-2] %}{% endif %}
+  <div class="top-fields">
+    <div class="field-row"><b>Recipient:</b><span>{{ inv.party.Party_Name or '-' }}</span></div>
+    <div class="field-row"><b>Site Address:</b><span>{{ _site or '-' }}</span></div>
+  </div>
+  <div class="bottom-fields">
+    {% if _st %}<div class="field-row"><b>State:</b><span>{{ _st }}{% if _sc %} ({{ _sc }}){% endif %}</span></div>{% endif %}
+    <div class="field-row"><b>Mobile No.:</b><span>{{ _ph or '-' }}</span></div>
+    <div class="field-row"><b>GSTIN No:</b><span>{{ inv.party_gstin if inv.party_gstin else 'Unregistered' }}</span></div>
+  </div>
+</div>
       </div>
 
       <div class="meta">

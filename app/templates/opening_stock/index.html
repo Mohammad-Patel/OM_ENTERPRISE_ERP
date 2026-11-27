@@ -85,7 +85,7 @@
             {% for site in sites_by_party.get(selected_party_id, []) %}
             <option value="{{ site.Site_ID }}"
               {% if selected_site_id == site.Site_ID %}selected{% endif %}>
-              {{ site.Site_Name }}
+              {{ site.Site_Name or site.Site_Address or site.Site_ID }}
             </option>
             {% endfor %}
           </select>
@@ -282,7 +282,7 @@
       data.sites.forEach(function (site) {
         const option = document.createElement('option');
         option.value = site.Site_ID;
-        option.textContent = site.Site_Name;
+        option.textContent = site.Site_Name || site.Site_Address || site.Site_ID;
         if (preserveSelection && site.Site_ID === previousSite) {
           option.selected = true;
         }

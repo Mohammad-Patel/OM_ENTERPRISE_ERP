@@ -34,7 +34,7 @@ input, select { padding: 9px; font-size: 13px; border: 1px solid #94a3b8; border
       <select name="site_id" required>
         <option value="">Select Site</option>
         {% for s in sites %}
-        <option value="{{ s.Site_ID }}">{{ s.Site_Name or s.Address }}</option>
+        <option value="{{ s.Site_ID }}">{{ s.Site_Name or s.Site_Address or s.Address }}</option>
         {% endfor %}
       </select>
     </div>

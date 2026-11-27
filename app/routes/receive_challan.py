@@ -51,7 +51,8 @@ ENDPOINT_INDEX = 'receive_challan.index'
 
 
 # GST rule + numbering live in ONE place (app/services/numbering_service.py)
-from app.services.numbering_service import is_gst_registered, next_receive_challan_no  # noqa: E402
+from app.services.numbering_service import (RECEIVE, is_gst_registered, preview_challan_numbers,  # noqa: E402
+                                            take_challan_no)
 
 
 
@@ -272,7 +273,14 @@ def find_receive(book, receive_no):
     mask = df['Receive_Challan_No'].astype(str) == str(receive_no)
     if not mask.any():
         raise ChallanError('Receive challan not found.')
-    return r_sheet, df, df.index[mask][0]
+    # the same number can exist twice (a series can be restarted in Settings): ?id=<Receive_ID> picks
+    # the exact one, otherwise the NEWEST challan with that number is used
+    wanted = sid(request.values.get('id', ''))
+    if wanted and 'Receive_ID' in df.columns:
+        by_id = mask & (df['Receive_ID'].apply(sid) == wanted)
+        if by_id.any():
+            return r_sheet, df, df.index[by_id][-1]
+    return r_sheet, df, df.index[mask][-1]
 
 
 def ensure_columns(df, cols):
@@ -301,6 +309,7 @@ def index():
     all_challans, parties, sites = [], [], []
     receive_data = {}
     next_no = ''
+    next_numbers = {'gst': '', 'non_gst': ''}
 
     try:
         book = Book.load()
@@ -327,7 +336,8 @@ def index():
                       for s in all_sites}
 
         all_challans = records(book.df(receive_sheet(book)))
-        id_to_no = {sid(c.get('Receive_ID')): str(c.get('Receive_Challan_No')) for c in all_challans}
+        # everything below is keyed by Receive_ID: the same challan number can exist twice
+        # (a series can be restarted from Settings)
         for c in all_challans:
             c['Party_Name'] = party_names.get(sid(c.get('Party_ID')), c.get('Party_ID', ''))
             c['Site_Name'] = site_names.get(sid(c.get('Site_ID')), c.get('Site_ID', ''))
@@ -336,20 +346,20 @@ def index():
             c['Breakage_Qty'] = 0
             c['Breakage_Amount'] = 0
 
-        by_no = {str(c.get('Receive_Challan_No')): c for c in all_challans}
+        by_id = {sid(c.get('Receive_ID')): c for c in all_challans}
         for r in records(book.df(receive_items_sheet(book))):
-            no = id_to_no.get(sid(r.get('Receive_ID')))
-            if not no:
+            no = sid(r.get('Receive_ID'))
+            if no not in by_id:
                 continue
-            by_no[no]['Received_Qty'] += to_float(r.get('Accepted_Qty'))
+            by_id[no]['Received_Qty'] += to_float(r.get('Accepted_Qty'))
             receive_data.setdefault(no, {'items': [], 'breakage': []})['items'].append(
                 {'item_id': sid(r.get('Item_ID')), 'qty': _num(r.get('Accepted_Qty'))})
         for r in records(book.df(damage_sheet(book))):
-            no = id_to_no.get(sid(r.get('Receive_ID')))
-            if not no:
+            no = sid(r.get('Receive_ID'))
+            if no not in by_id:
                 continue
-            by_no[no]['Breakage_Qty'] += to_float(r.get('Damaged_Qty'))
-            by_no[no]['Breakage_Amount'] += to_float(r.get('Damage_Amount'))
+            by_id[no]['Breakage_Qty'] += to_float(r.get('Damaged_Qty'))
+            by_id[no]['Breakage_Amount'] += to_float(r.get('Damage_Amount'))
             receive_data.setdefault(no, {'items': [], 'breakage': []})['breakage'].append({
                 'item_id': sid(r.get('Item_ID')),
                 'name': r.get('Item_Name') or '',
@@ -366,7 +376,8 @@ def index():
         flash('Could not read the Excel data file. Please check that it exists and is not corrupted.', 'danger')
 
     try:
-        next_no = next_receive_challan_no(book)          # preview: 01, 02, 03 ...
+        next_numbers = preview_challan_numbers(book, RECEIVE)      # GST / without-GST receive series
+        next_no = next_numbers['non_gst']
     except Exception:
         logger.exception('Could not compute next receive challan number')
 
@@ -437,7 +448,25 @@ def index():
         total_records=total_records,
         current_date=datetime.now().strftime(DATE_FMT),
         next_challan_no=next_no,
+        next_gst_challan_no=next_numbers['gst'],
+        next_non_gst_challan_no=next_numbers['non_gst'],
+        gst_party_ids_json=to_js_json([sid(p.get('Party_ID')) for p in parties if is_gst_registered(p)]),
     )
+
+
+@receive_challan_bp.route('/next-no')
+def next_no_preview():
+    """Next receive challan number for the chosen party (JSON) - fills the Challan No. on party select."""
+    try:
+        book = Book.load()
+        party = next((p for p in load_parties(book)
+                      if sid(p.get('Party_ID')) == sid(request.args.get('party_id', ''))), {})
+        nums = preview_challan_numbers(book, RECEIVE)
+        return jsonify({'ok': True, 'gst': is_gst_registered(party),
+                        'challan_no': nums['gst'] if is_gst_registered(party) else nums['non_gst']})
+    except Exception:
+        logger.exception('Could not compute next receive challan number')
+        return jsonify({'ok': False, 'challan_no': ''}), 500
 
 
 @receive_challan_bp.route('/stock')
@@ -446,12 +475,13 @@ def stock():
     party_id = request.args.get('party_id', '').strip()
     site_id = request.args.get('site_id', '').strip()
     exclude_no = request.args.get('exclude', '').strip()
+    exclude_rid = sid(request.args.get('exclude_id', ''))
     if not party_id or not site_id:
         return jsonify({'items': [], 'total_stock': 0})
     try:
         book = Book.load()
-        exclude_id = None
-        if exclude_no:
+        exclude_id = exclude_rid or None
+        if exclude_no and not exclude_id:
             df = book.df(receive_sheet(book))
             if not df.empty and 'Receive_Challan_No' in df.columns:
                 match = df[df['Receive_Challan_No'].astype(str) == exclude_no]
@@ -507,7 +537,8 @@ def create():
         stock = stock_summary(book, header['Party_ID'], header['Site_ID'])
         validate_against_stock(received, breakage, stock, master)
 
-        receive_no = next_receive_challan_no(book)       # server generated: 01, 02, 03 ...
+        receive_no, counter_update = take_challan_no(book, RECEIVE, parties.get(sid(header['Party_ID']), {}),
+                                                     records(rdf))        # server generated, per series
         receive_id = next_id(rdf, 'Receive_ID')
 
         item_lines = number_rows(build_item_lines(received, breakage), 'Line_ID',
@@ -539,10 +570,11 @@ def create():
             ri_sheet: append_rows(ridf, item_lines),
             d_sheet: append_rows(ddf, charge_rows),
             a_sheet: audit_df,
+            **counter_update,                      # series counter + 1, saved together with the challan
         })
 
     flash(f'Receive challan {receive_no} created successfully!', 'success')
-    return redirect(url_for('receive_challan.print_challan', challan_no=receive_no))
+    return redirect(url_for('receive_challan.print_challan', challan_no=receive_no, id=receive_id))
 
 
 @receive_challan_bp.route('/edit/<path:challan_no>', methods=['POST'])
@@ -663,8 +695,11 @@ def print_challan(challan_no):
         df = book.df(receive_sheet(book))
         if not df.empty and 'Receive_Challan_No' in df.columns:
             match = df[df['Receive_Challan_No'].astype(str) == str(challan_no)]
+            wanted = sid(request.args.get('id', ''))
+            if wanted and 'Receive_ID' in match.columns and (match['Receive_ID'].apply(sid) == wanted).any():
+                match = match[match['Receive_ID'].apply(sid) == wanted]
             if not match.empty:
-                challan = records(match)[0]
+                challan = records(match.tail(1))[0]
 
         if challan:
             rid = sid(challan.get('Receive_ID'))
